@@ -1,0 +1,13 @@
+
+##Make sure you're on master
+git branch
+
+##Get the latest GitHub changes
+git fetch h5p_interactive_app
+
+
+##Then check what's different:
+git status
+
+## Ambil dari github sesuaikan dengan VS Code.  BUKAN DARI VS CODE KE GITHUB
+git pull h5p_interactive_app master
