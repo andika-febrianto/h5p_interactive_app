@@ -189,6 +189,8 @@ export function registerAccount(body: {
   email: string;
   password: string;
   role: UserRole;
+  grade?: number;
+  semester?: number;
 }): Promise<AuthResponse> {
   return request('/auth/register', { method: 'POST', body: JSON.stringify(body) });
 }

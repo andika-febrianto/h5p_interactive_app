@@ -34,6 +34,8 @@ const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email('Email tidak valid'),
   password: z.string().min(6, 'Kata sandi minimal 6 karakter'),
   role: z.enum(['TEACHER', 'STUDENT']),
+  grade: z.number().int().min(1).max(6).optional(),
+  semester: z.number().int().min(1).max(2).optional(),
 });
 
 authRouter.post('/register', async (req, res, next) => {
@@ -43,7 +45,7 @@ authRouter.post('/register', async (req, res, next) => {
       res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Data tidak valid' });
       return;
     }
-    const { name, email, password, role } = parsed.data;
+    const { name, email, password, role, grade, semester } = parsed.data;
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -52,7 +54,16 @@ authRouter.post('/register', async (req, res, next) => {
     }
 
     const passwordHash = await hashPassword(password);
-    const user = await prisma.user.create({ data: { name, email, passwordHash, role } });
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        role,
+        grade: role === 'STUDENT' ? grade ?? null : null,
+        semester: role === 'STUDENT' ? semester ?? null : null,
+      },
+    });
 
     // Every new account starts on a 14-day free trial with full access —
     // matches the "Free Trial: 14 hari, Semua fitur" plan on the pricing page.
@@ -74,7 +85,7 @@ authRouter.post('/register', async (req, res, next) => {
     res.status(201).json({
       accessToken,
       refreshToken,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, grade: user.grade, semester: user.semester },
     });
   } catch (err) {
     next(err);
@@ -106,7 +117,7 @@ authRouter.post('/login', async (req, res, next) => {
     res.json({
       accessToken,
       refreshToken,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, grade: user.grade, semester: user.semester },
     });
   } catch (err) {
     next(err);
@@ -154,6 +165,8 @@ authRouter.post('/refresh', async (req, res, next) => {
         name: session.user.name,
         email: session.user.email,
         role: session.user.role,
+        grade: session.user.grade,
+        semester: session.user.semester,
       },
     });
   } catch (err) {
@@ -182,7 +195,7 @@ authRouter.get('/me', requireAuth, async (req, res, next) => {
       res.status(404).json({ error: 'User tidak ditemukan.' });
       return;
     }
-    res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+    res.json({ id: user.id, name: user.name, email: user.email, role: user.role, grade: user.grade, semester: user.semester });
   } catch (err) {
     next(err);
   }

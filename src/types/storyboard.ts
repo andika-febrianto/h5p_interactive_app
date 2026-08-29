@@ -136,4 +136,6 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  grade?: number;
+  semester?: number;
 }

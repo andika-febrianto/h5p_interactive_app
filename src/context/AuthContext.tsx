@@ -13,7 +13,7 @@ interface AuthState {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
+  register: (name: string, email: string, password: string, role: UserRole, grade?: number, semester?: number) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -46,8 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user);
   };
 
-  const register = async (name: string, email: string, password: string, role: UserRole) => {
-    const res = await registerAccount({ name, email, password, role });
+  const register = async (name: string, email: string, password: string, role: UserRole, grade?: number, semester?: number) => {
+    const res = await registerAccount({ name, email, password, role, grade, semester });
     persistAuthResponse(res);
     setUser(res.user);
   };

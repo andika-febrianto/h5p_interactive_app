@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Frame, FrameKind } from '../../types/storyboard';
 import { randomId, slugify } from '../../lib/idgen';
 import { FileUploadField } from './FileUploadField';
+import { RichTextEditor } from './RichTextEditor';
 import { ScenePlayer } from '../ScenePlayer';
 import { ProgressProvider } from '../../context/ProgressContext';
 
@@ -220,7 +221,7 @@ export function FrameForm({
         <>
           <label className="auth-field">
             <span>Isi materi</span>
-            <textarea value={d.body} onChange={(e) => update('body', e.target.value)} rows={5} required />
+            <RichTextEditor value={d.body} onChange={(v) => update('body', v)} placeholder="Tulis isi materi di sini..." />
           </label>
           <FileUploadField
             label="Gambar materi (opsional)"

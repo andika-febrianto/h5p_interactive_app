@@ -39,6 +39,8 @@ model User {
   email        String           @unique
   passwordHash String
   role         Role
+  grade        Int?             // school grade (1-6), only for STUDENT
+  semester     Int?             // semester (1 or 2), only for STUDENT
   progress     ProgressRecord[]
   sessions     Session[]
   subscription Subscription?

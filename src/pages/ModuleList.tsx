@@ -107,7 +107,7 @@ export default function ModuleList() {
                     <span className="module-card-time">{mod.estimatedMinutes}</span>
                   </div>
                   <h2 className="module-card-title">{mod.title}</h2>
-                  <p className="module-card-summary">{mod.summary}</p>
+                  <p className="module-card-summary" dangerouslySetInnerHTML={{ __html: mod.summary }} />
                   <div className="module-card-footer">
                     <span className="module-card-progress">
                       {done > 0 ? `${done}/${total} panel selesai` : `${total} panel`}

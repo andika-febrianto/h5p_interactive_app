@@ -24,7 +24,7 @@ export function TextScene({ frame, onDone }: { frame: TextFrame; onDone: () => v
           </div>
         )
       )}
-      <p className="text-scene-body">{frame.body}</p>
+      <div className="text-scene-body" dangerouslySetInnerHTML={{ __html: frame.body }} />
       <button className="btn-primary" onClick={handleContinue}>
         Lanjutkan →
       </button>

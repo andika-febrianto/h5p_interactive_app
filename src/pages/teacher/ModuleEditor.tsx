@@ -14,6 +14,7 @@ import {
 import { slugify } from '../../lib/idgen';
 import type { Module, Frame, Subject } from '../../types/storyboard';
 import { FrameForm } from '../../components/teacher/FrameForm';
+import { RichTextEditor } from '../../components/teacher/RichTextEditor';
 import { Pagination } from '../../components/Pagination';
 
 const KIND_ICON: Record<string, string> = {
@@ -236,11 +237,19 @@ export default function ModuleEditor() {
           </label>
           <label className="auth-field">
             <span>Subjudul</span>
-            <input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} required />
+            <RichTextEditor
+              value={form.subtitle}
+              onChange={(html) => setForm({ ...form, subtitle: html })}
+              placeholder="Tulis subjudul modul..."
+            />
           </label>
           <label className="auth-field">
             <span>Ringkasan (tampil di kartu modul)</span>
-            <input value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} required />
+            <RichTextEditor
+              value={form.summary}
+              onChange={(html) => setForm({ ...form, summary: html })}
+              placeholder="Tulis ringkasan singkat modul..."
+            />
           </label>
           <div className="frame-form-grid">
             <label className="auth-field">

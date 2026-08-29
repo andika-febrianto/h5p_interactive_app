@@ -1391,6 +1391,29 @@ textarea:focus {
   cursor: pointer;
 }
 
+.auth-grade-semester {
+  display: flex;
+  gap: 12px;
+}
+.auth-grade-semester .auth-field {
+  flex: 1;
+}
+.auth-grade-semester select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--sand-dim);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--ink);
+}
+.auth-grade-semester select:focus {
+  outline: none;
+  border-color: var(--ocean-bright);
+  box-shadow: 0 0 0 3px rgba(0, 116, 181, 0.12);
+}
+
 .auth-error {
   margin: 0;
   font-size: 13.5px;
@@ -2305,4 +2328,199 @@ textarea:focus {
   .scene {
     animation: none;
   }
+}
+
+/* ---------- WYSIWYG Rich Text Editor (Tiptap) ---------- */
+
+.rte-wrapper {
+  border: 1.5px solid var(--sand-dim);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.rte-wrapper:focus-within {
+  border-color: var(--ocean-mid);
+}
+
+.rte-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  background: var(--sand-dim);
+  border-bottom: 1px solid rgba(10, 31, 30, 0.08);
+}
+
+.rte-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ocean-mid);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.rte-toolbar-btn:hover:not(:disabled) {
+  background: rgba(18, 82, 77, 0.1);
+  color: var(--ink);
+}
+
+.rte-toolbar-btn.is-active {
+  background: var(--ocean-deep);
+  color: var(--white);
+}
+
+.rte-toolbar-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.rte-toolbar-sep {
+  display: inline-block;
+  width: 1px;
+  height: 20px;
+  background: rgba(10, 31, 30, 0.15);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* Editor content area */
+
+.rte-content {
+  min-height: 120px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 14px 16px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.7;
+  color: #22403e;
+  outline: none;
+}
+
+.rte-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--ocean-mid);
+  opacity: 0.5;
+  pointer-events: none;
+  height: 0;
+}
+
+.rte-content h2 {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 22px;
+  margin: 18px 0 10px;
+  color: var(--ink);
+}
+
+.rte-content h3 {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 18px;
+  margin: 14px 0 8px;
+  color: var(--ink);
+}
+
+.rte-content h4 {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 16px;
+  margin: 12px 0 6px;
+  color: var(--ink);
+}
+
+.rte-content ul,
+.rte-content ol {
+  padding-left: 24px;
+  margin: 8px 0;
+}
+
+.rte-content li {
+  margin: 4px 0;
+}
+
+.rte-content blockquote {
+  border-left: 3px solid var(--coral);
+  margin: 12px 0;
+  padding: 8px 16px;
+  background: rgba(255, 111, 89, 0.05);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--ocean-mid);
+  font-style: italic;
+}
+
+.rte-content hr {
+  border: none;
+  border-top: 1px solid var(--sand-dim);
+  margin: 16px 0;
+}
+
+.rte-content mark {
+  background: rgba(255, 200, 87, 0.35);
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+/* Make the text-scene body render the same rich text styles */
+.text-scene-body h2,
+.text-scene-body h3,
+.text-scene-body h4 {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 16px 0 8px;
+}
+
+.text-scene-body h2 { font-size: 22px; }
+.text-scene-body h3 { font-size: 18px; }
+.text-scene-body h4 { font-size: 16px; }
+
+.text-scene-body ul,
+.text-scene-body ol {
+  padding-left: 24px;
+  margin: 8px 0;
+}
+
+.text-scene-body li {
+  margin: 4px 0;
+}
+
+.text-scene-body blockquote {
+  border-left: 3px solid var(--coral);
+  margin: 12px 0;
+  padding: 8px 16px;
+  background: rgba(255, 111, 89, 0.05);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--ocean-mid);
+  font-style: italic;
+}
+
+.text-scene-body hr {
+  border: none;
+  border-top: 1px solid var(--sand-dim);
+  margin: 16px 0;
+}
+
+.text-scene-body mark {
+  background: rgba(255, 200, 87, 0.35);
+  border-radius: 2px;
+  padding: 0 2px;
 }
