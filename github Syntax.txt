@@ -11,3 +11,8 @@ git status
 
 ## Ambil dari github sesuaikan dengan VS Code.  BUKAN DARI VS CODE KE GITHUB
 git pull h5p_interactive_app master
+
+##dari vs code to github
+git add .
+git commit -m "comment"
+git push
