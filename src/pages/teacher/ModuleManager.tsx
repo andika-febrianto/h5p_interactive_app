@@ -10,6 +10,7 @@ import {
 } from '../../lib/api';
 import type { Subject } from '../../types/storyboard';
 import { slugify } from '../../lib/idgen';
+import { RichTextEditor } from '../../components/teacher/RichTextEditor';
 import { grades, semesters } from '../../data/grades';
 import { Pagination } from '../../components/Pagination';
 
@@ -308,12 +309,13 @@ export default function ModuleManager() {
 
           <label className="auth-field">
             <span>Ringkasan (tampilan di kartu)</span>
-            <textarea
-              value={newForm.summary}
-              onChange={(e) => setNewForm({ ...newForm, summary: e.target.value })}
-              rows={3}
-              placeholder="Deskripsi modul yang ditampilkan di kartu murid"
-            />
+            <div className="modal-rich-text-wrap">
+              <RichTextEditor
+                value={newForm.summary}
+                onChange={(html) => setNewForm({ ...newForm, summary: html })}
+                placeholder="Deskripsi modul yang ditampilkan di kartu murid..."
+              />
+            </div>
           </label>
 
           <div className="modal-form-row">
