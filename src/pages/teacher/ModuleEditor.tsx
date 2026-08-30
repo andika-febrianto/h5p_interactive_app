@@ -62,44 +62,73 @@ function SortableFrameRow({
     zIndex: isDragging ? 50 : undefined,
   };
 
+  const kindLabel: Record<string, string> = {
+    text: 'Materi Teks',
+    quiz: 'Kuis Pilihan Ganda',
+    dragdrop: 'Aktivitas Seret & Letak',
+    video: 'Video Interaktif',
+    pdf: 'Dokumen PDF',
+    shortanswer: 'Isian Singkat',
+  };
+
   return (
-    <div className="frame-list-row" ref={setNodeRef} style={style}>
-      <span className="frame-list-drag-handle" {...attributes} {...listeners} title="Geser untuk mengubah posisi">
-        ⠿
-      </span>
-      <span className="frame-list-icon">{KIND_ICON[f.kind]}</span>
-      <div className="frame-list-text">
-        <span className="frame-list-title">
-          {f.panel} — {f.title}
-        </span>
-        <span className="frame-list-kind">{f.kind}</span>
-      </div>
-      <div className="frame-list-actions">
-        <button type="button" className="btn-secondary btn-small" onClick={() => onMove(globalIndex, -1)} disabled={globalIndex === 0}>
-          ↑
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-small"
-          onClick={() => onMove(globalIndex, 1)}
-          disabled={globalIndex === totalFrames - 1}
-        >
-          ↓
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-small"
-          onClick={() => onToggleEdit(f.id)}
-        >
-          {editingSlug === f.id ? 'Tutup' : 'Sunting'}
-        </button>
-        <button type="button" className="btn-secondary btn-small" onClick={() => onDelete(f.id)}>
-          Hapus
-        </button>
+    <div className="stepsweb-frame-row" ref={setNodeRef} style={style}>
+      <div className="stepsweb-frame-card">
+        <div className="stepsweb-frame-header">
+          <span className="stepsweb-frame-drag" {...attributes} {...listeners} title="Geser untuk mengubah posisi">
+            ⠿
+          </span>
+          <h3 className="stepsweb-frame-title">{f.title || `Panel ${f.panel}`}</h3>
+          <div className="stepsweb-frame-actions">
+            <button
+              type="button"
+              className="stepsweb-btn-arrow"
+              onClick={() => onMove(globalIndex, -1)}
+              disabled={globalIndex === 0}
+              title="Pindah ke atas"
+            >
+              ▲
+            </button>
+            <button
+              type="button"
+              className="stepsweb-btn-arrow"
+              onClick={() => onMove(globalIndex, 1)}
+              disabled={globalIndex === totalFrames - 1}
+              title="Pindah ke bawah"
+            >
+              ▼
+            </button>
+            <button
+              type="button"
+              className="stepsweb-btn-delete"
+              onClick={() => onDelete(f.id)}
+              title="Hapus panel"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <div className="stepsweb-frame-meta">
+          <span className="stepsweb-frame-meta-item">
+            <strong>Jenis:</strong> {KIND_ICON[f.kind]} {kindLabel[f.kind] ?? f.kind}
+          </span>
+          <span className="stepsweb-frame-meta-item">
+            <strong>Panel:</strong> {f.panel}
+          </span>
+        </div>
+        <div className="stepsweb-frame-edit-row">
+          <button
+            type="button"
+            className="stepsweb-btn-edit"
+            onClick={() => onToggleEdit(f.id)}
+          >
+            {editingSlug === f.id ? '✕ Tutup' : '✎ Sunting'}
+          </button>
+        </div>
       </div>
 
       {editingSlug === f.id && editingFrame && (
-        <div className="frame-form-wrap">
+        <div className="stepsweb-edit-panel">
           <FrameForm
             frame={editingFrame}
             isNew={false}
@@ -422,14 +451,13 @@ export default function ModuleEditor() {
             <Pagination page={framePage} totalPages={totalFramePages} onChange={setFramePage} />
 
             {addingFrame ? (
-              <div className="frame-form-wrap" style={{ marginTop: 16 }}>
+              <div className="stepsweb-edit-panel" style={{ marginTop: 16 }}>
                 <FrameForm frame={null} isNew onSave={handleSaveFrame} onCancel={() => setAddingFrame(false)} />
               </div>
             ) : (
               <button
                 type="button"
-                className="btn-primary"
-                style={{ marginTop: 16 }}
+                className="stepsweb-add-item"
                 onClick={() => {
                   setEditingSlug(null);
                   setAddingFrame(true);

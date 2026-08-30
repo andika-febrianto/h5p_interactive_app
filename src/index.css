@@ -1303,6 +1303,176 @@ button {
   order: 10;
 }
 
+/* ── StepsWeb-inspired frame panel layout ── */
+
+.stepsweb-frame-row {
+  margin-bottom: 4px;
+}
+.stepsweb-frame-card {
+  background: var(--white);
+  border: 1.5px solid var(--sand-dim);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.stepsweb-frame-card:hover {
+  border-color: var(--ocean-mid);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.stepsweb-frame-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.stepsweb-frame-drag {
+  cursor: grab;
+  font-size: 18px;
+  color: var(--ocean-mid);
+  user-select: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
+}
+.stepsweb-frame-drag:hover {
+  color: var(--ocean);
+  background: var(--sand);
+}
+.stepsweb-frame-drag:active {
+  cursor: grabbing;
+}
+.stepsweb-frame-title {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.stepsweb-frame-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.stepsweb-btn-arrow {
+  background: var(--sand);
+  color: var(--ink);
+  border: 1.5px solid var(--sand-dim);
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+.stepsweb-btn-arrow:hover:not(:disabled) {
+  background: var(--ocean-mid);
+  color: var(--white);
+  border-color: var(--ocean-mid);
+}
+.stepsweb-btn-arrow:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.stepsweb-btn-delete {
+  background: var(--coral-soft);
+  color: var(--white);
+  border: 1.5px solid var(--coral);
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.stepsweb-btn-delete:hover {
+  background: var(--coral);
+}
+.stepsweb-frame-meta {
+  display: flex;
+  gap: 24px;
+  margin-top: 8px;
+  padding-left: 42px;
+}
+.stepsweb-frame-meta-item {
+  font-size: 13px;
+  color: var(--ocean-mid);
+}
+.stepsweb-frame-meta-item strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.stepsweb-frame-edit-row {
+  margin-top: 10px;
+  padding-left: 42px;
+}
+.stepsweb-btn-edit {
+  background: var(--sand);
+  color: var(--ink);
+  border: 1.5px solid var(--sand-dim);
+  border-radius: var(--radius-sm);
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.stepsweb-btn-edit:hover {
+  background: var(--ocean-mid);
+  color: var(--white);
+  border-color: var(--ocean-mid);
+}
+
+.stepsweb-edit-panel {
+  background: var(--sand-dim);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-top: 12px;
+}
+
+.stepsweb-add-item {
+  width: 100%;
+  padding: 28px 20px;
+  margin-top: 12px;
+  background: transparent;
+  border: 2px dashed var(--ocean-mid);
+  border-radius: var(--radius-md);
+  color: var(--ocean-mid);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  text-align: center;
+}
+.stepsweb-add-item:hover {
+  border-color: var(--ocean);
+  color: var(--ocean);
+  background: rgba(91, 95, 239, 0.04);
+}
+
+@media (max-width: 640px) {
+  .stepsweb-frame-meta {
+    flex-direction: column;
+    gap: 6px;
+    padding-left: 0;
+  }
+  .stepsweb-frame-edit-row {
+    padding-left: 0;
+  }
+  .stepsweb-frame-title {
+    font-size: 15px;
+  }
+}
+
 textarea {
   font-family: var(--font-body);
   font-size: 15px;
