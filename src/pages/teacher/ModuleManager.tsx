@@ -29,7 +29,7 @@ function Modal({
 }) {
   if (!open) return null;
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">{title}</h2>
@@ -66,8 +66,7 @@ export default function ModuleManager() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  /* ── Sunting Modul modal state ── */
-  const [editModule, setEditModule] = useState<ModuleSummary | null>(null);
+
 
   const load = () => {
     fetchModules({})
@@ -220,7 +219,7 @@ export default function ModuleManager() {
                         <button
                           type="button"
                           className="btn-secondary"
-                          onClick={() => setEditModule(m)}
+                          onClick={() => navigate(`/guru/modul/${m.id}`)}
                         >
                           Sunting
                         </button>
@@ -356,56 +355,7 @@ export default function ModuleManager() {
         </form>
       </Modal>
 
-      {/* ── Sunting Modul Modal ── */}
-      <Modal open={!!editModule} onClose={() => setEditModule(null)} title="📝 Sunting Modul">
-        {editModule && (
-          <div className="modal-form">
-            <div className="sunting-info-card">
-              <div className="sunting-info-row">
-                <span className="sunting-info-label">Judul</span>
-                <span className="sunting-info-value">{editModule.title}</span>
-              </div>
-              <div className="sunting-info-row">
-                <span className="sunting-info-label">Sub Judul</span>
-                <span className="sunting-info-value">{editModule.subtitle || '—'}</span>
-              </div>
-              <div className="sunting-info-row">
-                <span className="sunting-info-label">Mata Pelajaran</span>
-                <span className="sunting-info-value">{subjectLabel(editModule.subjectId)}</span>
-              </div>
-              <div className="sunting-info-row">
-                <span className="sunting-info-label">Kelas</span>
-                <span className="sunting-info-value">{gradeLabel(editModule.grade)}</span>
-              </div>
-              <div className="sunting-info-row">
-                <span className="sunting-info-label">Semester</span>
-                <span className="sunting-info-value">{semesterLabel(editModule.semester)}</span>
-              </div>
-              <div className="sunting-info-row">
-                <span className="sunting-info-label">Panel</span>
-                <span className="sunting-info-value">{editModule.frameCount} panel</span>
-              </div>
-              <div className="sunting-info-row">
-                <span className="sunting-info-label">Estimasi</span>
-                <span className="sunting-info-value">{editModule.estimatedMinutes}</span>
-              </div>
-            </div>
 
-            <div className="modal-actions">
-              <button type="button" className="btn-secondary" onClick={() => setEditModule(null)}>
-                Batal
-              </button>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => navigate(`/guru/modul/${editModule.id}`)}
-              >
-                📝 Buka Editor Panel
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 }
