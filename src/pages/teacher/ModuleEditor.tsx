@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   fetchModule,
-  createModule,
-  updateModule,
   createFrame,
   updateFrame,
   deleteFrame,
@@ -11,10 +9,8 @@ import {
   fetchSubjects,
   ApiError,
 } from '../../lib/api';
-import { slugify } from '../../lib/idgen';
 import type { Module, Frame, Subject } from '../../types/storyboard';
 import { FrameForm } from '../../components/teacher/FrameForm';
-import { RichTextEditor } from '../../components/teacher/RichTextEditor';
 import { Pagination } from '../../components/Pagination';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -143,18 +139,6 @@ function SortableFrameRow({
 
 const FRAMES_PER_PAGE = 5;
 
-const emptyModuleForm = {
-  id: '',
-  subjectId: '',
-  grade: 1,
-  semester: 1 as 1 | 2,
-  title: '',
-  subtitle: '',
-  summary: '',
-  estimatedMinutes: '10-15 menit',
-  accent: '#5B5FEF',
-};
-
 export default function ModuleEditor() {
   const { moduleId } = useParams<{ moduleId: string }>();
   const isNew = moduleId === 'baru';
@@ -162,9 +146,7 @@ export default function ModuleEditor() {
 
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [mod, setMod] = useState<Module | null>(null);
-  const [form, setForm] = useState(emptyModuleForm);
   const [error, setError] = useState<string | null>(null);
-  const [savingModule, setSavingModule] = useState(false);
   const [editingSlug, setEditingSlug] = useState<string | null>(null); // frame being edited
   const [addingFrame, setAddingFrame] = useState(false);
   const [framePage, setFramePage] = useState(1);
@@ -182,17 +164,6 @@ export default function ModuleEditor() {
     return fetchModule(moduleId)
       .then((m) => {
         setMod(m);
-        setForm({
-          id: m.id,
-          subjectId: m.subjectId,
-          grade: m.grade,
-          semester: m.semester,
-          title: m.title,
-          subtitle: m.subtitle,
-          summary: m.summary,
-          estimatedMinutes: m.estimatedMinutes,
-          accent: m.accent,
-        });
         return m;
       })
       .catch((err) => {
@@ -215,26 +186,6 @@ export default function ModuleEditor() {
     if (framePage > totalPages) setFramePage(totalPages);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mod?.frames.length]);
-
-  const handleSaveModule = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSavingModule(true);
-    try {
-      if (isNew) {
-        const created = await createModule(form);
-        navigate(`/guru/modul/${created.id}`, { replace: true });
-      } else if (moduleId) {
-        const { id: _id, ...rest } = form;
-        await updateModule(moduleId, rest);
-        loadModule();
-      }
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Gagal menyimpan modul.');
-    } finally {
-      setSavingModule(false);
-    }
-  };
 
   const handleSaveFrame = async (payload: Record<string, unknown>) => {
     if (!moduleId || isNew) return;
@@ -335,102 +286,6 @@ export default function ModuleEditor() {
         )}
 
         {error && <p className="auth-error" style={{ maxWidth: 560 }}>{error}</p>}
-
-        <form className="auth-form" style={{ maxWidth: 560, marginBottom: 32 }} onSubmit={handleSaveModule}>
-          <div className="frame-form-grid">
-            <label className="auth-field">
-              <span>id modul (slug)</span>
-              <input
-                value={form.id}
-                onChange={(e) => setForm({ ...form, id: slugify(e.target.value) })}
-                disabled={!isNew}
-                required
-              />
-            </label>
-            <label className="auth-field">
-              <span>Mata pelajaran</span>
-              <select
-                value={form.subjectId}
-                onChange={(e) => setForm({ ...form, subjectId: e.target.value })}
-                required
-              >
-                <option value="" disabled>
-                  Pilih...
-                </option>
-                {subjects.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.shortName}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="frame-form-grid">
-            <label className="auth-field">
-              <span>Kelas</span>
-              <input
-                type="number"
-                min={1}
-                max={12}
-                value={form.grade}
-                onChange={(e) => setForm({ ...form, grade: Number(e.target.value) })}
-                required
-              />
-            </label>
-            <label className="auth-field">
-              <span>Semester</span>
-              <select
-                value={form.semester}
-                onChange={(e) => setForm({ ...form, semester: Number(e.target.value) as 1 | 2 })}
-              >
-                <option value={1}>1</option>
-                <option value={2}>2</option>
-              </select>
-            </label>
-          </div>
-          <label className="auth-field">
-            <span>Judul modul</span>
-            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-          </label>
-          <label className="auth-field">
-            <span>Subjudul</span>
-            <RichTextEditor
-              value={form.subtitle}
-              onChange={(html) => setForm({ ...form, subtitle: html })}
-              placeholder="Tulis subjudul modul..."
-            />
-          </label>
-          <label className="auth-field">
-            <span>Ringkasan (tampil di kartu modul)</span>
-            <RichTextEditor
-              value={form.summary}
-              onChange={(html) => setForm({ ...form, summary: html })}
-              placeholder="Tulis ringkasan singkat modul..."
-            />
-          </label>
-          <div className="frame-form-grid">
-            <label className="auth-field">
-              <span>Estimasi waktu</span>
-              <input
-                value={form.estimatedMinutes}
-                onChange={(e) => setForm({ ...form, estimatedMinutes: e.target.value })}
-                required
-              />
-            </label>
-            <label className="auth-field">
-              <span>Warna aksen</span>
-              <input
-                type="color"
-                value={form.accent}
-                onChange={(e) => setForm({ ...form, accent: e.target.value })}
-                style={{ height: 44, padding: 4 }}
-              />
-            </label>
-          </div>
-          <button className="btn-primary" type="submit" disabled={savingModule}>
-            {savingModule ? 'Menyimpan...' : isNew ? 'Buat Modul' : 'Simpan Perubahan'}
-          </button>
-        </form>
 
         {!isNew && mod && (
           <>
