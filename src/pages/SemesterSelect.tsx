@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import TopBar from '../components/TopBar';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { grades, semesters } from '../data/grades';
 import { fetchModules, type ModuleSummary, ApiError } from '../lib/api';
@@ -29,6 +30,7 @@ export default function SemesterSelect() {
   return (
     <div className="home-page">
       <div className="home-inner">
+        <TopBar />
         <AuthBar />
         <button type="button" className="home-back" onClick={() => navigate('/kelas')}>
           ← Semua kelas

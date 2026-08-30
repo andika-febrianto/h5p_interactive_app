@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import TopBar from '../components/TopBar';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../lib/api';
@@ -36,7 +37,7 @@ export default function Register() {
   return (
     <div className='home-page'>
       <div className='home-inner auth-form-page'>
-        <p className='home-eyebrow'><span>📚</span> Perpustakaan Belajar</p>
+        <TopBar />
         <h1 className='home-title'>Daftar Akun</h1>
 
         <form className='auth-form' onSubmit={handleSubmit}>

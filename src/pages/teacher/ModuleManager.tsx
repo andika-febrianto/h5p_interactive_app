@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import TopBar from '../../components/TopBar';
 import { useNavigate } from 'react-router-dom';
 import {
   fetchModules,
@@ -224,6 +225,7 @@ export default function ModuleManager() {
   return (
     <div className="home-page">
       <div className="home-inner">
+        <TopBar />
         <button type="button" className="home-back" onClick={() => navigate('/guru')}>
           ← Kelola Konten
         </button>

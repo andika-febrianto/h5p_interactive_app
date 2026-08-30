@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import TopBar from '../components/TopBar';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { ProgressProvider, useProgress } from '../context/ProgressContext';
 import { fetchModule, ApiError } from '../lib/api';
@@ -101,6 +102,7 @@ export default function ModulePage() {
     return (
       <div className="home-page">
         <div className="home-inner">
+        <TopBar />
           <p className="home-empty">Memuat modul...</p>
         </div>
       </div>

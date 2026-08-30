@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import TopBar from '../../components/TopBar';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   fetchModule,
@@ -256,6 +257,7 @@ export default function ModuleEditor() {
   return (
     <div className="home-page">
       <div className="home-inner">
+        <TopBar />
         <button type="button" className="home-back" onClick={() => navigate('/guru/modul')}>
           ← Semua modul
         </button>

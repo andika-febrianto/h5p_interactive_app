@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import TopBar from '../../components/TopBar';
 import { useAuth } from '../../context/AuthContext';
 
 export default function TeacherDashboard() {
@@ -29,6 +30,7 @@ export default function TeacherDashboard() {
   return (
     <div className="home-page">
       <div className="home-inner">
+        <TopBar />
         <button type="button" className="home-back" onClick={() => navigate('/kelas')}>
           ← Ke perpustakaan belajar
         </button>

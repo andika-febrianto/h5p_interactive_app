@@ -2619,6 +2619,69 @@ textarea:focus {
   }
 }
 
+
+/* ---------- Top Bar ---------- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 2px solid var(--primary-lighter);
+  margin: -64px -32px 0;
+}
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.topbar-logo {
+  font-size: 20px;
+}
+.topbar-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.topbar-operator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.topbar-operator-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.topbar-operator-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.topbar-operator-role {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--secondary);
+  background: rgba(0, 184, 148, 0.1);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+}
+
 /* ---------- Home / module selection ---------- */
 
 .home-page {

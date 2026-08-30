@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import TopBar from '../../components/TopBar';
 import { useNavigate } from 'react-router-dom';
 import { fetchSubjects, createSubject, updateSubject, deleteSubject, ApiError } from '../../lib/api';
 import { slugify } from '../../lib/idgen';
@@ -132,6 +133,7 @@ export default function SubjectManager() {
   return (
     <div className="home-page">
       <div className="home-inner">
+        <TopBar />
         <button type="button" className="home-back" onClick={() => navigate('/guru')}>
           ← Kelola Konten
         </button>

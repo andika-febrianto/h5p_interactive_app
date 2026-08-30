@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import TopBar from '../components/TopBar';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { grades, semesters } from '../data/grades';
 import { fetchSubject, fetchModules, fetchProgressSummary, type ModuleSummary, ApiError } from '../lib/api';
@@ -60,6 +61,7 @@ export default function ModuleList() {
   return (
     <div className="home-page">
       <div className="home-inner">
+        <TopBar />
         <AuthBar />
         <button
           type="button"

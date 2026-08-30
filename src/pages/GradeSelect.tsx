@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import TopBar from '../components/TopBar';
 import { useNavigate } from 'react-router-dom';
 import { grades } from '../data/grades';
 import { fetchModules, type ModuleSummary, ApiError } from '../lib/api';
@@ -20,6 +21,7 @@ export default function GradeSelect() {
   return (
     <div className="home-page">
       <div className="home-inner">
+        <TopBar />
         <AuthBar />
         <p className="home-eyebrow"><span>📚</span> Perpustakaan Belajar</p>
         <h1 className="home-title">Pilih kelas</h1>

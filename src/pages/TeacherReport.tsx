@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import TopBar from '../components/TopBar';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { fetchStudentOverview, fetchMySubscription, ApiError, type StudentOverviewRow } from '../lib/api';
@@ -25,6 +26,7 @@ export default function TeacherReport() {
     return (
       <div className="home-page">
         <div className="home-inner">
+        <TopBar />
           <p className="home-empty">Memuat...</p>
         </div>
       </div>

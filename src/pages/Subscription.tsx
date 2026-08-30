@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import TopBar from '../components/TopBar';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -101,6 +102,7 @@ export default function Subscription() {
     return (
       <div className="home-page">
         <div className="home-inner">
+        <TopBar />
           <p className="home-empty">Memuat...</p>
         </div>
       </div>
