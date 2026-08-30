@@ -226,7 +226,7 @@ export default function Landing() {
       <section className='landing-closing'>
         <h2 className='landing-closing-title'>Siap mencoba?</h2>
         <p className='landing-closing-desc'>
-          Gratis untuk guru dan murid. Daftar dalam hitungan detik, langsung
+          Gratis untuk operator dan murid. Daftar dalam hitungan detik, langsung
           mulai jelajahi modul.
         </p>
         {user ? (

@@ -35,9 +35,9 @@ export default function TeacherReport() {
     return (
       <div className="home-page">
         <div className="home-inner">
-          <p className="home-empty">Halaman ini hanya untuk akun Guru.</p>
+          <p className="home-empty">Halaman ini hanya untuk akun Operator.</p>
           <button type="button" className="btn-secondary" onClick={() => navigate('/masuk')}>
-            Masuk sebagai Guru
+            Masuk sebagai Operator
           </button>
         </div>
       </div>
@@ -51,7 +51,7 @@ export default function TeacherReport() {
           ← Kembali
         </button>
 
-        <p className="home-eyebrow">Guru · {user.name}</p>
+        <p className="home-eyebrow">Operator · {user.name}</p>
         <h1 className="home-title">Laporan Progres Murid</h1>
         <p className="home-lede">
           Rekap otomatis dari seluruh aktivitas murid yang login — panel selesai dan skor

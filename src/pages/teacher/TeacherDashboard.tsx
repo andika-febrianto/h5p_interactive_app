@@ -33,7 +33,7 @@ export default function TeacherDashboard() {
           ← Ke perpustakaan belajar
         </button>
 
-        <p className="home-eyebrow">Guru · {user?.name}</p>
+        <p className="home-eyebrow">Operator · {user?.name}</p>
         <h1 className="home-title">Kelola Konten</h1>
         <p className="home-lede">Buat dan sunting modul belajar tanpa perlu menulis kode.</p>
 

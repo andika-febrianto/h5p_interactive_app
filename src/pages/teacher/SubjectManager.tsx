@@ -19,6 +19,12 @@ function Modal({
   title: string;
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
   if (!open) return null;
   return (
     <div className="modal-overlay">
@@ -132,7 +138,7 @@ export default function SubjectManager() {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16 }}>
           <div>
-            <p className="home-eyebrow">Guru</p>
+            <p className="home-eyebrow">Operator</p>
             <h1 className="home-title" style={{ marginBottom: 0 }}>Kelola Mata Pelajaran</h1>
           </div>
           <button type="button" className="btn-primary" onClick={() => setShowNewModal(true)}>

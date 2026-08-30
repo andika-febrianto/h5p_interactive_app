@@ -260,7 +260,7 @@ export default function ModuleEditor() {
           ← Semua modul
         </button>
 
-        <p className="home-eyebrow">Guru</p>
+        <p className="home-eyebrow">Operator</p>
         {isNew ? (
           <h1 className="home-title">Modul Baru</h1>
         ) : mod ? (

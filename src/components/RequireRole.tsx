@@ -22,7 +22,7 @@ export function RequireRole({ role, children }: { role: UserRole; children: Reac
       <div className="home-page">
         <div className="home-inner">
           <p className="home-empty">
-            Halaman ini hanya untuk akun {role === 'TEACHER' ? 'Guru' : 'Murid'}.
+            Halaman ini hanya untuk akun {role === 'TEACHER' ? 'Operator' : 'Murid'}.
           </p>
           <button type="button" className="btn-secondary" onClick={() => navigate('/masuk')}>
             Masuk

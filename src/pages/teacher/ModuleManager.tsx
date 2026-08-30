@@ -100,6 +100,15 @@ export default function ModuleManager() {
     setPage(1);
   }, [search]);
 
+  /* Lock body scroll when any modal is open */
+  const anyModalOpen = showNewModal || editModule !== null;
+  useEffect(() => {
+    if (anyModalOpen) {
+      document.body.style.overflow = 'hidden';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [anyModalOpen]);
+
   /* Populate edit form when editModule changes */
   useEffect(() => {
     if (editModule) {
@@ -221,7 +230,7 @@ export default function ModuleManager() {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16 }}>
           <div>
-            <p className="home-eyebrow">Guru</p>
+            <p className="home-eyebrow">Operator</p>
             <h1 className="home-title" style={{ marginBottom: 0 }}>Kelola Modul</h1>
           </div>
           <button type="button" className="btn-primary" onClick={() => setShowNewModal(true)}>

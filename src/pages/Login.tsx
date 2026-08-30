@@ -39,7 +39,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="guru@sekolah.id"
+              placeholder="operator@sekolah.id"
               autoComplete="email"
             />
           </label>
@@ -68,7 +68,7 @@ export default function Login() {
 
         <div className="auth-demo-hint">
           <p className="auth-demo-hint-title">🔑 Akun demo (setelah backend di-seed):</p>
-          <p><strong>👩‍🏫 Guru:</strong> guru@sekolah.id / guru12345</p>
+          <p><strong>👩‍🏫 Operator:</strong> operator@sekolah.id / operator12345</p>
           <p><strong>🧑‍🎓 Murid:</strong> murid@sekolah.id / murid12345</p>
         </div>
       </div>

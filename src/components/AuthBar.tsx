@@ -60,7 +60,7 @@ export function AuthBar() {
           <span className="auth-bar-user-avatar">{user.name.charAt(0).toUpperCase()}</span>
           <div className="auth-bar-user-info">
             <span className="auth-bar-user-name">{user.name}</span>
-            <span className="auth-bar-role">{user.role === 'TEACHER' ? '👩‍🏫 Guru' : '🎓 Murid'}</span>
+            <span className="auth-bar-role">{user.role === 'TEACHER' ? '👩‍🏫 Operator' : '🎓 Murid'}</span>
           </div>
         </div>
         <div className="auth-bar-nav">
