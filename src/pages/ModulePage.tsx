@@ -78,7 +78,7 @@ export default function ModulePage() {
     return (
       <div className="home-page">
         <div className="home-inner auth-form-page">
-          <p className="home-eyebrow">Perpustakaan Belajar</p>
+          <p className="home-eyebrow"><span>📚</span> Perpustakaan Belajar</p>
           <h1 className="home-title">Masa aktif Anda sudah berakhir</h1>
           <p className="home-lede">
             Masa percobaan atau langganan Anda telah habis. Berlangganan untuk melanjutkan

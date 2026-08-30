@@ -20,7 +20,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     return (
       <div className="home-page">
         <div className="home-inner auth-form-page">
-          <p className="home-eyebrow">Perpustakaan Belajar</p>
+          <p className="home-eyebrow"><span>📚</span> Perpustakaan Belajar</p>
           <h1 className="home-title">Masuk dulu, yuk</h1>
           <p className="home-lede">
             Masuk atau daftar sebagai guru atau murid untuk mulai memilih kelas dan modul belajar.

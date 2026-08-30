@@ -3,15 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { fetchMySubscription } from '../lib/api';
 
+const TEACHER_NAV = [
+  { label: 'Kelola Konten', icon: '🧩', to: '/guru' },
+  { label: 'Laporan Murid', icon: '📊', to: '/guru/laporan' },
+] as const;
+
+const COMMON_NAV = [
+  { label: 'Langganan', icon: '⭐', to: '/akun/langganan' },
+  { label: 'Kelola Sesi', icon: '🔑', to: '/akun/sesi' },
+] as const;
+
 export function AuthBar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [expired, setExpired] = useState(false);
 
   useEffect(() => {
-    // Teachers aren't gated by trial/subscription status (see backend
-    // README) — only show the warning for students, who actually lose
-    // access to module content once their trial/plan lapses.
     if (!user || user.role !== 'STUDENT') {
       setExpired(false);
       return;
@@ -23,17 +30,20 @@ export function AuthBar() {
 
   if (!user) {
     return (
-      <div className="auth-bar">
-        <button type="button" className="auth-bar-link" onClick={() => navigate('/masuk')}>
-          Masuk
+      <div className="auth-bar auth-bar--logged-out">
+        <button type="button" className="auth-btn auth-btn--login" onClick={() => navigate('/masuk')}>
+          👤 Masuk
         </button>
-        <span className="auth-bar-sep">·</span>
-        <button type="button" className="auth-bar-link" onClick={() => navigate('/daftar')}>
-          Daftar
+        <button type="button" className="auth-btn auth-btn--register" onClick={() => navigate('/daftar')}>
+          ✏️ Daftar
         </button>
       </div>
     );
   }
+
+  const navItems = user.role === 'TEACHER'
+    ? [...TEACHER_NAV, ...COMMON_NAV]
+    : [...COMMON_NAV];
 
   return (
     <>
@@ -45,41 +55,38 @@ export function AuthBar() {
           </button>
         </div>
       )}
-      <div className="auth-bar">
-        <span className="auth-bar-user">
-          {user.name} <span className="auth-bar-role">({user.role === 'TEACHER' ? 'Guru' : 'Murid'})</span>
-        </span>
-        {user.role === 'TEACHER' && (
-          <>
-            <span className="auth-bar-sep">·</span>
-            <button type="button" className="auth-bar-link" onClick={() => navigate('/guru')}>
-              Kelola Konten
+      <div className="auth-bar auth-bar--logged-in">
+        <div className="auth-bar-user-badge">
+          <span className="auth-bar-user-avatar">{user.name.charAt(0).toUpperCase()}</span>
+          <div className="auth-bar-user-info">
+            <span className="auth-bar-user-name">{user.name}</span>
+            <span className="auth-bar-role">{user.role === 'TEACHER' ? '👩‍🏫 Guru' : '🎓 Murid'}</span>
+          </div>
+        </div>
+        <div className="auth-bar-nav">
+          {navItems.map((item) => (
+            <button
+              key={item.to}
+              type="button"
+              className="auth-btn"
+              onClick={() => navigate(item.to)}
+            >
+              <span className="auth-btn-icon">{item.icon}</span>
+              <span className="auth-btn-label">{item.label}</span>
             </button>
-            <span className="auth-bar-sep">·</span>
-            <button type="button" className="auth-bar-link" onClick={() => navigate('/guru/laporan')}>
-              Laporan Murid
-            </button>
-          </>
-        )}
-        <span className="auth-bar-sep">·</span>
-        <button type="button" className="auth-bar-link" onClick={() => navigate('/akun/langganan')}>
-          Langganan
-        </button>
-        <span className="auth-bar-sep">·</span>
-        <button type="button" className="auth-bar-link" onClick={() => navigate('/akun/sesi')}>
-          Kelola Sesi
-        </button>
-        <span className="auth-bar-sep">·</span>
-        <button
-          type="button"
-          className="auth-bar-link"
-          onClick={async () => {
-            await logout();
-            navigate('/');
-          }}
-        >
-          Keluar
-        </button>
+          ))}
+          <button
+            type="button"
+            className="auth-btn auth-btn--logout"
+            onClick={async () => {
+              await logout();
+              navigate('/');
+            }}
+          >
+            <span className="auth-btn-icon">🚪</span>
+            <span className="auth-btn-label">Keluar</span>
+          </button>
+        </div>
       </div>
     </>
   );

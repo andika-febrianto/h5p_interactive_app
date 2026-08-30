@@ -21,7 +21,7 @@ export default function GradeSelect() {
     <div className="home-page">
       <div className="home-inner">
         <AuthBar />
-        <p className="home-eyebrow">Perpustakaan Belajar</p>
+        <p className="home-eyebrow"><span>📚</span> Perpustakaan Belajar</p>
         <h1 className="home-title">Pilih kelas</h1>
         <p className="home-lede">
           Mulai dengan memilih kelas, lalu semester dan mata pelajaran, untuk

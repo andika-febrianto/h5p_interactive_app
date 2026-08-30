@@ -28,7 +28,7 @@ export default function Login() {
   return (
     <div className="home-page">
       <div className="home-inner auth-form-page">
-        <p className="home-eyebrow">Perpustakaan Belajar</p>
+        <p className="home-eyebrow"><span>📚</span> Perpustakaan Belajar</p>
         <h1 className="home-title">Masuk</h1>
 
         <form className="auth-form" onSubmit={handleSubmit}>
@@ -67,9 +67,9 @@ export default function Login() {
         </p>
 
         <div className="auth-demo-hint">
-          <p className="auth-demo-hint-title">Akun demo (setelah backend di-seed):</p>
-          <p>Guru: guru@sekolah.id / guru12345</p>
-          <p>Murid: murid@sekolah.id / murid12345</p>
+          <p className="auth-demo-hint-title">🔑 Akun demo (setelah backend di-seed):</p>
+          <p><strong>👩‍🏫 Guru:</strong> guru@sekolah.id / guru12345</p>
+          <p><strong>🧑‍🎓 Murid:</strong> murid@sekolah.id / murid12345</p>
         </div>
       </div>
     </div>

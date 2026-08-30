@@ -36,7 +36,7 @@ export default function Register() {
   return (
     <div className='home-page'>
       <div className='home-inner auth-form-page'>
-        <p className='home-eyebrow'>Perpustakaan Belajar</p>
+        <p className='home-eyebrow'><span>📚</span> Perpustakaan Belajar</p>
         <h1 className='home-title'>Daftar Akun</h1>
 
         <form className='auth-form' onSubmit={handleSubmit}>
