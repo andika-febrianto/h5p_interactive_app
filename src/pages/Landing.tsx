@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import HeroIllustration from '../components/HeroIllustration'
 
 const FEATURES = [
   {
@@ -117,62 +118,69 @@ export default function Landing() {
         <div className='landing-hero-blob landing-hero-blob-2' aria-hidden />
         <div className='landing-hero-grid' aria-hidden />
 
-        <div className='landing-hero-content'>
-          <span className='landing-badge'>
-            ✦ Platform belajar interaktif untuk anak SD
-          </span>
+        <div className='landing-hero-split'>
+          <div className='landing-hero-content'>
+            <span className='landing-badge'>
+              ✦ Platform belajar interaktif untuk anak SD
+            </span>
 
-          <h1 className='landing-title'>
-            Belajar jadi lebih menyenangkan,
-            <br />
-            berkembang setiap hari.
-          </h1>
+            <h1 className='landing-title'>
+              Belajar jadi lebih
+              <br />
+              menyenangkan,<br />
+              berkembang setiap hari.
+            </h1>
 
-          <p className='landing-subtitle'>
-            Bantu anak belajar lebih terarah melalui materi interaktif, kuis,
-            latihan, video, dan berbagai aktivitas belajar yang sesuai dengan
-            tingkat kelasnya — sambil memantau perkembangan belajar anak dengan
-            mudah.
-          </p>
+            <p className='landing-subtitle'>
+              Bantu anak belajar lebih terarah melalui materi interaktif, kuis,
+              latihan, video, dan berbagai aktivitas belajar yang sesuai dengan
+              tingkat kelasnya — sambil memantau perkembangan belajar anak dengan
+              mudah.
+            </p>
 
-          <div className='landing-cta-row'>
-            {user ? (
-              <button
-                type='button'
-                className='btn-primary landing-btn-lg'
-                onClick={() => navigate('/kelas')}
-              >
-                Mulai Belajar →
-              </button>
-            ) : (
-              <>
+            <div className='landing-cta-row'>
+              {user ? (
                 <button
                   type='button'
                   className='btn-primary landing-btn-lg'
-                  onClick={() => navigate('/daftar')}
+                  onClick={() => navigate('/kelas')}
                 >
-                  Mulai Belajar Gratis →
+                  Mulai Belajar →
                 </button>
+              ) : (
+                <>
+                  <button
+                    type='button'
+                    className='btn-primary landing-btn-lg'
+                    onClick={() => navigate('/daftar')}
+                  >
+                    Mulai Belajar Gratis →
+                  </button>
 
-                <button
-                  type='button'
-                  className='btn-secondary landing-btn-secondary landing-btn-lg'
-                  onClick={() => navigate('/masuk')}
-                >
-                  Saya sudah punya akun
-                </button>
-              </>
-            )}
+                  <button
+                    type='button'
+                    className='btn-secondary landing-btn-secondary landing-btn-lg'
+                    onClick={() => navigate('/masuk')}
+                  >
+                    Saya sudah punya akun
+                  </button>
+                </>
+              )}
+            </div>
+
+            <dl className='landing-stats'>
+              {STATS.map((s) => (
+                <div className='landing-stat' key={s.label}>
+                  <dt className='landing-stat-value'>{s.value}</dt>
+                  <dd className='landing-stat-label'>{s.label}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
 
-          <dl className='landing-stats'>
-            {STATS.map((s) => (
-              <div className='landing-stat' key={s.label}>
-                <dt className='landing-stat-value'>{s.value}</dt>
-                <dd className='landing-stat-label'>{s.label}</dd>
-              </div>
-            ))}
-          </dl>
+          <div className='landing-hero-visual'>
+            <HeroIllustration className='landing-hero-illustration' />
+          </div>
         </div>
       </section>
 
