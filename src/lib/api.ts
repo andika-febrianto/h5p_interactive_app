@@ -266,6 +266,13 @@ export function createSubject(body: {
   return request('/subjects', { method: 'POST', body: JSON.stringify(body) });
 }
 
+export function updateSubject(id: string, body: Record<string, unknown>): Promise<Subject> {
+  return request(`/subjects/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
 export function deleteSubject(id: string): Promise<void> {
   return request(`/subjects/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
