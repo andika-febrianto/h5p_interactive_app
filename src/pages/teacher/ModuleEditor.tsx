@@ -310,7 +310,29 @@ export default function ModuleEditor() {
         </button>
 
         <p className="home-eyebrow">Guru</p>
-        <h1 className="home-title">{isNew ? 'Modul Baru' : `Sunting: ${mod?.title ?? '...'}`}</h1>
+        {isNew ? (
+          <h1 className="home-title">Modul Baru</h1>
+        ) : mod ? (
+          <div className="module-info-bar">
+            <span className="module-info-bar-icon" style={{ background: `${mod.accent}22`, color: mod.accent }}>
+              {subjects.find((s) => s.id === mod.subjectId)?.icon ?? '📚'}
+            </span>
+            <div className="module-info-bar-text">
+              <h1 className="home-title" style={{ margin: 0 }}>{mod.title}</h1>
+              <div className="module-info-bar-meta">
+                <span>{subjects.find((s) => s.id === mod.subjectId)?.shortName ?? mod.subjectId}</span>
+                <span>·</span>
+                <span>Kelas {mod.grade}</span>
+                <span>·</span>
+                <span>Semester {mod.semester}</span>
+                <span>·</span>
+                <span>{mod.frames.length} panel</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <h1 className="home-title">Memuat...</h1>
+        )}
 
         {error && <p className="auth-error" style={{ maxWidth: 560 }}>{error}</p>}
 
