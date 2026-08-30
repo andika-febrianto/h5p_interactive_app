@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { AuthBar } from '../components/AuthBar'
 import HeroIllustration from '../components/HeroIllustration'
 
 const FEATURES = [
@@ -85,13 +86,7 @@ export default function Landing() {
             Harga
           </button>
           {user ? (
-            <button
-              type='button'
-              className='btn-primary btn-small'
-              onClick={() => navigate('/kelas')}
-            >
-              Buka Aplikasi
-            </button>
+            <AuthBar />
           ) : (
             <>
               <button
