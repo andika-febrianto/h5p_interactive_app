@@ -1,26 +1,55 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500;1,9..144,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
 
 :root {
-  --ink: #0a1f1e;
-  --ocean-deep: #0b3d3c;
-  --ocean-mid: #12524d;
-  --seafoam: #8fcaca;
-  --seafoam-bright: #bfe6de;
-  --coral: #ff6f59;
-  --coral-soft: #ffe3dc;
-  --sand: #f5efe0;
-  --sand-dim: #eae2cd;
-  --sun: #ffc857;
-  --white: #fffdf8;
-
-  --font-display: 'Fraunces', serif;
-  --font-body: 'Public Sans', sans-serif;
-  --font-mono: 'IBM Plex Mono', monospace;
-
-  --radius-lg: 20px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
-
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-200: #bfdbfe;
+  --primary-300: #93c5fd;
+  --primary-400: #60a5fa;
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a5f;
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
+  --success: #16a34a;
+  --success-bg: #dcfce7;
+  --error: #dc2626;
+  --error-bg: #fee2e2;
+  --warning: #d97706;
+  --warning-bg: #fef3c7;
+  --bg-body: var(--gray-100);
+  --bg-card: #ffffff;
+  --bg-sidebar: #ffffff;
+  --bg-input: #ffffff;
+  --border: var(--gray-200);
+  --border-focus: var(--primary-500);
+  --text-primary: var(--gray-900);
+  --text-secondary: var(--gray-600);
+  --text-muted: var(--gray-400);
+  --text-on-primary: #ffffff;
+  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
   color-scheme: light;
 }
 
@@ -37,9 +66,10 @@ body,
 body {
   margin: 0;
   font-family: var(--font-body);
-  background: var(--ocean-deep);
-  color: var(--ink);
+  background: var(--bg-body);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 button {
@@ -47,7 +77,7 @@ button {
 }
 
 :focus-visible {
-  outline: 3px solid var(--sun);
+  outline: 2px solid var(--primary-500);
   outline-offset: 2px;
 }
 
@@ -55,19 +85,17 @@ button {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: 280px 1fr;
   min-height: 100vh;
-  background: linear-gradient(180deg, var(--ocean-deep) 0%, #082826 100%);
+  background: var(--bg-body);
 }
 
 .app-main {
   position: relative;
-  padding: 48px 56px 64px;
+  padding: 40px 48px 56px;
   overflow-y: auto;
-  background:
-    radial-gradient(circle at 100% 0%, rgba(143, 202, 202, 0.12), transparent 45%),
-    var(--sand);
-  border-radius: 32px 0 0 32px;
+  background: var(--bg-body);
+  border-left: 1px solid var(--border);
 }
 
 .app-main-inner {
@@ -1251,6 +1279,24 @@ button {
 .frame-list-actions {
   display: flex;
   gap: 6px;
+}
+.frame-list-drag-handle {
+  cursor: grab;
+  font-size: 18px;
+  color: var(--ocean-mid);
+  user-select: none;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
+}
+.frame-list-drag-handle:hover {
+  color: var(--ocean);
+  background: var(--sand);
+}
+.frame-list-drag-handle:active {
+  cursor: grabbing;
 }
 .frame-list-row .frame-form-wrap {
   width: 100%;

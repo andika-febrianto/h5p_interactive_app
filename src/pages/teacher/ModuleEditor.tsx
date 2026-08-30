@@ -16,6 +16,10 @@ import type { Module, Frame, Subject } from '../../types/storyboard';
 import { FrameForm } from '../../components/teacher/FrameForm';
 import { RichTextEditor } from '../../components/teacher/RichTextEditor';
 import { Pagination } from '../../components/Pagination';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const KIND_ICON: Record<string, string> = {
   text: '📄',
@@ -25,6 +29,88 @@ const KIND_ICON: Record<string, string> = {
   pdf: '📕',
   shortanswer: '✏️',
 };
+
+/** Sortable frame row that supports drag-and-drop reordering */
+function SortableFrameRow({
+  f,
+  globalIndex,
+  editingSlug,
+  editingFrame,
+  totalFrames,
+  onMove,
+  onSave,
+  onToggleEdit,
+  onDelete,
+}: {
+  f: Frame;
+  globalIndex: number;
+  editingSlug: string | null;
+  editingFrame: Frame | null;
+  totalFrames: number;
+  onMove: (index: number, direction: -1 | 1) => void;
+  onSave: (payload: Record<string, unknown>) => Promise<void>;
+  onToggleEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: f.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    position: 'relative',
+    zIndex: isDragging ? 50 : undefined,
+  };
+
+  return (
+    <div className="frame-list-row" ref={setNodeRef} style={style}>
+      <span className="frame-list-drag-handle" {...attributes} {...listeners} title="Geser untuk mengubah posisi">
+        ⠿
+      </span>
+      <span className="frame-list-icon">{KIND_ICON[f.kind]}</span>
+      <div className="frame-list-text">
+        <span className="frame-list-title">
+          {f.panel} — {f.title}
+        </span>
+        <span className="frame-list-kind">{f.kind}</span>
+      </div>
+      <div className="frame-list-actions">
+        <button type="button" className="btn-secondary btn-small" onClick={() => onMove(globalIndex, -1)} disabled={globalIndex === 0}>
+          ↑
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-small"
+          onClick={() => onMove(globalIndex, 1)}
+          disabled={globalIndex === totalFrames - 1}
+        >
+          ↓
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-small"
+          onClick={() => onToggleEdit(f.id)}
+        >
+          {editingSlug === f.id ? 'Tutup' : 'Sunting'}
+        </button>
+        <button type="button" className="btn-secondary btn-small" onClick={() => onDelete(f.id)}>
+          Hapus
+        </button>
+      </div>
+
+      {editingSlug === f.id && editingFrame && (
+        <div className="frame-form-wrap">
+          <FrameForm
+            frame={editingFrame}
+            isNew={false}
+            onSave={onSave}
+            onCancel={() => onToggleEdit(f.id)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 
 const FRAMES_PER_PAGE = 5;
 
@@ -53,6 +139,8 @@ export default function ModuleEditor() {
   const [editingSlug, setEditingSlug] = useState<string | null>(null); // frame being edited
   const [addingFrame, setAddingFrame] = useState(false);
   const [framePage, setFramePage] = useState(1);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   useEffect(() => {
     fetchSubjects().then(setSubjects).catch(() => {});
@@ -155,6 +243,24 @@ export default function ModuleEditor() {
     [order[index], order[target]] = [order[target], order[index]];
     try {
       await reorderFrames(moduleId, order);
+      loadModule();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Gagal mengubah urutan.');
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    if (!mod || !moduleId) return;
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = mod.frames.findIndex((f) => f.id === active.id);
+    const newIndex = mod.frames.findIndex((f) => f.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newOrder = arrayMove(mod.frames.map((f) => f.id), oldIndex, newIndex);
+    try {
+      await reorderFrames(moduleId, newOrder);
       loadModule();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Gagal mengubah urutan.');
@@ -286,59 +392,32 @@ export default function ModuleEditor() {
               )}
             </div>
 
-            <div className="frame-list">
-              {visibleFrames.map((f, localIdx) => {
-                const i = pageStart + localIdx; // global index, needed for move up/down
-                return (
-                  <div className="frame-list-row" key={f.id}>
-                    <span className="frame-list-icon">{KIND_ICON[f.kind]}</span>
-                    <div className="frame-list-text">
-                      <span className="frame-list-title">
-                        {f.panel} — {f.title}
-                      </span>
-                      <span className="frame-list-kind">{f.kind}</span>
-                    </div>
-                    <div className="frame-list-actions">
-                      <button type="button" className="btn-secondary btn-small" onClick={() => handleMove(i, -1)} disabled={i === 0}>
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-secondary btn-small"
-                        onClick={() => handleMove(i, 1)}
-                        disabled={i === mod.frames.length - 1}
-                      >
-                        ↓
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-secondary btn-small"
-                        onClick={() => {
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={mod.frames.map((f) => f.id)} strategy={verticalListSortingStrategy}>
+                <div className="frame-list">
+                  {visibleFrames.map((f, localIdx) => {
+                    const i = pageStart + localIdx;
+                    return (
+                      <SortableFrameRow
+                        key={f.id}
+                        f={f}
+                        globalIndex={i}
+                        editingSlug={editingSlug}
+                        editingFrame={editingSlug === f.id ? editingFrame : null}
+                        totalFrames={mod.frames.length}
+                        onMove={handleMove}
+                        onSave={handleSaveFrame}
+                        onToggleEdit={(id) => {
                           setAddingFrame(false);
-                          setEditingSlug(editingSlug === f.id ? null : f.id);
+                          setEditingSlug(editingSlug === id ? null : id);
                         }}
-                      >
-                        {editingSlug === f.id ? 'Tutup' : 'Sunting'}
-                      </button>
-                      <button type="button" className="btn-secondary btn-small" onClick={() => handleDeleteFrame(f.id)}>
-                        Hapus
-                      </button>
-                    </div>
-
-                    {editingSlug === f.id && editingFrame && (
-                      <div className="frame-form-wrap">
-                        <FrameForm
-                          frame={editingFrame}
-                          isNew={false}
-                          onSave={handleSaveFrame}
-                          onCancel={() => setEditingSlug(null)}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                        onDelete={handleDeleteFrame}
+                      />
+                    );
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
 
             <Pagination page={framePage} totalPages={totalFramePages} onChange={setFramePage} />
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchSubjects, createSubject, deleteSubject, ApiError } from '../../lib/api';
 import { slugify } from '../../lib/idgen';
 import type { Subject } from '../../types/storyboard';
+import { RichTextEditor } from '../../components/teacher/RichTextEditor';
 
 const emptyForm = { name: '', shortName: '', description: '', icon: '📘', accent: '#5B5FEF' };
 
@@ -81,11 +82,10 @@ export default function SubjectManager() {
           </label>
           <label className="auth-field">
             <span>Deskripsi singkat</span>
-            <input
+            <RichTextEditor
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Satu kalimat tentang mata pelajaran ini"
-              required
+              onChange={(html) => setForm({ ...form, description: html })}
+              placeholder="Deskripsi mata pelajaran ini..."
             />
           </label>
           <label className="auth-field">

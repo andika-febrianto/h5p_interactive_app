@@ -73,7 +73,7 @@ export default function ModuleList() {
           {grade.label} · {semester.label} {subject ? `· ${subject.icon} ${subject.shortName}` : ''}
         </p>
         <h1 className="home-title">Pilih modul belajar</h1>
-        {subject && <p className="home-lede">{subject.description}</p>}
+        {subject && <p className="home-lede" dangerouslySetInnerHTML={{ __html: subject.description }} />}
 
         {error && <p className="home-empty">{error}</p>}
 
