@@ -4,6 +4,7 @@ import {
   fetchModules,
   deleteModule,
   createModule,
+  updateModule,
   fetchSubjects,
   type ModuleSummary,
   ApiError,
@@ -54,6 +55,18 @@ export default function ModuleManager() {
 
   /* ── Sunting Modul modal state ── */
   const [editModule, setEditModule] = useState<ModuleSummary | null>(null);
+  const [editForm, setEditForm] = useState({
+    subjectId: '',
+    grade: 1,
+    semester: 1 as 1 | 2,
+    title: '',
+    subtitle: '',
+    summary: '',
+    estimatedMinutes: '',
+    accent: '#6c5ce7',
+  });
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   /* ── Modul Baru modal state ── */
   const [showNewModal, setShowNewModal] = useState(false);
@@ -69,8 +82,6 @@ export default function ModuleManager() {
   });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-
-
 
   const load = () => {
     fetchModules({})
@@ -88,6 +99,23 @@ export default function ModuleManager() {
   useEffect(() => {
     setPage(1);
   }, [search]);
+
+  /* Populate edit form when editModule changes */
+  useEffect(() => {
+    if (editModule) {
+      setEditForm({
+        subjectId: editModule.subjectId,
+        grade: editModule.grade,
+        semester: editModule.semester as 1 | 2,
+        title: editModule.title,
+        subtitle: editModule.subtitle,
+        summary: editModule.summary ?? '',
+        estimatedMinutes: editModule.estimatedMinutes,
+        accent: editModule.accent,
+      });
+      setSaveError(null);
+    }
+  }, [editModule]);
 
   const filtered = useMemo(() => {
     if (!modules) return [];
@@ -113,6 +141,32 @@ export default function ModuleManager() {
       load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Gagal menghapus.');
+    }
+  };
+
+  /* ── Update Module ── */
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editModule) return;
+    setSaveError(null);
+    setSaving(true);
+    try {
+      await updateModule(editModule.id, {
+        subjectId: editForm.subjectId,
+        grade: editForm.grade,
+        semester: editForm.semester,
+        title: editForm.title,
+        subtitle: editForm.subtitle,
+        summary: editForm.summary,
+        estimatedMinutes: editForm.estimatedMinutes,
+        accent: editForm.accent,
+      });
+      setEditModule(null);
+      load();
+    } catch (err) {
+      setSaveError(err instanceof ApiError ? err.message : 'Gagal menyimpan perubahan.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -252,54 +306,124 @@ export default function ModuleManager() {
         )}
       </div>
 
-      {/* ── Sunting Modul Modal ── */}
-      <Modal open={!!editModule} onClose={() => setEditModule(null)} title="📝 Sunting Modul">
+      {/* ── Sunting Modul Modal (Editable Form) ── */}
+      <Modal open={!!editModule} onClose={() => setEditModule(null)} title={`Sunting: ${editModule?.title ?? ''}`}>
         {editModule && (
-          <div className="modal-form">
-            <div className="sunting-info-card">
-              <div className="sunting-info-row">
-                <span className="sunting-info-label">Judul</span>
-                <span className="sunting-info-value">{editModule.title}</span>
-              </div>
-              <div className="sunting-info-row">
-                <span className="sunting-info-label">Sub Judul</span>
-                <span className="sunting-info-value">{editModule.subtitle || '—'}</span>
-              </div>
-              <div className="sunting-info-row">
-                <span className="sunting-info-label">Mata Pelajaran</span>
-                <span className="sunting-info-value">{subjectLabel(editModule.subjectId)}</span>
-              </div>
-              <div className="sunting-info-row">
-                <span className="sunting-info-label">Kelas</span>
-                <span className="sunting-info-value">{gradeLabel(editModule.grade)}</span>
-              </div>
-              <div className="sunting-info-row">
-                <span className="sunting-info-label">Semester</span>
-                <span className="sunting-info-value">{semesterLabel(editModule.semester)}</span>
-              </div>
-              <div className="sunting-info-row">
-                <span className="sunting-info-label">Panel</span>
-                <span className="sunting-info-value">{editModule.frameCount} panel</span>
-              </div>
-              <div className="sunting-info-row">
-                <span className="sunting-info-label">Estimasi</span>
-                <span className="sunting-info-value">{editModule.estimatedMinutes}</span>
-              </div>
+          <form className="modal-form" onSubmit={handleSaveEdit}>
+            <div className="modal-form-row">
+              <label className="auth-field">
+                <span>id modul (slug)</span>
+                <input
+                  type="text"
+                  value={editModule.id}
+                  readOnly
+                  style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                />
+              </label>
+              <label className="auth-field">
+                <span>Mata pelajaran</span>
+                <select
+                  value={editForm.subjectId}
+                  onChange={(e) => setEditForm({ ...editForm, subjectId: e.target.value })}
+                  required
+                >
+                  {subjects.map((s) => (
+                    <option key={s.id} value={s.id}>{s.icon} {s.shortName}</option>
+                  ))}
+                </select>
+              </label>
             </div>
 
-            <div className="modal-actions">
-              <button type="button" className="btn-secondary" onClick={() => setEditModule(null)}>
-                Batal
-              </button>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => navigate(`/guru/modul/${editModule.id}`)}
-              >
-                📝 Buka Editor Panel
-              </button>
+            <div className="modal-form-row">
+              <label className="auth-field">
+                <span>Kelas</span>
+                <select
+                  value={editForm.grade}
+                  onChange={(e) => setEditForm({ ...editForm, grade: Number(e.target.value) })}
+                  required
+                >
+                  {grades.map((g) => (
+                    <option key={g.level} value={g.level}>{g.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="auth-field">
+                <span>Semester</span>
+                <select
+                  value={editForm.semester}
+                  onChange={(e) => setEditForm({ ...editForm, semester: Number(e.target.value) as 1 | 2 })}
+                  required
+                >
+                  {semesters.map((s) => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
+                </select>
+              </label>
             </div>
-          </div>
+
+            <label className="auth-field">
+              <span>Judul modul</span>
+              <input
+                type="text"
+                value={editForm.title}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                required
+              />
+            </label>
+
+            <label className="auth-field">
+              <span>Subjudul</span>
+              <div className="modal-rich-text-wrap">
+                <RichTextEditor
+                  value={editForm.subtitle}
+                  onChange={(html) => setEditForm({ ...editForm, subtitle: html })}
+                  placeholder="Subjudul modul..."
+                />
+              </div>
+            </label>
+
+            <label className="auth-field">
+              <span>Ringkasan (tampil di kartu modul)</span>
+              <div className="modal-rich-text-wrap">
+                <RichTextEditor
+                  value={editForm.summary}
+                  onChange={(html) => setEditForm({ ...editForm, summary: html })}
+                  placeholder="Deskripsi modul yang ditampilkan di kartu murid..."
+                />
+              </div>
+            </label>
+
+            <div className="modal-form-row">
+              <label className="auth-field">
+                <span>Estimasi waktu</span>
+                <input
+                  type="text"
+                  value={editForm.estimatedMinutes}
+                  onChange={(e) => setEditForm({ ...editForm, estimatedMinutes: e.target.value })}
+                />
+              </label>
+              <label className="auth-field">
+                <span>Warna aksen</span>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="color"
+                    value={editForm.accent}
+                    onChange={(e) => setEditForm({ ...editForm, accent: e.target.value })}
+                    style={{ width: 48, height: 40, padding: 2, borderRadius: 8, cursor: 'pointer' }}
+                  />
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--muted)' }}>
+                    {editForm.accent}
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            {saveError && <p className="auth-error">{saveError}</p>}
+
+            <button type="submit" className="btn-primary modal-submit-btn" disabled={saving}>
+              {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </button>
+          </form>
         )}
       </Modal>
 
@@ -417,8 +541,6 @@ export default function ModuleManager() {
           </div>
         </form>
       </Modal>
-
-
     </div>
   );
 }

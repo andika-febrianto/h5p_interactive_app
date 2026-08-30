@@ -3175,3 +3175,12 @@ textarea:focus {
   height: 0;
   pointer-events: none;
 }
+
+/* ── Modal submit button full width ── */
+.modal-submit-btn {
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 16px;
+  border-radius: var(--radius-lg);
+  margin-top: 8px;
+}
