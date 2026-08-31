@@ -7,7 +7,7 @@ export default function TopBar() {
 
   return (
     <div className="topbar">
-      <div className="topbar-brand" onClick={() => navigate('/')} role="button" tabIndex={0}>
+      <div className="topbar-brand" onClick={() => { if (!user) navigate('/'); }} role={user ? undefined : 'button'} tabIndex={user ? undefined : 0} style={{ cursor: user ? 'default' : 'pointer' }}>
         <span className="topbar-logo">📚</span>
         <span className="topbar-title">Perpustakaan Belajar</span>
       </div>
