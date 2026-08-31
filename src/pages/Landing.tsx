@@ -122,15 +122,16 @@ export default function Landing() {
             <h1 className='landing-title'>
               Belajar jadi lebih
               <br />
-              menyenangkan,<br />
+              menyenangkan,
+              <br />
               berkembang setiap hari.
             </h1>
 
             <p className='landing-subtitle'>
               Bantu anak belajar lebih terarah melalui materi interaktif, kuis,
               latihan, video, dan berbagai aktivitas belajar yang sesuai dengan
-              tingkat kelasnya — sambil memantau perkembangan belajar anak dengan
-              mudah.
+              tingkat kelasnya — sambil memantau perkembangan belajar anak
+              dengan mudah.
             </p>
 
             <div className='landing-cta-row'>

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import TopBar from '../../components/TopBar';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react'
+import TopBar from '../../components/TopBar'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
   fetchModule,
   createFrame,
@@ -9,14 +9,25 @@ import {
   reorderFrames,
   fetchSubjects,
   ApiError,
-} from '../../lib/api';
-import type { Module, Frame, Subject } from '../../types/storyboard';
-import { FrameForm } from '../../components/teacher/FrameForm';
-import { Pagination } from '../../components/Pagination';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import type { DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+} from '../../lib/api'
+import type { Module, Frame, Subject } from '../../types/storyboard'
+import { FrameForm } from '../../components/teacher/FrameForm'
+import { Pagination } from '../../components/Pagination'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import type { DragEndEvent } from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 const KIND_ICON: Record<string, string> = {
   text: '📄',
@@ -25,7 +36,7 @@ const KIND_ICON: Record<string, string> = {
   video: '🎬',
   pdf: '📕',
   shortanswer: '✏️',
-};
+}
 
 /** Sortable frame row that supports drag-and-drop reordering */
 function SortableFrameRow({
@@ -39,17 +50,24 @@ function SortableFrameRow({
   onToggleEdit,
   onDelete,
 }: {
-  f: Frame;
-  globalIndex: number;
-  editingSlug: string | null;
-  editingFrame: Frame | null;
-  totalFrames: number;
-  onMove: (index: number, direction: -1 | 1) => void;
-  onSave: (payload: Record<string, unknown>) => Promise<void>;
-  onToggleEdit: (id: string) => void;
-  onDelete: (id: string) => void;
+  f: Frame
+  globalIndex: number
+  editingSlug: string | null
+  editingFrame: Frame | null
+  totalFrames: number
+  onMove: (index: number, direction: -1 | 1) => void
+  onSave: (payload: Record<string, unknown>) => Promise<void>
+  onToggleEdit: (id: string) => void
+  onDelete: (id: string) => void
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: f.id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: f.id })
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -57,7 +75,7 @@ function SortableFrameRow({
     opacity: isDragging ? 0.4 : 1,
     position: 'relative',
     zIndex: isDragging ? 50 : undefined,
-  };
+  }
 
   const kindLabel: Record<string, string> = {
     text: 'Materi Teks',
@@ -66,57 +84,65 @@ function SortableFrameRow({
     video: 'Video Interaktif',
     pdf: 'Dokumen PDF',
     shortanswer: 'Isian Singkat',
-  };
+  }
 
   return (
-    <div className="stepsweb-frame-row" ref={setNodeRef} style={style}>
-      <div className="stepsweb-frame-card">
-        <div className="stepsweb-frame-header">
-          <span className="stepsweb-frame-drag" {...attributes} {...listeners} title="Geser untuk mengubah posisi">
+    <div className='stepsweb-frame-row' ref={setNodeRef} style={style}>
+      <div className='stepsweb-frame-card'>
+        <div className='stepsweb-frame-header'>
+          <span
+            className='stepsweb-frame-drag'
+            {...attributes}
+            {...listeners}
+            title='Geser untuk mengubah posisi'
+          >
             ⠿
           </span>
-          <h3 className="stepsweb-frame-title">{f.title || `Panel ${f.panel}`}</h3>
-          <div className="stepsweb-frame-actions">
+          <h3 className='stepsweb-frame-title'>
+            {f.title || `Panel ${f.panel}`}
+          </h3>
+          <div className='stepsweb-frame-actions'>
             <button
-              type="button"
-              className="stepsweb-btn-arrow"
+              type='button'
+              className='stepsweb-btn-arrow'
               onClick={() => onMove(globalIndex, -1)}
               disabled={globalIndex === 0}
-              title="Pindah ke atas"
+              title='Pindah ke atas'
             >
               ▲
             </button>
             <button
-              type="button"
-              className="stepsweb-btn-arrow"
+              type='button'
+              className='stepsweb-btn-arrow'
               onClick={() => onMove(globalIndex, 1)}
               disabled={globalIndex === totalFrames - 1}
-              title="Pindah ke bawah"
+              title='Pindah ke bawah'
             >
               ▼
             </button>
             <button
-              type="button"
-              className="stepsweb-btn-delete"
+              type='button'
+              className='stepsweb-btn-delete'
               onClick={() => onDelete(f.id)}
-              title="Hapus panel"
+              title='Hapus panel'
             >
               ✕
             </button>
           </div>
         </div>
-        <div className="stepsweb-frame-meta">
-          <span className="stepsweb-frame-meta-item">
-            <strong>Jenis:</strong> {KIND_ICON[f.kind]} {kindLabel[f.kind] ?? f.kind}
+        <div className='stepsweb-frame-meta'>
+          <span className='stepsweb-frame-meta-item'>
+            <strong>Jenis:</strong> {KIND_ICON[f.kind]}{' '}
+            {kindLabel[f.kind] ?? f.kind}
           </span>
-          <span className="stepsweb-frame-meta-item">
+          <span className='stepsweb-frame-meta-item'>
             <strong>Panel:</strong> {f.panel}
           </span>
         </div>
-        <div className="stepsweb-frame-edit-row">
+        <div className='stepsweb-frame-edit-row'>
           <button
-            type="button"
-            className="stepsweb-btn-edit"
+            type='button'
+            className='stepsweb-btn-edit'
             onClick={() => onToggleEdit(f.id)}
           >
             {editingSlug === f.id ? '✕ Tutup' : '✎ Sunting'}
@@ -125,7 +151,7 @@ function SortableFrameRow({
       </div>
 
       {editingSlug === f.id && editingFrame && (
-        <div className="stepsweb-edit-panel">
+        <div className='stepsweb-edit-panel'>
           <FrameForm
             frame={editingFrame}
             isNew={false}
@@ -135,145 +161,176 @@ function SortableFrameRow({
         </div>
       )}
     </div>
-  );
+  )
 }
 
-const FRAMES_PER_PAGE = 5;
+const FRAMES_PER_PAGE = 5
 
 export default function ModuleEditor() {
-  const { moduleId } = useParams<{ moduleId: string }>();
-  const isNew = moduleId === 'baru';
-  const navigate = useNavigate();
+  const { moduleId } = useParams<{ moduleId: string }>()
+  const isNew = moduleId === 'baru'
+  const navigate = useNavigate()
 
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [mod, setMod] = useState<Module | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [editingSlug, setEditingSlug] = useState<string | null>(null); // frame being edited
-  const [addingFrame, setAddingFrame] = useState(false);
-  const [framePage, setFramePage] = useState(1);
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [mod, setMod] = useState<Module | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [editingSlug, setEditingSlug] = useState<string | null>(null) // frame being edited
+  const [addingFrame, setAddingFrame] = useState(false)
+  const [framePage, setFramePage] = useState(1)
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  )
 
   useEffect(() => {
-    fetchSubjects().then(setSubjects).catch(() => {});
-  }, []);
+    fetchSubjects()
+      .then(setSubjects)
+      .catch(() => {})
+  }, [])
 
   // Returns the freshly-loaded module so callers can act on the up-to-date
   // frame count right after a create/delete (e.g. jump to the right page).
   const loadModule = (): Promise<Module | null> => {
-    if (isNew || !moduleId) return Promise.resolve(null);
+    if (isNew || !moduleId) return Promise.resolve(null)
     return fetchModule(moduleId)
       .then((m) => {
-        setMod(m);
-        return m;
+        setMod(m)
+        return m
       })
       .catch((err) => {
-        setError(err instanceof ApiError ? err.message : 'Gagal memuat modul.');
-        return null;
-      });
-  };
+        setError(err instanceof ApiError ? err.message : 'Gagal memuat modul.')
+        return null
+      })
+  }
 
   useEffect(() => {
-    loadModule();
-    setFramePage(1);
+    loadModule()
+    setFramePage(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moduleId, isNew]);
+  }, [moduleId, isNew])
 
   // Keep the current page in range whenever the frame count changes (e.g.
   // deleting the last frame on the last page shouldn't leave an empty page).
   useEffect(() => {
-    if (!mod) return;
-    const totalPages = Math.max(1, Math.ceil(mod.frames.length / FRAMES_PER_PAGE));
-    if (framePage > totalPages) setFramePage(totalPages);
+    if (!mod) return
+    const totalPages = Math.max(
+      1,
+      Math.ceil(mod.frames.length / FRAMES_PER_PAGE),
+    )
+    if (framePage > totalPages) setFramePage(totalPages)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mod?.frames.length]);
+  }, [mod?.frames.length])
 
   const handleSaveFrame = async (payload: Record<string, unknown>) => {
-    if (!moduleId || isNew) return;
-    const wasNewFrame = !editingSlug;
+    if (!moduleId || isNew) return
+    const wasNewFrame = !editingSlug
     if (editingSlug) {
-      await updateFrame(moduleId, editingSlug, payload);
+      await updateFrame(moduleId, editingSlug, payload)
     } else {
-      await createFrame(moduleId, payload);
+      await createFrame(moduleId, payload)
     }
-    setEditingSlug(null);
-    setAddingFrame(false);
-    const updated = await loadModule();
+    setEditingSlug(null)
+    setAddingFrame(false)
+    const updated = await loadModule()
     // New panels are appended at the end — jump to the page that shows it,
     // so the teacher isn't left wondering whether it saved.
     if (wasNewFrame && updated) {
-      setFramePage(Math.max(1, Math.ceil(updated.frames.length / FRAMES_PER_PAGE)));
+      setFramePage(
+        Math.max(1, Math.ceil(updated.frames.length / FRAMES_PER_PAGE)),
+      )
     }
-  };
+  }
 
   const handleDeleteFrame = async (slug: string) => {
-    if (!moduleId || !confirm('Hapus panel ini?')) return;
+    if (!moduleId || !confirm('Hapus panel ini?')) return
     try {
-      await deleteFrame(moduleId, slug);
-      loadModule();
+      await deleteFrame(moduleId, slug)
+      loadModule()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Gagal menghapus panel.');
+      setError(err instanceof ApiError ? err.message : 'Gagal menghapus panel.')
     }
-  };
+  }
 
   const handleMove = async (index: number, direction: -1 | 1) => {
-    if (!mod || !moduleId) return;
-    const order = mod.frames.map((f) => f.id);
-    const target = index + direction;
-    if (target < 0 || target >= order.length) return;
-    [order[index], order[target]] = [order[target], order[index]];
+    if (!mod || !moduleId) return
+    const order = mod.frames.map((f) => f.id)
+    const target = index + direction
+    if (target < 0 || target >= order.length) return
+    ;[order[index], order[target]] = [order[target], order[index]]
     try {
-      await reorderFrames(moduleId, order);
-      loadModule();
+      await reorderFrames(moduleId, order)
+      loadModule()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Gagal mengubah urutan.');
+      setError(err instanceof ApiError ? err.message : 'Gagal mengubah urutan.')
     }
-  };
+  }
 
   const handleDragEnd = async (event: DragEndEvent) => {
-    if (!mod || !moduleId) return;
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
+    if (!mod || !moduleId) return
+    const { active, over } = event
+    if (!over || active.id === over.id) return
 
-    const oldIndex = mod.frames.findIndex((f) => f.id === active.id);
-    const newIndex = mod.frames.findIndex((f) => f.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
+    const oldIndex = mod.frames.findIndex((f) => f.id === active.id)
+    const newIndex = mod.frames.findIndex((f) => f.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
 
-    const newOrder = arrayMove(mod.frames.map((f) => f.id), oldIndex, newIndex);
+    const newOrder = arrayMove(
+      mod.frames.map((f) => f.id),
+      oldIndex,
+      newIndex,
+    )
     try {
-      await reorderFrames(moduleId, newOrder);
-      loadModule();
+      await reorderFrames(moduleId, newOrder)
+      loadModule()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Gagal mengubah urutan.');
+      setError(err instanceof ApiError ? err.message : 'Gagal mengubah urutan.')
     }
-  };
+  }
 
-  const editingFrame: Frame | null = editingSlug ? mod?.frames.find((f) => f.id === editingSlug) ?? null : null;
+  const editingFrame: Frame | null = editingSlug
+    ? (mod?.frames.find((f) => f.id === editingSlug) ?? null)
+    : null
 
-  const totalFramePages = mod ? Math.max(1, Math.ceil(mod.frames.length / FRAMES_PER_PAGE)) : 1;
-  const pageStart = (framePage - 1) * FRAMES_PER_PAGE;
-  const visibleFrames = mod ? mod.frames.slice(pageStart, pageStart + FRAMES_PER_PAGE) : [];
+  const totalFramePages = mod
+    ? Math.max(1, Math.ceil(mod.frames.length / FRAMES_PER_PAGE))
+    : 1
+  const pageStart = (framePage - 1) * FRAMES_PER_PAGE
+  const visibleFrames = mod
+    ? mod.frames.slice(pageStart, pageStart + FRAMES_PER_PAGE)
+    : []
 
   return (
-    <div className="home-page">
-      <div className="home-inner">
+    <div className='home-page'>
+      <div className='home-inner'>
         <TopBar />
-        <button type="button" className="home-back" onClick={() => navigate('/guru/modul')}>
+        <button
+          type='button'
+          className='home-back'
+          onClick={() => navigate('/guru/modul')}
+        >
           ← Semua modul
         </button>
 
-        <p className="home-eyebrow">Operator</p>
+        <p className='home-eyebrow'>Operator</p>
         {isNew ? (
-          <h1 className="home-title">Modul Baru</h1>
+          <h1 className='home-title'>Modul Baru</h1>
         ) : mod ? (
-          <div className="module-info-bar">
-            <span className="module-info-bar-icon" style={{ background: `${mod.accent}22`, color: mod.accent }}>
+          <div className='module-info-bar'>
+            <span
+              className='module-info-bar-icon'
+              style={{ background: `${mod.accent}22`, color: mod.accent }}
+            >
               {subjects.find((s) => s.id === mod.subjectId)?.icon ?? '📚'}
             </span>
-            <div className="module-info-bar-text">
-              <h1 className="home-title" style={{ margin: 0 }}>{mod.title}</h1>
-              <div className="module-info-bar-meta">
-                <span>{subjects.find((s) => s.id === mod.subjectId)?.shortName ?? mod.subjectId}</span>
+            <div className='module-info-bar-text'>
+              <h1 className='home-title' style={{ margin: 0 }}>
+                {mod.title}
+              </h1>
+              <div className='module-info-bar-meta' style={{ color: 'black' }}>
+                <span>
+                  {subjects.find((s) => s.id === mod.subjectId)?.shortName ??
+                    mod.subjectId}
+                </span>
                 <span>·</span>
                 <span>Kelas {mod.grade}</span>
                 <span>·</span>
@@ -284,62 +341,94 @@ export default function ModuleEditor() {
             </div>
           </div>
         ) : (
-          <h1 className="home-title">Memuat...</h1>
+          <h1 className='home-title'>Memuat...</h1>
         )}
 
-        {error && <p className="auth-error" style={{ maxWidth: 560 }}>{error}</p>}
+        {error && (
+          <p className='auth-error' style={{ maxWidth: 560 }}>
+            {error}
+          </p>
+        )}
 
         {!isNew && mod && (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
-              <h2 className="frame-section-title" style={{ margin: 0 }}>Panel ({mod.frames.length})</h2>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'baseline',
+                flexWrap: 'wrap',
+                gap: 8,
+              }}
+            >
+              <h2 className='frame-section-title' style={{ margin: 0 }}>
+                Panel ({mod.frames.length})
+              </h2>
               {mod.frames.length > FRAMES_PER_PAGE && (
-                <span className="table-toolbar-count">
+                <span className='table-toolbar-count'>
                   Halaman {framePage} dari {totalFramePages}
                 </span>
               )}
             </div>
 
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={mod.frames.map((f) => f.id)} strategy={verticalListSortingStrategy}>
-                <div className="frame-list">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={mod.frames.map((f) => f.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className='frame-list'>
                   {visibleFrames.map((f, localIdx) => {
-                    const i = pageStart + localIdx;
+                    const i = pageStart + localIdx
                     return (
                       <SortableFrameRow
                         key={f.id}
                         f={f}
                         globalIndex={i}
                         editingSlug={editingSlug}
-                        editingFrame={editingSlug === f.id ? editingFrame : null}
+                        editingFrame={
+                          editingSlug === f.id ? editingFrame : null
+                        }
                         totalFrames={mod.frames.length}
                         onMove={handleMove}
                         onSave={handleSaveFrame}
                         onToggleEdit={(id) => {
-                          setAddingFrame(false);
-                          setEditingSlug(editingSlug === id ? null : id);
+                          setAddingFrame(false)
+                          setEditingSlug(editingSlug === id ? null : id)
                         }}
                         onDelete={handleDeleteFrame}
                       />
-                    );
+                    )
                   })}
                 </div>
               </SortableContext>
             </DndContext>
 
-            <Pagination page={framePage} totalPages={totalFramePages} onChange={setFramePage} />
+            <Pagination
+              page={framePage}
+              totalPages={totalFramePages}
+              onChange={setFramePage}
+            />
 
             {addingFrame ? (
-              <div className="stepsweb-edit-panel" style={{ marginTop: 16 }}>
-                <FrameForm frame={null} isNew onSave={handleSaveFrame} onCancel={() => setAddingFrame(false)} />
+              <div className='stepsweb-edit-panel' style={{ marginTop: 16 }}>
+                <FrameForm
+                  frame={null}
+                  isNew
+                  onSave={handleSaveFrame}
+                  onCancel={() => setAddingFrame(false)}
+                />
               </div>
             ) : (
               <button
-                type="button"
-                className="stepsweb-add-item"
+                type='button'
+                className='stepsweb-add-item'
                 onClick={() => {
-                  setEditingSlug(null);
-                  setAddingFrame(true);
+                  setEditingSlug(null)
+                  setAddingFrame(true)
                 }}
               >
                 + Tambah Panel
@@ -349,5 +438,5 @@ export default function ModuleEditor() {
         )}
       </div>
     </div>
-  );
+  )
 }

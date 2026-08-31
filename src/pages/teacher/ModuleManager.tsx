@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import TopBar from '../../components/TopBar';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react'
+import TopBar from '../../components/TopBar'
+import { useNavigate } from 'react-router-dom'
 import {
   fetchModules,
   deleteModule,
@@ -9,14 +9,14 @@ import {
   fetchSubjects,
   type ModuleSummary,
   ApiError,
-} from '../../lib/api';
-import type { Subject } from '../../types/storyboard';
-import { slugify } from '../../lib/idgen';
-import { RichTextEditor } from '../../components/teacher/RichTextEditor';
-import { grades, semesters } from '../../data/grades';
-import { Pagination } from '../../components/Pagination';
+} from '../../lib/api'
+import type { Subject } from '../../types/storyboard'
+import { slugify } from '../../lib/idgen'
+import { RichTextEditor } from '../../components/teacher/RichTextEditor'
+import { grades, semesters } from '../../data/grades'
+import { Pagination } from '../../components/Pagination'
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 8
 
 /* ── Generic Modal Shell ── */
 function Modal({
@@ -25,37 +25,42 @@ function Modal({
   title,
   children,
 }: {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
+  open: boolean
+  onClose: () => void
+  title: string
+  children: React.ReactNode
 }) {
-  if (!open) return null;
+  if (!open) return null
   return (
-    <div className="modal-overlay">
-      <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="modal-title">{title}</h2>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Tutup">
+    <div className='modal-overlay'>
+      <div className='modal-panel' onClick={(e) => e.stopPropagation()}>
+        <div className='modal-header'>
+          <h2 className='modal-title'>{title}</h2>
+          <button
+            type='button'
+            className='modal-close'
+            onClick={onClose}
+            aria-label='Tutup'
+          >
             ✕
           </button>
         </div>
-        <div className="modal-body">{children}</div>
+        <div className='modal-body'>{children}</div>
       </div>
     </div>
-  );
+  )
 }
 
 export default function ModuleManager() {
-  const navigate = useNavigate();
-  const [modules, setModules] = useState<ModuleSummary[] | null>(null);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
+  const navigate = useNavigate()
+  const [modules, setModules] = useState<ModuleSummary[] | null>(null)
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
 
   /* ── Sunting Modul modal state ── */
-  const [editModule, setEditModule] = useState<ModuleSummary | null>(null);
+  const [editModule, setEditModule] = useState<ModuleSummary | null>(null)
   const [editForm, setEditForm] = useState({
     subjectId: '',
     grade: 1,
@@ -65,12 +70,12 @@ export default function ModuleManager() {
     summary: '',
     estimatedMinutes: '',
     accent: '#6c5ce7',
-  });
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  })
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   /* ── Modul Baru modal state ── */
-  const [showNewModal, setShowNewModal] = useState(false);
+  const [showNewModal, setShowNewModal] = useState(false)
   const [newForm, setNewForm] = useState({
     subjectId: '',
     grade: 1,
@@ -80,35 +85,39 @@ export default function ModuleManager() {
     summary: '',
     estimatedMinutes: '10-15 menit',
     accent: '#6c5ce7',
-  });
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+  })
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   const load = () => {
     fetchModules({})
       .then(setModules)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Gagal memuat data.'));
-  };
+      .catch((err) =>
+        setError(err instanceof ApiError ? err.message : 'Gagal memuat data.'),
+      )
+  }
 
   useEffect(() => {
-    load();
+    load()
     fetchSubjects()
       .then(setSubjects)
-      .catch(() => {});
-  }, []);
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
-    setPage(1);
-  }, [search]);
+    setPage(1)
+  }, [search])
 
   /* Lock body scroll when any modal is open */
-  const anyModalOpen = showNewModal || editModule !== null;
+  const anyModalOpen = showNewModal || editModule !== null
   useEffect(() => {
     if (anyModalOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden'
     }
-    return () => { document.body.style.overflow = ''; };
-  }, [anyModalOpen]);
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [anyModalOpen])
 
   /* Populate edit form when editModule changes */
   useEffect(() => {
@@ -122,44 +131,47 @@ export default function ModuleManager() {
         summary: editModule.summary ?? '',
         estimatedMinutes: editModule.estimatedMinutes,
         accent: editModule.accent,
-      });
-      setSaveError(null);
+      })
+      setSaveError(null)
     }
-  }, [editModule]);
+  }, [editModule])
 
   const filtered = useMemo(() => {
-    if (!modules) return [];
-    const q = search.trim().toLowerCase();
-    if (!q) return modules;
+    if (!modules) return []
+    const q = search.trim().toLowerCase()
+    if (!q) return modules
     return modules.filter(
       (m) =>
         m.title.toLowerCase().includes(q) ||
         m.subtitle.toLowerCase().includes(q) ||
         m.id.toLowerCase().includes(q) ||
-        m.subjectId.toLowerCase().includes(q)
-    );
-  }, [modules, search]);
+        m.subjectId.toLowerCase().includes(q),
+    )
+  }, [modules, search])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Hapus modul "${title}"? Semua panel di dalamnya ikut terhapus.`)) return;
-    setError(null);
+    if (
+      !confirm(`Hapus modul "${title}"? Semua panel di dalamnya ikut terhapus.`)
+    )
+      return
+    setError(null)
     try {
-      await deleteModule(id);
-      load();
+      await deleteModule(id)
+      load()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Gagal menghapus.');
+      setError(err instanceof ApiError ? err.message : 'Gagal menghapus.')
     }
-  };
+  }
 
   /* ── Update Module ── */
   const handleSaveEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editModule) return;
-    setSaveError(null);
-    setSaving(true);
+    e.preventDefault()
+    if (!editModule) return
+    setSaveError(null)
+    setSaving(true)
     try {
       await updateModule(editModule.id, {
         subjectId: editForm.subjectId,
@@ -170,23 +182,25 @@ export default function ModuleManager() {
         summary: editForm.summary,
         estimatedMinutes: editForm.estimatedMinutes,
         accent: editForm.accent,
-      });
-      setEditModule(null);
-      load();
+      })
+      setEditModule(null)
+      load()
     } catch (err) {
-      setSaveError(err instanceof ApiError ? err.message : 'Gagal menyimpan perubahan.');
+      setSaveError(
+        err instanceof ApiError ? err.message : 'Gagal menyimpan perubahan.',
+      )
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   /* ── Create Module ── */
   const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCreateError(null);
-    setCreating(true);
+    e.preventDefault()
+    setCreateError(null)
+    setCreating(true)
     try {
-      const id = slugify(newForm.title);
+      const id = slugify(newForm.title)
       const created = await createModule({
         id,
         subjectId: newForm.subjectId,
@@ -197,8 +211,8 @@ export default function ModuleManager() {
         summary: newForm.summary,
         estimatedMinutes: newForm.estimatedMinutes,
         accent: newForm.accent,
-      });
-      setShowNewModal(false);
+      })
+      setShowNewModal(false)
       setNewForm({
         subjectId: '',
         grade: 1,
@@ -208,64 +222,94 @@ export default function ModuleManager() {
         summary: '',
         estimatedMinutes: '10-15 menit',
         accent: '#6c5ce7',
-      });
-      load();
-      navigate(`/guru/modul/${created.id}`);
+      })
+      load()
+      navigate(`/guru/modul/${created.id}`)
     } catch (err) {
-      setCreateError(err instanceof ApiError ? err.message : 'Gagal membuat modul.');
+      setCreateError(
+        err instanceof ApiError ? err.message : 'Gagal membuat modul.',
+      )
     } finally {
-      setCreating(false);
+      setCreating(false)
     }
-  };
+  }
 
-  const subjectLabel = (id: string) => subjects.find((s) => s.id === id)?.shortName ?? id;
-  const gradeLabel = (level: number) => grades.find((g) => g.level === level)?.label ?? `${level}`;
-  const semesterLabel = (val: number) => semesters.find((s) => s.value === val)?.label ?? `Sem ${val}`;
+  const subjectLabel = (id: string) =>
+    subjects.find((s) => s.id === id)?.shortName ?? id
+  const gradeLabel = (level: number) =>
+    grades.find((g) => g.level === level)?.label ?? `${level}`
+  const semesterLabel = (val: number) =>
+    semesters.find((s) => s.value === val)?.label ?? `Sem ${val}`
 
   return (
-    <div className="home-page">
-      <div className="home-inner">
+    <div className='home-page'>
+      <div className='home-inner'>
         <TopBar />
-        <button type="button" className="home-back" onClick={() => navigate('/guru')}>
+        <button
+          type='button'
+          className='home-back'
+          onClick={() => navigate('/guru')}
+        >
           ← Kelola Konten
         </button>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            gap: 16,
+          }}
+        >
           <div>
-            <p className="home-eyebrow">Operator</p>
-            <h1 className="home-title" style={{ marginBottom: 0 }}>Kelola Modul</h1>
+            <p className='home-eyebrow'>Operator</p>
+            <h1 className='home-title' style={{ marginBottom: 0 }}>
+              Kelola Modul
+            </h1>
           </div>
-          <button type="button" className="btn-primary" onClick={() => setShowNewModal(true)}>
+          <button
+            type='button'
+            className='btn-primary'
+            onClick={() => setShowNewModal(true)}
+          >
             + Modul Baru
           </button>
         </div>
-        <p className="home-lede">Pilih modul untuk menyunting panelnya, atau buat modul baru.</p>
+        <p className='home-lede'>
+          Pilih modul untuk menyunting panelnya, atau buat modul baru.
+        </p>
 
-        {error && <p className="auth-error" style={{ maxWidth: 480 }}>{error}</p>}
+        {error && (
+          <p className='auth-error' style={{ maxWidth: 480 }}>
+            {error}
+          </p>
+        )}
 
-        <div className="table-toolbar">
+        <div className='table-toolbar'>
           <input
-            type="search"
-            className="table-search-input"
-            placeholder="Cari judul, mata pelajaran, atau id modul..."
+            type='search'
+            className='table-search-input'
+            placeholder='Cari judul, mata pelajaran, atau id modul...'
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           {modules !== null && (
-            <span className="table-toolbar-count">
+            <span className='table-toolbar-count'>
               {filtered.length} dari {modules.length} modul
             </span>
           )}
         </div>
 
         {modules === null ? (
-          <p className="home-empty">Memuat...</p>
+          <p className='home-empty'>Memuat...</p>
         ) : filtered.length === 0 ? (
-          <p className="home-empty">Tidak ada modul yang cocok dengan pencarian "{search}".</p>
+          <p className='home-empty'>
+            Tidak ada modul yang cocok dengan pencarian "{search}".
+          </p>
         ) : (
           <>
-            <div className="report-table-wrap">
-              <table className="report-table">
+            <div className='report-table-wrap'>
+              <table className='report-table'>
                 <thead>
                   <tr>
                     <th>Judul</th>
@@ -286,22 +330,22 @@ export default function ModuleManager() {
                       <td>{m.frameCount}</td>
                       <td style={{ display: 'flex', gap: 8 }}>
                         <button
-                          type="button"
-                          className="btn-secondary"
+                          type='button'
+                          className='btn-secondary'
                           onClick={() => setEditModule(m)}
                         >
                           Sunting
                         </button>
                         <button
-                          type="button"
-                          className="btn-secondary"
+                          type='button'
+                          className='btn-secondary'
                           onClick={() => navigate(`/guru/modul/${m.id}`)}
                         >
                           Panels
                         </button>
                         <button
-                          type="button"
-                          className="btn-secondary"
+                          type='button'
+                          className='btn-secondary'
                           onClick={() => handleDelete(m.id, m.title)}
                         >
                           Hapus
@@ -312,126 +356,178 @@ export default function ModuleManager() {
                 </tbody>
               </table>
             </div>
-            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onChange={setPage}
+            />
           </>
         )}
       </div>
 
       {/* ── Sunting Modul Modal (Editable Form) ── */}
-      <Modal open={!!editModule} onClose={() => setEditModule(null)} title={`Sunting: ${editModule?.title ?? ''}`}>
+      <Modal
+        open={!!editModule}
+        onClose={() => setEditModule(null)}
+        title={`Sunting: ${editModule?.title ?? ''}`}
+      >
         {editModule && (
-          <form className="modal-form" onSubmit={handleSaveEdit}>
-            <div className="modal-form-row">
-              <label className="auth-field">
+          <form className='modal-form' onSubmit={handleSaveEdit}>
+            <div className='modal-form-row'>
+              <label className='auth-field'>
                 <span>id modul (slug)</span>
                 <input
-                  type="text"
+                  type='text'
                   value={editModule.id}
                   readOnly
                   style={{ opacity: 0.6, cursor: 'not-allowed' }}
                 />
               </label>
-              <label className="auth-field">
+              <label className='auth-field'>
                 <span>Mata pelajaran</span>
                 <select
                   value={editForm.subjectId}
-                  onChange={(e) => setEditForm({ ...editForm, subjectId: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, subjectId: e.target.value })
+                  }
                   required
                 >
                   {subjects.map((s) => (
-                    <option key={s.id} value={s.id}>{s.icon} {s.shortName}</option>
+                    <option key={s.id} value={s.id}>
+                      {s.icon} {s.shortName}
+                    </option>
                   ))}
                 </select>
               </label>
             </div>
 
-            <div className="modal-form-row">
-              <label className="auth-field">
+            <div className='modal-form-row'>
+              <label className='auth-field'>
                 <span>Kelas</span>
                 <select
                   value={editForm.grade}
-                  onChange={(e) => setEditForm({ ...editForm, grade: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, grade: Number(e.target.value) })
+                  }
                   required
                 >
                   {grades.map((g) => (
-                    <option key={g.level} value={g.level}>{g.label}</option>
+                    <option key={g.level} value={g.level}>
+                      {g.label}
+                    </option>
                   ))}
                 </select>
               </label>
-              <label className="auth-field">
+              <label className='auth-field'>
                 <span>Semester</span>
                 <select
                   value={editForm.semester}
-                  onChange={(e) => setEditForm({ ...editForm, semester: Number(e.target.value) as 1 | 2 })}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      semester: Number(e.target.value) as 1 | 2,
+                    })
+                  }
                   required
                 >
                   {semesters.map((s) => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
                   ))}
                 </select>
               </label>
             </div>
 
-            <label className="auth-field">
+            <label className='auth-field'>
               <span>Judul modul</span>
               <input
-                type="text"
+                type='text'
                 value={editForm.title}
-                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, title: e.target.value })
+                }
                 required
               />
             </label>
 
-            <label className="auth-field">
+            <label className='auth-field'>
               <span>Subjudul</span>
-              <div className="modal-rich-text-wrap">
+              <div className='modal-rich-text-wrap'>
                 <RichTextEditor
                   value={editForm.subtitle}
-                  onChange={(html) => setEditForm({ ...editForm, subtitle: html })}
-                  placeholder="Subjudul modul..."
+                  onChange={(html) =>
+                    setEditForm({ ...editForm, subtitle: html })
+                  }
+                  placeholder='Subjudul modul...'
                 />
               </div>
             </label>
 
-            <label className="auth-field">
+            <label className='auth-field'>
               <span>Ringkasan (tampil di kartu modul)</span>
-              <div className="modal-rich-text-wrap">
+              <div className='modal-rich-text-wrap'>
                 <RichTextEditor
                   value={editForm.summary}
-                  onChange={(html) => setEditForm({ ...editForm, summary: html })}
-                  placeholder="Deskripsi modul yang ditampilkan di kartu murid..."
+                  onChange={(html) =>
+                    setEditForm({ ...editForm, summary: html })
+                  }
+                  placeholder='Deskripsi modul yang ditampilkan di kartu murid...'
                 />
               </div>
             </label>
 
-            <div className="modal-form-row">
-              <label className="auth-field">
+            <div className='modal-form-row'>
+              <label className='auth-field'>
                 <span>Estimasi waktu</span>
                 <input
-                  type="text"
+                  type='text'
                   value={editForm.estimatedMinutes}
-                  onChange={(e) => setEditForm({ ...editForm, estimatedMinutes: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      estimatedMinutes: e.target.value,
+                    })
+                  }
                 />
               </label>
-              <label className="auth-field">
+              <label className='auth-field'>
                 <span>Warna aksen</span>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input
-                    type="color"
+                    type='color'
                     value={editForm.accent}
-                    onChange={(e) => setEditForm({ ...editForm, accent: e.target.value })}
-                    style={{ width: 48, height: 40, padding: 2, borderRadius: 8, cursor: 'pointer' }}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, accent: e.target.value })
+                    }
+                    style={{
+                      width: 48,
+                      height: 40,
+                      padding: 2,
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                    }}
                   />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--muted)' }}>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 13,
+                      color: 'var(--muted)',
+                    }}
+                  >
                     {editForm.accent}
                   </span>
                 </div>
               </label>
             </div>
 
-            {saveError && <p className="auth-error">{saveError}</p>}
+            {saveError && <p className='auth-error'>{saveError}</p>}
 
-            <button type="submit" className="btn-primary modal-submit-btn" disabled={saving}>
+            <button
+              type='submit'
+              className='btn-primary modal-submit-btn'
+              disabled={saving}
+            >
               {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
             </button>
           </form>
@@ -439,119 +535,162 @@ export default function ModuleManager() {
       </Modal>
 
       {/* ── Modul Baru Modal ── */}
-      <Modal open={showNewModal} onClose={() => setShowNewModal(false)} title="✨ Modul Baru">
-        <form className="modal-form" onSubmit={handleCreate}>
-          <label className="auth-field">
+      <Modal
+        open={showNewModal}
+        onClose={() => setShowNewModal(false)}
+        title='✨ Modul Baru'
+      >
+        <form className='modal-form' onSubmit={handleCreate}>
+          <label className='auth-field'>
             <span>Mata Pelajaran *</span>
             <select
               value={newForm.subjectId}
-              onChange={(e) => setNewForm({ ...newForm, subjectId: e.target.value })}
+              onChange={(e) =>
+                setNewForm({ ...newForm, subjectId: e.target.value })
+              }
               required
             >
-              <option value="">Pilih mata pelajaran</option>
+              <option value=''>Pilih mata pelajaran</option>
               {subjects.map((s) => (
-                <option key={s.id} value={s.id}>{s.icon} {s.shortName}</option>
+                <option key={s.id} value={s.id}>
+                  {s.icon} {s.shortName}
+                </option>
               ))}
             </select>
           </label>
 
-          <div className="modal-form-row">
-            <label className="auth-field">
+          <div className='modal-form-row'>
+            <label className='auth-field'>
               <span>Kelas *</span>
               <select
                 value={newForm.grade}
-                onChange={(e) => setNewForm({ ...newForm, grade: Number(e.target.value) })}
+                onChange={(e) =>
+                  setNewForm({ ...newForm, grade: Number(e.target.value) })
+                }
                 required
               >
                 {grades.map((g) => (
-                  <option key={g.level} value={g.level}>{g.label}</option>
+                  <option key={g.level} value={g.level}>
+                    {g.label}
+                  </option>
                 ))}
               </select>
             </label>
-            <label className="auth-field">
+            <label className='auth-field'>
               <span>Semester *</span>
               <select
                 value={newForm.semester}
-                onChange={(e) => setNewForm({ ...newForm, semester: Number(e.target.value) as 1 | 2 })}
+                onChange={(e) =>
+                  setNewForm({
+                    ...newForm,
+                    semester: Number(e.target.value) as 1 | 2,
+                  })
+                }
                 required
               >
                 {semesters.map((s) => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
                 ))}
               </select>
             </label>
           </div>
 
-          <label className="auth-field">
+          <label className='auth-field'>
             <span>Judul Modul *</span>
             <input
-              type="text"
+              type='text'
               value={newForm.title}
-              onChange={(e) => setNewForm({ ...newForm, title: e.target.value })}
+              onChange={(e) =>
+                setNewForm({ ...newForm, title: e.target.value })
+              }
               required
-              placeholder="Contoh: Bilangan Cacah sampai 1000"
+              placeholder='Contoh: Bilangan Cacah sampai 1000'
             />
           </label>
 
-          <label className="auth-field">
+          <label className='auth-field'>
             <span>Sub Judul</span>
             <input
-              type="text"
+              type='text'
               value={newForm.subtitle}
-              onChange={(e) => setNewForm({ ...newForm, subtitle: e.target.value })}
-              placeholder="Ringkasan singkat untuk kartu modul"
+              onChange={(e) =>
+                setNewForm({ ...newForm, subtitle: e.target.value })
+              }
+              placeholder='Ringkasan singkat untuk kartu modul'
             />
           </label>
 
-          <label className="auth-field">
+          <label className='auth-field'>
             <span>Ringkasan (tampilan di kartu)</span>
-            <div className="modal-rich-text-wrap">
+            <div className='modal-rich-text-wrap'>
               <RichTextEditor
                 value={newForm.summary}
                 onChange={(html) => setNewForm({ ...newForm, summary: html })}
-                placeholder="Deskripsi modul yang ditampilkan di kartu murid..."
+                placeholder='Deskripsi modul yang ditampilkan di kartu murid...'
               />
             </div>
           </label>
 
-          <div className="modal-form-row">
-            <label className="auth-field">
+          <div className='modal-form-row'>
+            <label className='auth-field'>
               <span>Estimasi Waktu</span>
               <input
-                type="text"
+                type='text'
                 value={newForm.estimatedMinutes}
-                onChange={(e) => setNewForm({ ...newForm, estimatedMinutes: e.target.value })}
-                placeholder="10-15 menit"
+                onChange={(e) =>
+                  setNewForm({ ...newForm, estimatedMinutes: e.target.value })
+                }
+                placeholder='10-15 menit'
               />
             </label>
-            <label className="auth-field">
+            <label className='auth-field'>
               <span>Warna Aksen</span>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <input
-                  type="color"
+                  type='color'
                   value={newForm.accent}
-                  onChange={(e) => setNewForm({ ...newForm, accent: e.target.value })}
-                  style={{ width: 48, height: 40, padding: 2, borderRadius: 8, cursor: 'pointer' }}
+                  onChange={(e) =>
+                    setNewForm({ ...newForm, accent: e.target.value })
+                  }
+                  style={{
+                    width: 48,
+                    height: 40,
+                    padding: 2,
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                  }}
                 />
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--muted)' }}>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 13,
+                    color: 'var(--muted)',
+                  }}
+                >
                   {newForm.accent}
                 </span>
               </div>
             </label>
           </div>
 
-          {createError && <p className="auth-error">{createError}</p>}
+          {createError && <p className='auth-error'>{createError}</p>}
 
-          <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={() => setShowNewModal(false)}>
+          <div className='modal-actions'>
+            <button
+              type='button'
+              className='btn-secondary'
+              onClick={() => setShowNewModal(false)}
+            >
               Batal
             </button>
-            <button type="submit" className="btn-primary" disabled={creating}>
+            <button type='submit' className='btn-primary' disabled={creating}>
               {creating ? 'Membuat...' : '✨ Buat Modul'}
             </button>
           </div>
         </form>
       </Modal>
     </div>
-  );
+  )
 }
