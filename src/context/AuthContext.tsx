@@ -12,7 +12,7 @@ import {
 interface AuthState {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   register: (name: string, email: string, password: string, role: UserRole, grade?: number, semester?: number) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -40,10 +40,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<User> => {
     const res = await apiLogin({ email, password });
     persistAuthResponse(res);
     setUser(res.user);
+    return res.user;
   };
 
   const register = async (name: string, email: string, password: string, role: UserRole, grade?: number, semester?: number) => {

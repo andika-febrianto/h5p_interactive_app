@@ -17,8 +17,13 @@ export default function Login() {
     setError(null);
     setSubmitting(true);
     try {
-      await login(email, password);
-      navigate('/kelas');
+      const loggedInUser = await login(email, password);
+      // Students go directly to their class/semester after login
+      if (loggedInUser.role === 'STUDENT' && loggedInUser.grade && loggedInUser.semester) {
+        navigate(`/kelas/${loggedInUser.grade}/semester/${loggedInUser.semester}`);
+      } else {
+        navigate('/kelas');
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Gagal masuk. Coba lagi.');
     } finally {

@@ -24,7 +24,11 @@ export default function Register() {
     setSubmitting(true);
     try {
       await register(name, email, password, role, role === 'STUDENT' ? grade : undefined, role === 'STUDENT' ? semester : undefined);
-      navigate('/kelas');
+      if (role === 'STUDENT' && grade && semester) {
+        navigate(`/kelas/${grade}/semester/${semester}`);
+      } else {
+        navigate('/kelas');
+      }
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : 'Gagal mendaftar. Coba lagi.',
