@@ -209,6 +209,49 @@ parentRouter.get('/children/:childId/progress', requireRole('PARENT'), async (re
   }
 });
 
+// GET /api/parent/children/:childId/progress/:moduleId - Get frame-level progress for a specific module
+parentRouter.get('/children/:childId/progress/:moduleId', async (req, res, next) => {
+  try {
+    const authUserId = req.auth!.userId;
+    const authRole = req.auth!.role;
+    const { childId, moduleId } = req.params;
+
+    // If parent, verify the child is linked
+    if (authRole === 'PARENT') {
+      const relationship = await prisma.parentChild.findUnique({
+        where: { parentId_childId: { parentId: authUserId, childId } },
+      });
+      if (!relationship) {
+        res.status(404).json({ error: 'Murid tidak terhubung dengan akun Anda.' });
+        return;
+      }
+    }
+
+    // If student, can only view own progress
+    if (authRole === 'STUDENT' && authUserId !== childId) {
+      res.status(403).json({ error: 'Anda hanya bisa melihat progres sendiri.' });
+      return;
+    }
+
+    const clientId = `user:${childId}`;
+    const records = await prisma.progressRecord.findMany({
+      where: { clientId, moduleId },
+    });
+
+    const frameProgress = records.map((r) => ({
+      frameSlug: r.frameSlug,
+      completed: r.completed,
+      correct: r.correct,
+      total: r.total,
+      accuracy: r.total > 0 ? Math.round((r.correct / r.total) * 100) : 0,
+    }));
+
+    res.json(frameProgress);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ---------- Reading Progress ----------
 
 // GET /api/parent/children/:childId/reading - Get reading progress for a child

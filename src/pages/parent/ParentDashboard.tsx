@@ -6,19 +6,19 @@ import {
   fetchChildren,
   addChild,
   unlinkChild,
-  fetchChildProgress,
   fetchAssignments,
   createAssignment,
   deleteAssignment,
   fetchModules,
   fetchModule,
   fetchSubjects,
+  fetchChildModuleProgress,
   type ChildInfo,
-  type ModuleProgress,
   type ParentAssignment,
   type ModuleSummary,
   type Module,
   type Subject,
+  type FrameProgress,
 } from '../../lib/api'
 import { ApiError } from '../../lib/api'
 import { grades, semesters } from '../../data/grades'
@@ -63,9 +63,18 @@ export default function ParentDashboard() {
   const [childSubmitting, setChildSubmitting] = useState(false)
 
   // Progress state
-  const [selectedChild, setSelectedChild] = useState<ChildInfo | null>(null)
-  const [progress, setProgress] = useState<ModuleProgress[]>([])
+  const [selectedChild, setSelectedChild] = useState<ChildInfo | null>(
+    null,
+  )
   const [progressLoading, setProgressLoading] = useState(false)
+
+  // Per-assignment progress
+  const [assignmentProgress, setAssignmentProgress] = useState<
+    Record<string, Record<string, FrameProgress>>
+  >({})
+  const [moduleCache, setModuleCache] = useState<
+    Record<string, Module>
+  >({})
 
   // Assignment state
   const [assignments, setAssignments] = useState<ParentAssignment[]>([])
@@ -74,13 +83,18 @@ export default function ParentDashboard() {
   const [selectedChildId, setSelectedChildId] = useState('')
   const [selectedSubjectId, setSelectedSubjectId] = useState('')
   const [selectedModuleId, setSelectedModuleId] = useState('')
-  const [availableModules, setAvailableModules] = useState<ModuleSummary[]>([])
-  const [selectedModule, setSelectedModule] = useState<Module | null>(null)
+  const [availableModules, setAvailableModules] = useState<
+    ModuleSummary[]
+  >([])
+  const [selectedModule, setSelectedModule] =
+    useState<Module | null>(null)
   const [selectedFrames, setSelectedFrames] = useState<string[]>([])
   const [dueDate, setDueDate] = useState('')
   const [assigning, setAssigning] = useState(false)
   const [assignError, setAssignError] = useState<string | null>(null)
-  const [assignSuccess, setAssignSuccess] = useState<string | null>(null)
+  const [assignSuccess, setAssignSuccess] = useState<string | null>(
+    null,
+  )
 
   // Load children
   useEffect(() => {
@@ -108,15 +122,44 @@ export default function ParentDashboard() {
   // Load progress when child is selected
   useEffect(() => {
     if (!selectedChild) {
-      setProgress([])
+      setAssignmentProgress({})
       return
     }
     setProgressLoading(true)
-    fetchChildProgress(selectedChild.id)
-      .then(setProgress)
-      .catch(() => setProgress([]))
-      .finally(() => setProgressLoading(false))
-  }, [selectedChild])
+
+    // Load assignment-level progress for this child
+    const childAssignments = assignments.filter(
+      (a) => a.childId === selectedChild.id,
+    )
+    childAssignments.forEach((a) => {
+      if (a.materialId && a.selectedFrames) {
+        // Load module if not cached
+        if (!moduleCache[a.materialId]) {
+          fetchModule(a.materialId)
+            .then((mod) =>
+              setModuleCache((prev) => ({
+                ...prev,
+                [a.materialId!]: mod,
+              })),
+            )
+            .catch(() => {})
+        }
+        // Load frame progress
+        fetchChildModuleProgress(selectedChild.id, a.materialId)
+          .then((frames) => {
+            const map: Record<string, FrameProgress> = {}
+            frames.forEach((f) => {
+              map[f.frameSlug] = f
+            })
+            setAssignmentProgress((prev) => ({
+              ...prev,
+              [a.materialId!]: map,
+            }))
+          })
+          .catch(() => {})
+      }
+    })
+  }, [selectedChild, assignments])
 
   // Load available modules when child and subject are selected
   useEffect(() => {
@@ -146,7 +189,6 @@ export default function ParentDashboard() {
     fetchModule(selectedModuleId)
       .then((mod) => {
         setSelectedModule(mod)
-        // Auto-select all frames by default
         setSelectedFrames(mod.frames.map((f) => f.id))
       })
       .catch(() => {
@@ -179,11 +221,19 @@ export default function ParentDashboard() {
         semester: childForm.semester,
       })
       setChildren((prev) => [...prev, newChild])
-      setChildForm({ name: '', email: '', password: '', grade: 1, semester: 1 })
+      setChildForm({
+        name: '',
+        email: '',
+        password: '',
+        grade: 1,
+        semester: 1,
+      })
       setShowCreateChild(false)
     } catch (err) {
       setChildError(
-        err instanceof ApiError ? err.message : 'Gagal membuat akun anak.',
+        err instanceof ApiError
+          ? err.message
+          : 'Gagal membuat akun anak.',
       )
     } finally {
       setChildSubmitting(false)
@@ -192,13 +242,14 @@ export default function ParentDashboard() {
 
   // Remove child handler
   const handleRemoveChild = async (childId: string) => {
-    if (!confirm('Yakin ingin menghapus anak ini dari daftar?')) return
+    if (!confirm('Yakin ingin menghapus anak ini dari daftar?'))
+      return
     try {
       await unlinkChild(childId)
       setChildren((prev) => prev.filter((c) => c.id !== childId))
       if (selectedChild?.id === childId) {
         setSelectedChild(null)
-        setProgress([])
+        setAssignmentProgress({})
       }
       if (selectedChildId === childId) {
         setSelectedChildId('')
@@ -208,14 +259,20 @@ export default function ParentDashboard() {
         setSelectedFrames([])
       }
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : 'Gagal menghapus anak.')
+      alert(
+        err instanceof ApiError
+          ? err.message
+          : 'Gagal menghapus anak.',
+      )
     }
   }
 
   // Toggle frame selection
   const toggleFrame = (id: string) => {
     setSelectedFrames((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+      prev.includes(id)
+        ? prev.filter((s) => s !== id)
+        : [...prev, id],
     )
   }
 
@@ -231,12 +288,15 @@ export default function ParentDashboard() {
 
   // Assign module to child with selected frames
   const handleAssign = async () => {
-    if (!selectedChildId || !selectedModule || selectedFrames.length === 0) return
+    if (!selectedChildId || !selectedModule || selectedFrames.length === 0)
+      return
     setAssignError(null)
     setAssignSuccess(null)
     setAssigning(true)
     try {
-      const selectedChildInfo = children.find((c) => c.id === selectedChildId)
+      const selectedChildInfo = children.find(
+        (c) => c.id === selectedChildId,
+      )
       await createAssignment({
         childId: selectedChildId,
         title: selectedModule.title,
@@ -245,19 +305,19 @@ export default function ParentDashboard() {
         dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
       })
       setAssignSuccess(
-        `✓ "${selectedModule.title}" (${selectedFrames.length} panel) berhasil ditugaskan ke ${selectedChildInfo?.name ?? 'anak'}!`
+        `✓ "${selectedModule.title}" (${selectedFrames.length} panel) berhasil ditugaskan ke ${selectedChildInfo?.name ?? 'anak'}!`,
       )
-      // Reload assignments
       const updated = await fetchAssignments()
       setAssignments(updated)
-      // Reset form
       setSelectedModuleId('')
       setSelectedModule(null)
       setSelectedFrames([])
       setDueDate('')
     } catch (err) {
       setAssignError(
-        err instanceof ApiError ? err.message : 'Gagal menugaskan modul.',
+        err instanceof ApiError
+          ? err.message
+          : 'Gagal menugaskan modul.',
       )
     } finally {
       setAssigning(false)
@@ -271,7 +331,11 @@ export default function ParentDashboard() {
       await deleteAssignment(id)
       setAssignments((prev) => prev.filter((a) => a.id !== id))
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : 'Gagal menghapus tugas.')
+      alert(
+        err instanceof ApiError
+          ? err.message
+          : 'Gagal menghapus tugas.',
+      )
     }
   }
 
@@ -279,8 +343,41 @@ export default function ParentDashboard() {
   const getChildName = (childId: string) =>
     children.find((c) => c.id === childId)?.name ?? childId
 
+  // Get frame progress for a specific assignment
+  const getFrameProgressForAssignment = (
+    materialId: string | null,
+    frameSlug: string,
+  ): FrameProgress | null => {
+    if (!materialId) return null
+    return assignmentProgress[materialId]?.[frameSlug] ?? null
+  }
+
+  // Get assignment completion percentage
+  const getAssignmentCompletion = (
+    assignment: ParentAssignment,
+  ): { completed: number; total: number; pct: number } => {
+    if (!assignment.selectedFrames || !assignment.materialId)
+      return { completed: 0, total: 0, pct: 0 }
+    const total = assignment.selectedFrames.length
+    let completed = 0
+    assignment.selectedFrames.forEach((frameId) => {
+      const fp = getFrameProgressForAssignment(
+        assignment.materialId,
+        frameId,
+      )
+      if (fp?.completed) completed++
+    })
+    return {
+      completed,
+      total,
+      pct: total > 0 ? Math.round((completed / total) * 100) : 0,
+    }
+  }
+
   // Get selected child info
-  const selectedChildInfo = children.find((c) => c.id === selectedChildId)
+  const selectedChildInfo = children.find(
+    (c) => c.id === selectedChildId,
+  )
 
   return (
     <div className='home-page'>
@@ -297,21 +394,32 @@ export default function ParentDashboard() {
         <p className='home-eyebrow'>Orang Tua · {user?.name}</p>
         <h1 className='home-title'>Dashboard Orang Tua</h1>
         <p className='home-lede'>
-          Buat akun anak, tugaskan materi belajar, dan pantau progresnya.
+          Buat akun anak, tugaskan materi belajar, dan pantau
+          progresnya.
         </p>
 
         {/* Tab Navigation */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+        <div
+          style={{ display: 'flex', gap: 8, marginBottom: 24 }}
+        >
           <button
             type='button'
-            className={activeTab === 'children' ? 'btn-primary' : 'btn-secondary'}
+            className={
+              activeTab === 'children'
+                ? 'btn-primary'
+                : 'btn-secondary'
+            }
             onClick={() => setActiveTab('children')}
           >
             👨‍👩‍👧 Anak Saya
           </button>
           <button
             type='button'
-            className={activeTab === 'assignments' ? 'btn-primary' : 'btn-secondary'}
+            className={
+              activeTab === 'assignments'
+                ? 'btn-primary'
+                : 'btn-secondary'
+            }
             onClick={() => setActiveTab('assignments')}
           >
             📋 Buat Tugas
@@ -326,9 +434,13 @@ export default function ParentDashboard() {
               <button
                 type='button'
                 className='btn-primary'
-                onClick={() => setShowCreateChild(!showCreateChild)}
+                onClick={() =>
+                  setShowCreateChild(!showCreateChild)
+                }
               >
-                {showCreateChild ? 'Batal' : '+ Buat Akun Anak Baru'}
+                {showCreateChild
+                  ? 'Batal'
+                  : '+ Buat Akun Anak Baru'}
               </button>
             </div>
 
@@ -343,7 +455,12 @@ export default function ParentDashboard() {
                   borderRadius: 'var(--radius-lg)',
                 }}
               >
-                <h3 style={{ margin: '0 0 12px', fontFamily: 'var(--font-display)' }}>
+                <h3
+                  style={{
+                    margin: '0 0 12px',
+                    fontFamily: 'var(--font-display)',
+                  }}
+                >
                   Buat Akun Anak
                 </h3>
                 <form onSubmit={handleCreateChild}>
@@ -353,7 +470,10 @@ export default function ParentDashboard() {
                       type='text'
                       value={childForm.name}
                       onChange={(e) =>
-                        setChildForm((prev) => ({ ...prev, name: e.target.value }))
+                        setChildForm((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
                       }
                       required
                       placeholder='Nama lengkap anak'
@@ -365,7 +485,10 @@ export default function ParentDashboard() {
                       type='email'
                       value={childForm.email}
                       onChange={(e) =>
-                        setChildForm((prev) => ({ ...prev, email: e.target.value }))
+                        setChildForm((prev) => ({
+                          ...prev,
+                          email: e.target.value,
+                        }))
                       }
                       required
                       placeholder='anak@sekolah.id'
@@ -377,15 +500,23 @@ export default function ParentDashboard() {
                       type='password'
                       value={childForm.password}
                       onChange={(e) =>
-                        setChildForm((prev) => ({ ...prev, password: e.target.value }))
+                        setChildForm((prev) => ({
+                          ...prev,
+                          password: e.target.value,
+                        }))
                       }
                       required
                       minLength={6}
                       placeholder='Minimal 6 karakter'
                     />
                   </label>
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    <label className='auth-field' style={{ flex: 1 }}>
+                  <div
+                    style={{ display: 'flex', gap: 12 }}
+                  >
+                    <label
+                      className='auth-field'
+                      style={{ flex: 1 }}
+                    >
                       <span>Kelas</span>
                       <select
                         value={childForm.grade}
@@ -398,26 +529,37 @@ export default function ParentDashboard() {
                         required
                       >
                         {grades.map((g) => (
-                          <option key={g.level} value={g.level}>
+                          <option
+                            key={g.level}
+                            value={g.level}
+                          >
                             {g.label}
                           </option>
                         ))}
                       </select>
                     </label>
-                    <label className='auth-field' style={{ flex: 1 }}>
+                    <label
+                      className='auth-field'
+                      style={{ flex: 1 }}
+                    >
                       <span>Semester</span>
                       <select
                         value={childForm.semester}
                         onChange={(e) =>
                           setChildForm((prev) => ({
                             ...prev,
-                            semester: Number(e.target.value),
+                            semester: Number(
+                              e.target.value,
+                            ),
                           }))
                         }
                         required
                       >
                         {semesters.map((s) => (
-                          <option key={s.value} value={s.value}>
+                          <option
+                            key={s.value}
+                            value={s.value}
+                          >
                             {s.label}
                           </option>
                         ))}
@@ -425,14 +567,18 @@ export default function ParentDashboard() {
                     </label>
                   </div>
                   {childError && (
-                    <p className='auth-error'>{childError}</p>
+                    <p className='auth-error'>
+                      {childError}
+                    </p>
                   )}
                   <button
                     type='submit'
                     className='btn-primary'
                     disabled={childSubmitting}
                   >
-                    {childSubmitting ? 'Membuat...' : 'Buat Akun Anak'}
+                    {childSubmitting
+                      ? 'Membuat...'
+                      : 'Buat Akun Anak'}
                   </button>
                 </form>
               </div>
@@ -440,13 +586,22 @@ export default function ParentDashboard() {
 
             {/* Children List */}
             {childrenLoading ? (
-              <p className='home-empty'>Memuat data anak...</p>
+              <p className='home-empty'>
+                Memuat data anak...
+              </p>
             ) : children.length === 0 ? (
               <p className='home-empty'>
-                Belum ada akun anak. Klik "Buat Akun Anak Baru" untuk memulai.
+                Belum ada akun anak. Klik "Buat Akun Anak
+                Baru" untuk memulai.
               </p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 16,
+                }}
+              >
                 {children.map((child) => (
                   <div
                     key={child.id}
@@ -460,7 +615,9 @@ export default function ParentDashboard() {
                     }}
                     onClick={() =>
                       setSelectedChild(
-                        selectedChild?.id === child.id ? null : child,
+                        selectedChild?.id === child.id
+                          ? null
+                          : child,
                       )
                     }
                   >
@@ -477,8 +634,10 @@ export default function ParentDashboard() {
                         </h3>
                         <p className='module-card-summary'>
                           {child.email}
-                          {child.grade && ` · Kelas ${child.grade}`}
-                          {child.semester && ` · Semester ${child.semester}`}
+                          {child.grade &&
+                            ` · Kelas ${child.grade}`}
+                          {child.semester &&
+                            ` · Semester ${child.semester}`}
                         </p>
                       </div>
                       <button
@@ -498,7 +657,7 @@ export default function ParentDashboard() {
               </div>
             )}
 
-            {/* Progress Section */}
+            {/* Assignment Progress Section (when child is selected) */}
             {selectedChild && (
               <div style={{ marginTop: 24 }}>
                 <h3
@@ -510,58 +669,267 @@ export default function ParentDashboard() {
                   📊 Progres Belajar: {selectedChild.name}
                 </h3>
                 {progressLoading ? (
-                  <p className='home-empty'>Memuat progres...</p>
-                ) : progress.length === 0 ? (
-                  <p className='home-empty'>Belum ada progres belajar.</p>
-                ) : (
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                      gap: 12,
-                    }}
-                  >
-                    {progress.map((p) => (
-                      <div
-                        key={p.moduleId}
-                        className='subject-card'
-                        style={{ cursor: 'default' }}
-                      >
-                        <h4 className='module-card-title' style={{ fontSize: 14 }}>
-                          {p.title}
-                        </h4>
-                        <p className='module-card-summary' style={{ fontSize: 12 }}>
-                          Selesai: {p.completed}/{p.total} panel
-                        </p>
-                        <div
-                          style={{
-                            marginTop: 8,
-                            height: 6,
-                            borderRadius: 999,
-                            background: 'var(--gray-200)',
-                            overflow: 'hidden',
-                          }}
-                        >
+                  <p className='home-empty'>
+                    Memuat progres...
+                  </p>
+                ) : (() => {
+                  const childAssignments = assignments.filter(
+                    (a) => a.childId === selectedChild.id,
+                  )
+                  if (childAssignments.length === 0) {
+                    return (
+                      <p className='home-empty'>
+                        Belum ada tugas untuk anak ini.
+                      </p>
+                    )
+                  }
+                  return (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 16,
+                      }}
+                    >
+                      {childAssignments.map((a) => {
+                        const mod = a.materialId
+                          ? moduleCache[a.materialId]
+                          : null
+                        const completion =
+                          getAssignmentCompletion(a)
+                        const selectedFrameIds =
+                          a.selectedFrames ?? []
+                        const frames =
+                          mod?.frames?.filter((f) =>
+                            selectedFrameIds.includes(f.id),
+                          ) ?? []
+
+                        return (
                           <div
-                            style={{
-                              height: '100%',
-                              width: `${p.total > 0 ? (p.completed / p.total) * 100 : 0}%`,
-                              background: 'var(--secondary)',
-                              borderRadius: 999,
-                              transition: 'width 0.3s ease',
-                            }}
-                          />
-                        </div>
-                        <p
-                          className='module-card-summary'
-                          style={{ fontSize: 11, marginTop: 4 }}
-                        >
-                          Akurasi: {p.accuracy}%
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                            key={a.id}
+                            className='subject-card'
+                            style={{ cursor: 'default' }}
+                          >
+                            {/* Assignment header */}
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-start',
+                                marginBottom: 8,
+                              }}
+                            >
+                              <div>
+                                <h4
+                                  className='module-card-title'
+                                  style={{
+                                    fontSize: 15,
+                                    margin: 0,
+                                  }}
+                                >
+                                  📖 {a.title}
+                                </h4>
+                                <p
+                                  className='module-card-summary'
+                                  style={{
+                                    fontSize: 12,
+                                    marginTop: 4,
+                                  }}
+                                >
+                                  {completion.completed}/
+                                  {completion.total}{' '}
+                                  bahasan selesai
+                                </p>
+                              </div>
+                              <span
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  color:
+                                    completion.pct === 100
+                                      ? 'var(--success)'
+                                      : 'var(--primary)',
+                                }}
+                              >
+                                {completion.pct}%
+                              </span>
+                            </div>
+
+                            {/* Overall progress bar */}
+                            <div
+                              style={{
+                                height: 8,
+                                borderRadius: 999,
+                                background: 'var(--gray-200)',
+                                overflow: 'hidden',
+                                marginBottom: 14,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  height: '100%',
+                                  width: `${completion.pct}%`,
+                                  background:
+                                    completion.pct === 100
+                                      ? 'var(--success)'
+                                      : 'var(--primary)',
+                                  borderRadius: 999,
+                                  transition:
+                                    'width 0.4s ease',
+                                }}
+                              />
+                            </div>
+
+                            {/* Per-frame progress */}
+                            {frames.length > 0 && (
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 6,
+                                  borderTop:
+                                    '1px solid var(--border)',
+                                  paddingTop: 10,
+                                }}
+                              >
+                                {frames.map((frame) => {
+                                  const fp =
+                                    getFrameProgressForAssignment(
+                                      a.materialId,
+                                      frame.id,
+                                    )
+                                  const isCompleted =
+                                    fp?.completed ?? false
+                                  const accuracy =
+                                    fp?.accuracy ?? 0
+                                  const framePct =
+                                    isCompleted
+                                      ? 100
+                                      : fp
+                                        ? fp.total > 0
+                                          ? Math.round(
+                                              (fp.correct /
+                                                fp.total) *
+                                                100,
+                                            )
+                                          : 0
+                                        : 0
+
+                                  return (
+                                    <div
+                                      key={frame.id}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems:
+                                          'center',
+                                        gap: 10,
+                                        padding:
+                                          '6px 0',
+                                      }}
+                                    >
+                                      {/* Icon */}
+                                      <span
+                                        style={{
+                                          fontSize: 14,
+                                          width: 20,
+                                          textAlign:
+                                            'center',
+                                        }}
+                                      >
+                                        {isCompleted
+                                          ? '✅'
+                                          : KIND_ICON[
+                                                frame
+                                                  .kind
+                                              ] ??
+                                            '📄'}
+                                      </span>
+
+                                      {/* Title + bar */}
+                                      <div
+                                        style={{
+                                          flex: 1,
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            display:
+                                              'flex',
+                                            justifyContent:
+                                              'space-between',
+                                            marginBottom:
+                                              3,
+                                          }}
+                                        >
+                                          <span
+                                            style={{
+                                              fontSize: 13,
+                                              fontWeight: 500,
+                                              color:
+                                                'var(--text-primary)',
+                                            }}
+                                          >
+                                            {
+                                              frame.title
+                                            }
+                                          </span>
+                                          <span
+                                            style={{
+                                              fontSize: 11,
+                                              fontWeight: 600,
+                                              color: isCompleted
+                                                ? 'var(--success)'
+                                                : 'var(--text-secondary)',
+                                            }}
+                                          >
+                                            {isCompleted
+                                              ? accuracy >
+                                                  0
+                                                ? `${accuracy}%`
+                                                : '✓ Selesai'
+                                              : framePct >
+                                                  0
+                                                ? `${framePct}%`
+                                                : '—'}
+                                          </span>
+                                        </div>
+                                        {/* Mini progress bar */}
+                                        <div
+                                          style={{
+                                            height: 4,
+                                            borderRadius: 999,
+                                            background:
+                                              'var(--gray-200)',
+                                            overflow:
+                                              'hidden',
+                                          }}
+                                        >
+                                          <div
+                                            style={{
+                                              height: '100%',
+                                              width: `${framePct}%`,
+                                              background:
+                                                isCompleted
+                                                  ? 'var(--success)'
+                                                  : 'var(--primary)',
+                                              borderRadius: 999,
+                                              transition:
+                                                'width 0.3s ease',
+                                            }}
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
               </div>
             )}
           </div>
@@ -580,7 +948,12 @@ export default function ParentDashboard() {
                 borderRadius: 'var(--radius-lg)',
               }}
             >
-              <h3 style={{ margin: '0 0 12px', fontFamily: 'var(--font-display)' }}>
+              <h3
+                style={{
+                  margin: '0 0 12px',
+                  fontFamily: 'var(--font-display)',
+                }}
+              >
                 📚 Buat Tugas
               </h3>
 
@@ -589,12 +962,15 @@ export default function ParentDashboard() {
                 <span>Anak</span>
                 <select
                   value={selectedChildId}
-                  onChange={(e) => setSelectedChildId(e.target.value)}
+                  onChange={(e) =>
+                    setSelectedChildId(e.target.value)
+                  }
                 >
                   <option value=''>-- Pilih Anak --</option>
                   {children.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} (Kelas {c.grade} / Semester {c.semester})
+                      {c.name} (Kelas {c.grade} / Semester{' '}
+                      {c.semester})
                     </option>
                   ))}
                 </select>
@@ -606,9 +982,13 @@ export default function ParentDashboard() {
                   <span>Mata Pelajaran</span>
                   <select
                     value={selectedSubjectId}
-                    onChange={(e) => setSelectedSubjectId(e.target.value)}
+                    onChange={(e) =>
+                      setSelectedSubjectId(e.target.value)
+                    }
                   >
-                    <option value=''>-- Pilih Mata Pelajaran --</option>
+                    <option value=''>
+                      -- Pilih Mata Pelajaran --
+                    </option>
                     {subjects.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.icon} {s.shortName}
@@ -624,7 +1004,9 @@ export default function ParentDashboard() {
                   <span>Topik</span>
                   <select
                     value={selectedModuleId}
-                    onChange={(e) => setSelectedModuleId(e.target.value)}
+                    onChange={(e) =>
+                      setSelectedModuleId(e.target.value)
+                    }
                   >
                     <option value=''>-- Pilih Topik --</option>
                     {availableModules.map((m) => (
@@ -639,8 +1021,20 @@ export default function ParentDashboard() {
               {/* Step 4: Select Frames (Bahasan) */}
               {selectedModule && (
                 <div style={{ marginTop: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 8,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                      }}
+                    >
                       Pilih Bahasan
                     </span>
                     <button
@@ -655,7 +1049,8 @@ export default function ParentDashboard() {
                         fontWeight: 600,
                       }}
                     >
-                      {selectedFrames.length === selectedModule.frames.length
+                      {selectedFrames.length ===
+                      selectedModule.frames.length
                         ? 'Batalkan Semua'
                         : 'Pilih Semua'}
                     </button>
@@ -680,152 +1075,291 @@ export default function ParentDashboard() {
                           gap: 10,
                           padding: '6px 8px',
                           cursor: 'pointer',
-                          borderRadius: 'var(--radius-sm)',
-                          background: selectedFrames.includes(frame.id)
+                          borderRadius:
+                            'var(--radius-sm)',
+                          background: selectedFrames.includes(
+                            frame.id,
+                          )
                             ? 'var(--primary-bg)'
                             : 'transparent',
                         }}
                       >
                         <input
                           type='checkbox'
-                          checked={selectedFrames.includes(frame.id)}
-                          onChange={() => toggleFrame(frame.id)}
-                          style={{ width: 16, height: 16 }}
+                          checked={selectedFrames.includes(
+                            frame.id,
+                          )}
+                          onChange={() =>
+                            toggleFrame(frame.id)
+                          }
+                          style={{
+                            width: 16,
+                            height: 16,
+                          }}
                         />
                         <span style={{ fontSize: 14 }}>
                           {KIND_ICON[frame.kind] ?? '📄'}
                         </span>
-                        <span style={{ fontSize: 13, fontWeight: 500 }}>
+                        <span
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 500,
+                          }}
+                        >
                           {frame.title}
                         </span>
-                        <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                          ({KIND_LABEL[frame.kind] ?? frame.kind})
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color:
+                              'var(--text-secondary)',
+                          }}
+                        >
+                          (
+                          {KIND_LABEL[frame.kind] ??
+                            frame.kind}
+                          )
                         </span>
                       </label>
                     ))}
                   </div>
-                  <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6 }}>
-                    {selectedFrames.length} dari {selectedModule.frames.length} panel dipilih
+                  <p
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--text-secondary)',
+                      marginTop: 6,
+                    }}
+                  >
+                    {selectedFrames.length} dari{' '}
+                    {selectedModule.frames.length} panel
+                    dipilih
                   </p>
                 </div>
               )}
 
               {/* Step 5: Deadline */}
               {selectedModule && (
-                <label className='auth-field' style={{ marginTop: 12 }}>
+                <label
+                  className='auth-field'
+                  style={{ marginTop: 12 }}
+                >
                   <span>Deadline</span>
                   <input
                     type='datetime-local'
                     value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
+                    onChange={(e) =>
+                      setDueDate(e.target.value)
+                    }
                   />
                 </label>
               )}
 
               {/* Error/Success messages */}
-              {assignError && <p className='auth-error'>{assignError}</p>}
+              {assignError && (
+                <p className='auth-error'>{assignError}</p>
+              )}
               {assignSuccess && (
-                <p style={{ color: 'var(--success)', fontWeight: 600, fontSize: 13, marginTop: 8 }}>
+                <p
+                  style={{
+                    color: 'var(--success)',
+                    fontWeight: 600,
+                    fontSize: 13,
+                    marginTop: 8,
+                  }}
+                >
                   {assignSuccess}
                 </p>
               )}
 
               {/* Assign button */}
-              {selectedModule && selectedFrames.length > 0 && (
-                <button
-                  type='button'
-                  className='btn-primary'
-                  disabled={assigning}
-                  onClick={handleAssign}
-                  style={{ marginTop: 12 }}
-                >
-                  {assigning
-                    ? 'Menugaskan...'
-                    : `Tugaskan ke ${selectedChildInfo?.name ?? 'Anak'}`}
-                </button>
-              )}
+              {selectedModule &&
+                selectedFrames.length > 0 && (
+                  <button
+                    type='button'
+                    className='btn-primary'
+                    disabled={assigning}
+                    onClick={handleAssign}
+                    style={{ marginTop: 12 }}
+                  >
+                    {assigning
+                      ? 'Menugaskan...'
+                      : `Tugaskan ke ${selectedChildInfo?.name ?? 'Anak'}`}
+                  </button>
+                )}
             </div>
 
             {/* Existing Assignments List */}
-            <h3 style={{ margin: '0 0 12px', fontFamily: 'var(--font-display)' }}>
+            <h3
+              style={{
+                margin: '0 0 12px',
+                fontFamily: 'var(--font-display)',
+              }}
+            >
               📋 Daftar Tugas
             </h3>
             {assignmentsLoading ? (
               <p className='home-empty'>Memuat tugas...</p>
             ) : assignments.length === 0 ? (
-              <p className='home-empty'>Belum ada tugas yang dibuat.</p>
+              <p className='home-empty'>
+                Belum ada tugas yang dibuat.
+              </p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {assignments.map((a) => (
-                  <div
-                    key={a.id}
-                    className='subject-card'
-                    style={{ cursor: 'default' }}
-                  >
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                }}
+              >
+                {assignments.map((a) => {
+                  const completion =
+                    getAssignmentCompletion(a)
+                  return (
                     <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                      }}
+                      key={a.id}
+                      className='subject-card'
+                      style={{ cursor: 'default' }}
                     >
-                      <div>
-                        <h4 className='module-card-title' style={{ fontSize: 14 }}>
-                          📖 {a.title}
-                        </h4>
-                        <p className='module-card-summary' style={{ fontSize: 12 }}>
-                          Untuk: {getChildName(a.childId)}
-                          {a.selectedFrames && (
-                            <> · {a.selectedFrames.length} panel</>
-                          )}
-                        </p>
-                        <p
-                          className='module-card-summary'
-                          style={{ fontSize: 11, marginTop: 4 }}
-                        >
-                          Status:{' '}
-                          <span
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                        }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <h4
+                            className='module-card-title'
+                            style={{ fontSize: 14 }}
+                          >
+                            📖 {a.title}
+                          </h4>
+                          <p
+                            className='module-card-summary'
+                            style={{ fontSize: 12 }}
+                          >
+                            Untuk:{' '}
+                            {getChildName(a.childId)}
+                            {a.selectedFrames && (
+                              <>
+                                {' '}
+                                ·{' '}
+                                {a.selectedFrames.length}{' '}
+                                panel
+                              </>
+                            )}
+                          </p>
+                          <p
+                            className='module-card-summary'
                             style={{
-                              color:
-                                a.status === 'completed'
-                                  ? 'var(--success)'
-                                  : a.status === 'overdue'
-                                    ? 'var(--error)'
-                                    : 'var(--text-secondary)',
-                              fontWeight: 600,
+                              fontSize: 11,
+                              marginTop: 4,
                             }}
                           >
-                            {a.status === 'pending'
-                              ? '⏳ Menunggu'
-                              : a.status === 'in_progress'
-                                ? '📝 Dikerjakan'
-                                : a.status === 'completed'
-                                  ? '✅ Selesai'
-                                  : '⚠️ Terlambat'}
-                          </span>
-                          {a.dueDate && (
-                            <>
-                              {' · Deadline: '}
-                              {new Date(a.dueDate).toLocaleDateString('id-ID', {
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric',
-                              })}
-                            </>
+                            Status:{' '}
+                            <span
+                              style={{
+                                color:
+                                  a.status === 'completed'
+                                    ? 'var(--success)'
+                                    : a.status ===
+                                        'overdue'
+                                      ? 'var(--error)'
+                                      : 'var(--text-secondary)',
+                                fontWeight: 600,
+                              }}
+                            >
+                              {a.status === 'pending'
+                                ? '⏳ Menunggu'
+                                : a.status ===
+                                    'in_progress'
+                                  ? '📝 Dikerjakan'
+                                  : a.status ===
+                                      'completed'
+                                    ? '✅ Selesai'
+                                    : '⚠️ Terlambat'}
+                            </span>
+                            {a.dueDate && (
+                              <>
+                                {' · Deadline: '}
+                                {new Date(
+                                  a.dueDate,
+                                ).toLocaleDateString(
+                                  'id-ID',
+                                  {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric',
+                                  },
+                                )}
+                              </>
+                            )}
+                          </p>
+
+                          {/* Progress for this assignment */}
+                          {completion.total > 0 && (
+                            <div
+                              style={{
+                                marginTop: 8,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  flex: 1,
+                                  height: 6,
+                                  borderRadius: 999,
+                                  background:
+                                    'var(--gray-200)',
+                                  overflow: 'hidden',
+                                  maxWidth: 120,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    height: '100%',
+                                    width: `${completion.pct}%`,
+                                    background:
+                                      completion.pct ===
+                                      100
+                                        ? 'var(--success)'
+                                        : 'var(--primary)',
+                                    borderRadius: 999,
+                                  }}
+                                />
+                              </div>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  color:
+                                    completion.pct === 100
+                                      ? 'var(--success)'
+                                      : 'var(--text-secondary)',
+                                }}
+                              >
+                                {completion.completed}/
+                                {completion.total}
+                              </span>
+                            </div>
                           )}
-                        </p>
+                        </div>
+                        <button
+                          type='button'
+                          className='btn-secondary btn-small'
+                          onClick={() =>
+                            handleDeleteAssignment(a.id)
+                          }
+                          style={{ fontSize: 12 }}
+                        >
+                          Hapus
+                        </button>
                       </div>
-                      <button
-                        type='button'
-                        className='btn-secondary btn-small'
-                        onClick={() => handleDeleteAssignment(a.id)}
-                        style={{ fontSize: 12 }}
-                      >
-                        Hapus
-                      </button>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

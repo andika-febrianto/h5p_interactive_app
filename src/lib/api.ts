@@ -595,6 +595,23 @@ export function fetchChildProgress(childId: string): Promise<ModuleProgress[]> {
   return request(`/parent/children/${encodeURIComponent(childId)}/progress`)
 }
 
+export interface FrameProgress {
+  frameSlug: string
+  completed: boolean
+  correct: number
+  total: number
+  accuracy: number
+}
+
+export function fetchChildModuleProgress(
+  childId: string,
+  moduleId: string,
+): Promise<FrameProgress[]> {
+  return request(
+    `/parent/children/${encodeURIComponent(childId)}/progress/${encodeURIComponent(moduleId)}`,
+  )
+}
+
 // Reading progress
 export function fetchChildReading(childId: string): Promise<ReadingProgressItem[]> {
   return request(`/parent/children/${encodeURIComponent(childId)}/reading`)
