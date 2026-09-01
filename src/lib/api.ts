@@ -1,5 +1,5 @@
 import type {
-  Module,
+  Module as ModuleType,
   Subject as SubjectType,
   FrameResult,
   Frame,
@@ -7,6 +7,7 @@ import type {
   UserRole,
 } from '../types/storyboard'
 
+export type Module = ModuleType
 export type Subject = SubjectType
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'

@@ -50,19 +50,13 @@ export default function ParentDashboard() {
   // Assignment state
   const [assignments, setAssignments] = useState<ParentAssignment[]>([])
   const [assignmentsLoading, setAssignmentsLoading] = useState(true)
-  const [showAssignmentForm, setShowAssignmentForm] = useState(false)
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [selectedSubjectId, setSelectedSubjectId] = useState('')
+  const [selectedChildId, setSelectedChildId] = useState('')
   const [availableModules, setAvailableModules] = useState<ModuleSummary[]>([])
-  const [assignmentForm, setAssignmentForm] = useState({
-    childId: '',
-    materialId: '',
-    title: '',
-    description: '',
-    dueDate: '',
-  })
-  const [assignmentError, setAssignmentError] = useState<string | null>(null)
-  const [assignmentSubmitting, setAssignmentSubmitting] = useState(false)
+  const [assigning, setAssigning] = useState(false)
+  const [assignError, setAssignError] = useState<string | null>(null)
+  const [assignSuccess, setAssignSuccess] = useState<string | null>(null)
 
   // Load children
   useEffect(() => {
@@ -80,6 +74,13 @@ export default function ParentDashboard() {
       .finally(() => setAssignmentsLoading(false))
   }, [])
 
+  // Load subjects on mount
+  useEffect(() => {
+    fetchSubjects()
+      .then(setSubjects)
+      .catch(() => setSubjects([]))
+  }, [])
+
   // Load progress when child is selected
   useEffect(() => {
     if (!selectedChild) {
@@ -93,30 +94,23 @@ export default function ParentDashboard() {
       .finally(() => setProgressLoading(false))
   }, [selectedChild])
 
-  // Load subjects on mount
-  useEffect(() => {
-    fetchSubjects()
-      .then(setSubjects)
-      .catch(() => setSubjects([]))
-  }, [])
-
   // Load available modules when child and subject are selected
   useEffect(() => {
-    if (!assignmentForm.childId) {
+    if (!selectedChildId || !selectedSubjectId) {
       setAvailableModules([])
       return
     }
-    const child = children.find((c) => c.id === assignmentForm.childId)
+    const child = children.find((c) => c.id === selectedChildId)
     if (child?.grade && child?.semester) {
       fetchModules({
         grade: child.grade,
         semester: child.semester,
-        subjectId: selectedSubjectId || undefined,
+        subjectId: selectedSubjectId,
       })
         .then(setAvailableModules)
         .catch(() => setAvailableModules([]))
     }
-  }, [assignmentForm.childId, selectedSubjectId, children])
+  }, [selectedChildId, selectedSubjectId, children])
 
   // Create child account handler
   const handleCreateChild = async (e: React.FormEvent) => {
@@ -153,39 +147,38 @@ export default function ParentDashboard() {
         setSelectedChild(null)
         setProgress([])
       }
+      if (selectedChildId === childId) {
+        setSelectedChildId('')
+        setSelectedSubjectId('')
+        setAvailableModules([])
+      }
     } catch (err) {
       alert(err instanceof ApiError ? err.message : 'Gagal menghapus anak.')
     }
   }
 
-  // Create assignment handler
-  const handleCreateAssignment = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setAssignmentError(null)
-    setAssignmentSubmitting(true)
+  // Assign module to child
+  const handleAssignModule = async (moduleId: string, moduleTitle: string) => {
+    if (!selectedChildId) return
+    setAssignError(null)
+    setAssignSuccess(null)
+    setAssigning(true)
     try {
-      const selectedModule = availableModules.find(
-        (m) => m.id === assignmentForm.materialId,
-      )
-      const newAssignment = await createAssignment({
-        childId: assignmentForm.childId,
-        title: assignmentForm.title || selectedModule?.title || '',
-        description: assignmentForm.description || selectedModule?.summary || undefined,
-        materialId: assignmentForm.materialId || undefined,
-        dueDate: assignmentForm.dueDate
-          ? new Date(assignmentForm.dueDate).toISOString()
-          : undefined,
+      await createAssignment({
+        childId: selectedChildId,
+        title: moduleTitle,
+        materialId: moduleId,
       })
-      setAssignments((prev) => [newAssignment, ...prev])
-      setAssignmentForm({ childId: '', materialId: '', title: '', description: '', dueDate: '' })
-      setSelectedSubjectId('')
-      setShowAssignmentForm(false)
+      setAssignSuccess(`✓ "${moduleTitle}" berhasil ditugaskan!`)
+      // Reload assignments
+      const updated = await fetchAssignments()
+      setAssignments(updated)
     } catch (err) {
-      setAssignmentError(
-        err instanceof ApiError ? err.message : 'Gagal membuat tugas.',
+      setAssignError(
+        err instanceof ApiError ? err.message : 'Gagal menugaskan modul.',
       )
     } finally {
-      setAssignmentSubmitting(false)
+      setAssigning(false)
     }
   }
 
@@ -204,8 +197,8 @@ export default function ParentDashboard() {
   const getChildName = (childId: string) =>
     children.find((c) => c.id === childId)?.name ?? childId
 
-  // Find selected child for assignment form
-  const assignmentChild = children.find((c) => c.id === assignmentForm.childId)
+  // Get selected child info
+  const selectedChildInfo = children.find((c) => c.id === selectedChildId)
 
   return (
     <div className='home-page'>
@@ -222,7 +215,7 @@ export default function ParentDashboard() {
         <p className='home-eyebrow'>Orang Tua · {user?.name}</p>
         <h1 className='home-title'>Dashboard Orang Tua</h1>
         <p className='home-lede'>
-          Buat akun anak, pantau progres belajar, dan berikan tugas dari materi yang tersedia.
+          Buat akun anak, tugaskan materi belajar, dan pantau progresnya.
         </p>
 
         {/* Tab Navigation */}
@@ -405,9 +398,6 @@ export default function ParentDashboard() {
                           {child.grade && ` · Kelas ${child.grade}`}
                           {child.semester && ` · Semester ${child.semester}`}
                         </p>
-                        <p className='module-card-summary' style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                          🔑 Login: {child.email} / [password yang dibuat]
-                        </p>
                       </div>
                       <button
                         type='button'
@@ -498,159 +488,129 @@ export default function ParentDashboard() {
         {/* Assignments Tab */}
         {activeTab === 'assignments' && (
           <div>
-            {/* Create Assignment */}
-            <div style={{ marginBottom: 16 }}>
-              <button
-                type='button'
-                className='btn-primary'
-                onClick={() => setShowAssignmentForm(!showAssignmentForm)}
-              >
-                {showAssignmentForm ? 'Batal' : '+ Buat Tugas Baru'}
-              </button>
+            {/* Assignment Form: Select Child → Subject → Module → Assign */}
+            <div
+              className='auth-form'
+              style={{
+                marginBottom: 24,
+                padding: 16,
+                background: 'var(--bg-card)',
+                borderRadius: 'var(--radius-lg)',
+              }}
+            >
+              <h3 style={{ margin: '0 0 12px', fontFamily: 'var(--font-display)' }}>
+                📚 Tugaskan Materi
+              </h3>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+                Pilih anak, mata pelajaran, lalu klik "Tugaskan" pada modul yang diinginkan.
+              </p>
+
+              {/* Step 1: Select Child */}
+              <label className='auth-field'>
+                <span>1. Pilih Anak</span>
+                <select
+                  value={selectedChildId}
+                  onChange={(e) => {
+                    setSelectedChildId(e.target.value)
+                    setSelectedSubjectId('')
+                    setAvailableModules([])
+                    setAssignError(null)
+                    setAssignSuccess(null)
+                  }}
+                >
+                  <option value=''>-- Pilih Anak --</option>
+                  {children.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} (Kelas {c.grade} / Semester {c.semester})
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {/* Step 2: Select Subject */}
+              {selectedChildId && (
+                <label className='auth-field'>
+                  <span>2. Pilih Mata Pelajaran</span>
+                  <select
+                    value={selectedSubjectId}
+                    onChange={(e) => {
+                      setSelectedSubjectId(e.target.value)
+                      setAvailableModules([])
+                      setAssignError(null)
+                      setAssignSuccess(null)
+                    }}
+                  >
+                    <option value=''>-- Pilih Mata Pelajaran --</option>
+                    {subjects.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.icon} {s.shortName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
+              {/* Error/Success messages */}
+              {assignError && <p className='auth-error'>{assignError}</p>}
+              {assignSuccess && (
+                <p style={{ color: 'var(--success)', fontWeight: 600, fontSize: 13, marginTop: 8 }}>
+                  {assignSuccess}
+                </p>
+              )}
+
+              {/* Step 3: Available Modules */}
+              {selectedChildId && selectedSubjectId && (
+                <div style={{ marginTop: 12 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+                    3. Pilih Modul untuk ditugaskan:
+                  </p>
+                  {availableModules.length === 0 ? (
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                      Tidak ada modul tersedia untuk mata pelajaran ini.
+                    </p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {availableModules.map((mod) => (
+                        <div
+                          key={mod.id}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '10px 12px',
+                            background: 'var(--gray-50)',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--border)',
+                          }}
+                        >
+                          <div>
+                            <span style={{ fontWeight: 600, fontSize: 13 }}>
+                              {mod.title}
+                            </span>
+                            <span style={{ fontSize: 11, color: 'var(--text-secondary)', marginLeft: 8 }}>
+                              {mod.estimatedMinutes} · {mod.frameCount} panel
+                            </span>
+                          </div>
+                          <button
+                            type='button'
+                            className='btn-primary btn-small'
+                            disabled={assigning}
+                            onClick={() => handleAssignModule(mod.id, mod.title)}
+                          >
+                            {assigning ? '...' : `Tugaskan ke ${selectedChildInfo?.name ?? 'Anak'}`}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {showAssignmentForm && (
-              <div
-                className='auth-form'
-                style={{
-                  marginBottom: 24,
-                  padding: 16,
-                  background: 'var(--bg-card)',
-                  borderRadius: 'var(--radius-lg)',
-                }}
-              >
-                <h3 style={{ margin: '0 0 12px', fontFamily: 'var(--font-display)' }}>
-                  Tugas Baru
-                </h3>
-                <form onSubmit={handleCreateAssignment}>
-                  <label className='auth-field'>
-                    <span>Pilih Anak</span>
-                    <select
-                      value={assignmentForm.childId}
-                      onChange={(e) => {
-                        setAssignmentForm((prev) => ({
-                          ...prev,
-                          childId: e.target.value,
-                          materialId: '',
-                        }))
-                        setSelectedSubjectId('')
-                      }}
-                      required
-                    >
-                      <option value=''>-- Pilih Anak --</option>
-                      {children.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} (Kelas {c.grade} / Semester {c.semester})
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  {assignmentChild && (
-                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 12px' }}>
-                      Materi untuk Kelas {assignmentChild.grade} / Semester {assignmentChild.semester}
-                    </p>
-                  )}
-
-                  {assignmentForm.childId && (
-                    <label className='auth-field'>
-                      <span>Pilih Mata Pelajaran</span>
-                      <select
-                        value={selectedSubjectId}
-                        onChange={(e) => {
-                          setSelectedSubjectId(e.target.value)
-                          setAssignmentForm((prev) => ({ ...prev, materialId: '' }))
-                        }}
-                      >
-                        <option value=''>-- Semua Mata Pelajaran --</option>
-                        {subjects.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.icon} {s.shortName}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-
-                  <label className='auth-field'>
-                    <span>Pilih Materi / Modul</span>
-                    <select
-                      value={assignmentForm.materialId}
-                      onChange={(e) => {
-                        const mod = availableModules.find((m) => m.id === e.target.value)
-                        setAssignmentForm((prev) => ({
-                          ...prev,
-                          materialId: e.target.value,
-                          title: prev.title || mod?.title || '',
-                        }))
-                      }}
-                    >
-                      <option value=''>-- Pilih Materi (opsional) --</option>
-                      {availableModules.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.title} ({m.estimatedMinutes})
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className='auth-field'>
-                    <span>Judul Tugas</span>
-                    <input
-                      type='text'
-                      value={assignmentForm.title}
-                      onChange={(e) =>
-                        setAssignmentForm((prev) => ({
-                          ...prev,
-                          title: e.target.value,
-                        }))
-                      }
-                      required
-                      placeholder='Contoh: Selesaikan modul Bilangan Cacah'
-                    />
-                  </label>
-                  <label className='auth-field'>
-                    <span>Deskripsi (opsional)</span>
-                    <input
-                      type='text'
-                      value={assignmentForm.description}
-                      onChange={(e) =>
-                        setAssignmentForm((prev) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }))
-                      }
-                      placeholder='Detail tambahan untuk tugas'
-                    />
-                  </label>
-                  <label className='auth-field'>
-                    <span>Batas Waktu (opsional)</span>
-                    <input
-                      type='datetime-local'
-                      value={assignmentForm.dueDate}
-                      onChange={(e) =>
-                        setAssignmentForm((prev) => ({
-                          ...prev,
-                          dueDate: e.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                  {assignmentError && (
-                    <p className='auth-error'>{assignmentError}</p>
-                  )}
-                  <button
-                    type='submit'
-                    className='btn-primary'
-                    disabled={assignmentSubmitting}
-                  >
-                    {assignmentSubmitting ? 'Membuat...' : 'Buat Tugas'}
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {/* Assignments List */}
+            {/* Existing Assignments List */}
+            <h3 style={{ margin: '0 0 12px', fontFamily: 'var(--font-display)' }}>
+              📋 Daftar Tugas
+            </h3>
             {assignmentsLoading ? (
               <p className='home-empty'>Memuat tugas...</p>
             ) : assignments.length === 0 ? (
@@ -672,11 +632,10 @@ export default function ParentDashboard() {
                     >
                       <div>
                         <h4 className='module-card-title' style={{ fontSize: 14 }}>
-                          {a.title}
+                          📖 {a.title}
                         </h4>
                         <p className='module-card-summary' style={{ fontSize: 12 }}>
                           Untuk: {getChildName(a.childId)}
-                          {a.description && ` · ${a.description}`}
                         </p>
                         <p
                           className='module-card-summary'
@@ -702,8 +661,6 @@ export default function ParentDashboard() {
                                   ? '✅ Selesai'
                                   : '⚠️ Terlambat'}
                           </span>
-                          {a.dueDate &&
-                            ` · Deadline: ${new Date(a.dueDate).toLocaleDateString('id-ID')}`}
                         </p>
                       </div>
                       <button
