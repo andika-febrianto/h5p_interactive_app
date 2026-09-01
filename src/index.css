@@ -134,7 +134,7 @@ button {
 
 .sidebar {
   padding: 36px 26px;
-  background: linear-gradient(180deg, #00b894 0%, #00a383 100%);
+  background: linear-gradient(180deg, #0a6e5a 0%, #075e4d 50%, #054e40 100%);
   color: var(--white);
   display: flex;
   flex-direction: column;
@@ -143,14 +143,14 @@ button {
   top: 0;
   height: 100vh;
   overflow-y: auto;
-  box-shadow: 2px 0 12px rgba(0,0,0,0.08);
+  box-shadow: 2px 0 12px rgba(0,0,0,0.15);
 }
 
 .sidebar-exit {
   align-self: flex-start;
   background: transparent;
   border: none;
-  color: var(--seafoam-bright);
+  color: #b2f5d8;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -162,7 +162,7 @@ button {
 
 .sidebar-item-lock {
   font-size: 11px;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 .sidebar-brand {
@@ -187,7 +187,7 @@ button {
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--seafoam);
+  color: #86e8c8;
 }
 
 .sidebar-title {
@@ -202,19 +202,19 @@ button {
 .sidebar-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.1);
+  gap: 5px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .sidebar-info-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: rgba(255, 253, 248, 0.85);
+  gap: 8px;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .sidebar-info-label {
@@ -222,13 +222,13 @@ button {
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--seafoam);
+  color: #86e8c8;
   min-width: 60px;
 }
 
 .sidebar-info-value {
   font-weight: 600;
-  color: var(--white);
+  color: #ffffff;
 }
 
 .sidebar-progress-track {
@@ -248,7 +248,7 @@ button {
   margin: 8px 0 0;
   font-family: var(--font-mono);
   font-size: 12px;
-  color: var(--seafoam-bright);
+  color: #b2f5d8;
 }
 
 .sidebar-nav {
@@ -267,8 +267,8 @@ button {
   width: 1px;
   background: repeating-linear-gradient(
     to bottom,
-    rgba(255, 255, 255, 0.25) 0,
-    rgba(255, 255, 255, 0.25) 4px,
+    rgba(255, 255, 255, 0.35) 0,
+    rgba(255, 255, 255, 0.35) 4px,
     transparent 4px,
     transparent 9px
   );
@@ -286,15 +286,15 @@ button {
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: transparent;
-  color: rgba(255, 253, 248, 0.92);
+  color: rgba(255, 255, 255, 0.95);
   text-align: left;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
 .sidebar-item:hover:not(:disabled) {
-  background: var(--white);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
 }
 
 .sidebar-item:disabled {
@@ -303,18 +303,18 @@ button {
 }
 
 .sidebar-item.is-active {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 200, 87, 0.5);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 200, 87, 0.6);
 }
 
 .sidebar-item.is-done .sidebar-item-title {
-  color: var(--seafoam-bright);
+  color: #86e8c8;
 }
 
 .sidebar-item-panel {
   font-family: var(--font-mono);
   font-size: 10px;
-  color: var(--sun);
+  color: #ffe066;
   text-align: center;
 }
 
@@ -331,7 +331,7 @@ button {
 .sidebar-item-title {
   font-size: 13.5px;
   font-weight: 600;
-  color: var(--white);
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -339,11 +339,11 @@ button {
 
 .sidebar-item-kind {
   font-size: 11px;
-  color: rgba(255, 253, 248, 0.75);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .sidebar-item-check {
-  color: var(--seafoam-bright);
+  color: #86e8c8;
   font-weight: 700;
 }
 
