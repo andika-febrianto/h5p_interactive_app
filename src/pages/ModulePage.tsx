@@ -6,14 +6,18 @@ import { fetchModule, ApiError } from '../lib/api'
 import { Sidebar } from '../components/Sidebar'
 import { ScenePlayer } from '../components/ScenePlayer'
 import { SummaryScreen } from '../components/SummaryScreen'
+import { useAuth } from '../context/AuthContext'
+import { getSubjectById } from '../data/subjects'
 import type { Module } from '../types/storyboard'
 
 function ModuleRunner({ mod }: { mod: Module }) {
   const { currentIndex, setCurrentIndex, resetProgress, loading, error } =
     useProgress()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const frames = mod.frames
   const isSummary = currentIndex >= frames.length
+  const subject = getSubjectById(mod.subjectId)
 
   const handleDone = () =>
     setCurrentIndex(Math.min(currentIndex + 1, frames.length))
@@ -41,6 +45,10 @@ function ModuleRunner({ mod }: { mod: Module }) {
       <Sidebar
         frames={frames}
         moduleTitle={mod.title}
+        subjectName={subject?.shortName}
+        grade={mod.grade}
+        semester={mod.semester}
+        userName={user?.name}
         onJump={handleJump}
         onExit={handleExit}
       />
