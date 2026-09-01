@@ -11,6 +11,7 @@ import { UPLOADS_DIR } from './lib/upload.js'
 import { plansRouter } from './routes/plans.js'
 import { subscriptionRouter } from './routes/subscription.js'
 import { webhooksRouter } from './routes/webhooks.js'
+import { parentRouter } from './routes/parent.js'
 import { uploadsRouter } from './routes/uploads.js'
 
 const app = express()
@@ -67,6 +68,7 @@ app.use('/api/uploads', uploadsRouter)
 app.use('/api/plans', plansRouter)
 app.use('/api/subscription', subscriptionRouter)
 app.use('/api/webhooks', webhooksRouter)
+app.use('/api/parent', parentRouter)
 
 app.use((req, res) => {
   res.status(404).json({ error: `No route for ${req.method} ${req.path}` })
