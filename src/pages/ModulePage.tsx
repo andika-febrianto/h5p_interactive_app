@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import TopBar from '../components/TopBar'
 import { useParams, useNavigate, Navigate, useSearchParams } from 'react-router-dom'
 import { ProgressProvider, useProgress } from '../context/ProgressContext'
-import { fetchModule, ApiError } from '../lib/api'
+import { fetchModule, fetchChildAssignments, ApiError } from '../lib/api'
 import { Sidebar } from '../components/Sidebar'
 import { ScenePlayer } from '../components/ScenePlayer'
 import { SummaryScreen } from '../components/SummaryScreen'
@@ -86,6 +86,7 @@ export default function ModulePage() {
   const [notFound, setNotFound] = useState(false)
   const [locked, setLocked] = useState(false)
 
+  const { user } = useAuth()
   const [searchParams] = useSearchParams()
   const assignmentId = searchParams.get('assignment')
   const [selectedFrameIds, setSelectedFrameIds] = useState<string[] | null>(null)
@@ -107,20 +108,18 @@ export default function ModulePage() {
       })
   }, [moduleId])
 
-  // If there's an assignment ID, fetch it to get selectedFrames
+  // If there's an assignment ID, fetch child's assignments to get selectedFrames
   useEffect(() => {
-    if (!assignmentId) return
-    import('../lib/api').then(({ fetchAssignments }) =>
-      fetchAssignments()
-        .then((assignments) => {
-          const a = assignments.find((x) => x.id === assignmentId)
-          if (a?.selectedFrames && a.selectedFrames.length > 0) {
-            setSelectedFrameIds(a.selectedFrames)
-          }
-        })
-        .catch(() => {})
-    )
-  }, [assignmentId])
+    if (!assignmentId || !user?.id) return
+    fetchChildAssignments(user.id)
+      .then((assignments) => {
+        const a = assignments.find((x) => x.id === assignmentId)
+        if (a?.selectedFrames && a.selectedFrames.length > 0) {
+          setSelectedFrameIds(a.selectedFrames)
+        }
+      })
+      .catch(() => {})
+  }, [assignmentId, user?.id])
 
   if (notFound) {
     return <Navigate to='/kelas' replace />
