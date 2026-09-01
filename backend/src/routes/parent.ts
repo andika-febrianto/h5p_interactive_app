@@ -85,6 +85,20 @@ parentRouter.post('/children', requireRole('PARENT'), async (req, res, next) => 
       },
     });
 
+    // Every new account starts on a 14-day free trial with full access
+    const trialPlan = await prisma.plan.findUnique({ where: { id: 'free_trial' } });
+    if (trialPlan) {
+      const trialDays = trialPlan.trialDays ?? 14;
+      await prisma.subscription.create({
+        data: {
+          userId: child.id,
+          planId: trialPlan.id,
+          status: 'TRIALING',
+          currentPeriodEnd: new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000),
+        },
+      });
+    }
+
     // Create the parent-child link
     await prisma.parentChild.create({
       data: { parentId, childId: child.id },
