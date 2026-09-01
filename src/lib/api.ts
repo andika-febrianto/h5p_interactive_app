@@ -511,3 +511,143 @@ export async function uploadFile(file: File): Promise<UploadResult> {
   const data = await doUpload()
   return { ...data, url: `${getApiOrigin()}${data.url}` }
 }
+
+// ---------- Parent ----------
+
+export interface ChildInfo {
+  id: string
+  name: string
+  email: string
+  grade: number | null
+  semester: number | null
+}
+
+export interface ModuleProgress {
+  moduleId: string
+  title: string
+  subjectId: string
+  completed: number
+  total: number
+  correct: number
+  accuracy: number
+}
+
+export interface ReadingProgressItem {
+  id: string
+  childId: string
+  materialId: string
+  materialType: string
+  title: string
+  totalPages: number
+  currentPage: number
+  status: string
+  lastReadAt: string
+}
+
+export interface ParentAssignment {
+  id: string
+  parentId: string
+  childId: string
+  title: string
+  description: string | null
+  materialId: string | null
+  dueDate: string | null
+  status: string
+  notes: string | null
+  child?: { id: string; name: string; email: string }
+  createdAt: string
+}
+
+// Children
+export function fetchChildren(): Promise<ChildInfo[]> {
+  return request('/parent/children')
+}
+
+export function linkChild(email: string): Promise<ChildInfo> {
+  return request('/parent/children', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export function unlinkChild(childId: string): Promise<void> {
+  return request(`/parent/children/${encodeURIComponent(childId)}`, {
+    method: 'DELETE',
+  })
+}
+
+// Child progress
+export function fetchChildProgress(childId: string): Promise<ModuleProgress[]> {
+  return request(`/parent/children/${encodeURIComponent(childId)}/progress`)
+}
+
+// Reading progress
+export function fetchChildReading(childId: string): Promise<ReadingProgressItem[]> {
+  return request(`/parent/children/${encodeURIComponent(childId)}/reading`)
+}
+
+export function upsertReadingProgress(
+  childId: string,
+  body: {
+    materialId: string
+    materialType: 'module' | 'book' | 'article'
+    title: string
+    totalPages?: number
+    currentPage?: number
+    status?: 'not_started' | 'in_progress' | 'completed'
+  },
+): Promise<ReadingProgressItem> {
+  return request(`/parent/children/${encodeURIComponent(childId)}/reading`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+// Assignments
+export function fetchAssignments(): Promise<ParentAssignment[]> {
+  return request('/parent/assignments')
+}
+
+export function createAssignment(body: {
+  childId: string
+  title: string
+  description?: string
+  materialId?: string
+  dueDate?: string
+}): Promise<ParentAssignment> {
+  return request('/parent/assignments', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+export function updateAssignment(
+  id: string,
+  body: Partial<{
+    title: string
+    description: string
+    materialId: string
+    dueDate: string
+    status: string
+    notes: string
+  }>,
+): Promise<ParentAssignment> {
+  return request(`/parent/assignments/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
+}
+
+export function deleteAssignment(id: string): Promise<void> {
+  return request(`/parent/assignments/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  })
+}
+
+export function fetchChildAssignments(
+  childId: string,
+): Promise<ParentAssignment[]> {
+  return request(
+    `/parent/children/${encodeURIComponent(childId)}/assignments`,
+  )
+}

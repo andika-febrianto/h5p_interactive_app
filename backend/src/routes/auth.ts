@@ -15,7 +15,7 @@ export const authRouter = Router();
 
 /** Creates a new session row + matching access/refresh token pair for a user.
  *  Shared by register, login, and refresh so all three behave identically. */
-async function issueSession(userId: string, role: 'TEACHER' | 'STUDENT', userAgent?: string) {
+async function issueSession(userId: string, role: 'TEACHER' | 'STUDENT' | 'PARENT', userAgent?: string) {
   const refreshToken = generateRefreshToken();
   const session = await prisma.session.create({
     data: {
@@ -33,7 +33,7 @@ const registerSchema = z.object({
   name: z.string().trim().min(2, 'Nama minimal 2 karakter'),
   email: z.string().trim().toLowerCase().email('Email tidak valid'),
   password: z.string().min(6, 'Kata sandi minimal 6 karakter'),
-  role: z.enum(['TEACHER', 'STUDENT']),
+  role: z.enum(['TEACHER', 'STUDENT', 'PARENT']),
   grade: z.number().int().min(1).max(6).optional(),
   semester: z.number().int().min(1).max(2).optional(),
 });

@@ -18,6 +18,7 @@ import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import SubjectManager from './pages/teacher/SubjectManager';
 import ModuleManager from './pages/teacher/ModuleManager';
 import ModuleEditor from './pages/teacher/ModuleEditor';
+import ParentDashboard from './pages/parent/ParentDashboard';
 
 export default function App() {
   return (
@@ -111,6 +112,16 @@ export default function App() {
             element={
               <RequireRole role="TEACHER">
                 <ModuleEditor />
+              </RequireRole>
+            }
+          />
+
+          {/* Parent routes */}
+          <Route
+            path="/orangtua"
+            element={
+              <RequireRole role="PARENT">
+                <ParentDashboard />
               </RequireRole>
             }
           />

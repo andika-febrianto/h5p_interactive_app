@@ -19,10 +19,9 @@ export default function Login() {
     try {
       const loggedInUser = await login(email, password)
 
-      console.log(loggedInUser)
-
-      // Students go directly to their class/semester after login
-      if (
+      if (loggedInUser.role === 'PARENT') {
+        navigate('/orangtua')
+      } else if (
         loggedInUser.role === 'STUDENT' &&
         loggedInUser.grade &&
         loggedInUser.semester

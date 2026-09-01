@@ -129,7 +129,7 @@ export interface FrameResult {
   total: number;
 }
 
-export type UserRole = 'TEACHER' | 'STUDENT';
+export type UserRole = 'TEACHER' | 'STUDENT' | 'PARENT';
 
 export interface User {
   id: string;

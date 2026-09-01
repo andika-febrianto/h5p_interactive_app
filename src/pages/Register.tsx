@@ -12,7 +12,7 @@ export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const role: UserRole = 'STUDENT';
+  const [role, setRole] = useState<UserRole>('STUDENT');
   const [grade, setGrade] = useState<number>(1);
   const [semester, setSemester] = useState<number>(1);
   const [error, setError] = useState<string | null>(null);
@@ -23,8 +23,17 @@ export default function Register() {
     setError(null);
     setSubmitting(true);
     try {
-      await register(name, email, password, role, role === 'STUDENT' ? grade : undefined, role === 'STUDENT' ? semester : undefined);
-      if (role === 'STUDENT' && grade && semester) {
+      await register(
+        name,
+        email,
+        password,
+        role,
+        role === 'STUDENT' ? grade : undefined,
+        role === 'STUDENT' ? semester : undefined,
+      );
+      if (role === 'PARENT') {
+        navigate('/orangtua');
+      } else if (role === 'STUDENT' && grade && semester) {
         navigate(`/kelas/${grade}/semester/${semester}`);
       } else {
         navigate('/kelas');
@@ -46,7 +55,19 @@ export default function Register() {
 
         <form className='auth-form' onSubmit={handleSubmit}>
           <label className='auth-field'>
-            <span>Nama Lengkap Anak *</span>
+            <span>Daftar Sebagai</span>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as UserRole)}
+              required
+            >
+              <option value='STUDENT'>Murid (Anak)</option>
+              <option value='PARENT'>Orang Tua</option>
+            </select>
+          </label>
+
+          <label className='auth-field'>
+            <span>{role === 'PARENT' ? 'Nama Lengkap' : 'Nama Lengkap Anak'} *</span>
             <input
               type='text'
               value={name}
@@ -58,7 +79,7 @@ export default function Register() {
           </label>
 
           <label className='auth-field'>
-            <span>Email (orang tua)</span>
+            <span>Email</span>
             <input
               type='email'
               value={email}

@@ -31,6 +31,7 @@ datasource db {
 enum Role {
   TEACHER
   STUDENT
+  PARENT
 }
 
 model User {
@@ -45,6 +46,12 @@ model User {
   sessions     Session[]
   subscription Subscription?
   payments     Payment[]
+  // Parent-Child relationships
+  parentChildren  ParentChild[] @relation("Parent")
+  childParents    ParentChild[] @relation("Child")
+  readingProgress ReadingProgress[]
+  assignmentsGiven ParentAssignment[] @relation("Parent")
+  assignmentsReceived ParentAssignment[] @relation("Child")
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
@@ -57,8 +64,8 @@ model User {
 // as hashing passwords). Revoking a session (logout, or the user cabut-ing
 // a device from their session list) sets `revokedAt`, which immediately
 // invalidates that refresh token. The short-lived JWT access token it
-// already issued keeps working until its own ~15 minute expiry — this is
-// the standard, accepted trade-off of stateless access tokens.
+// already issued keeps working until its own ~15 minute expiry — this
+// is the standard, accepted trade-off of stateless access tokens.
 model Session {
   id               String    @id @default(cuid())
   userId           String
@@ -206,4 +213,62 @@ model Payment {
 
   @@index([userId])
   @@map("payments")
+}
+
+// ---------- Parent-Child System ----------
+
+// Junction table linking parents to their children (students)
+model ParentChild {
+  id        String   @id @default(cuid())
+  parentId  String
+  parent    User     @relation("Parent", fields: [parentId], references: [id], onDelete: Cascade)
+  childId   String
+  child     User     @relation("Child", fields: [childId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([parentId, childId])
+  @@index([parentId])
+  @@index([childId])
+  @@map("parent_children")
+}
+
+// Track reading progress for children
+model ReadingProgress {
+  id          String   @id @default(cuid())
+  childId     String
+  child       User     @relation(fields: [childId], references: [id], onDelete: Cascade)
+  materialId  String   // references a module or external material
+  materialType String  // 'module' | 'book' | 'article'
+  title       String
+  totalPages  Int      @default(0)
+  currentPage Int      @default(0)
+  status      String   @default("in_progress") // 'not_started' | 'in_progress' | 'completed'
+  lastReadAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([childId, materialId])
+  @@index([childId])
+  @@map("reading_progress")
+}
+
+// Tasks/assignments created by parents for their children
+model ParentAssignment {
+  id          String   @id @default(cuid())
+  parentId    String
+  parent      User     @relation("Parent", fields: [parentId], references: [id], onDelete: Cascade)
+  childId     String
+  child       User     @relation("Child", fields: [childId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  materialId  String?  // optional link to a module
+  dueDate     DateTime?
+  status      String   @default("pending") // 'pending' | 'in_progress' | 'completed' | 'overdue'
+  notes       String?  // parent's notes or feedback
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([parentId])
+  @@index([childId])
+  @@map("parent_assignments")
 }
