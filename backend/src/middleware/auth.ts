@@ -71,12 +71,11 @@ export async function requireActiveAccess(req: Request, res: Response, next: Nex
     res.status(401).json({ error: 'Login diperlukan.' });
     return;
   }
-  // Teachers aren't gated by trial/subscription status in this version —
+  // Teachers and Parents aren't gated by trial/subscription status —
   // this only restricts a STUDENT's access to consuming module content.
-  // (GET /api/modules/:id is shared by both the student player and the
-  // teacher's own content editor, which is why this check is role-aware
-  // rather than being a separate route.)
-  if (req.auth.role === 'TEACHER') {
+  // Teachers manage content; Parents need to view module frames to create
+  // assignments for their children.
+  if (req.auth.role === 'TEACHER' || req.auth.role === 'PARENT') {
     next();
     return;
   }
