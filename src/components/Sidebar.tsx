@@ -22,11 +22,19 @@ const KIND_LABEL: Record<Frame['kind'], string> = {
 export function Sidebar({
   frames,
   moduleTitle,
+  subjectName,
+  grade,
+  semester,
+  userName,
   onJump,
   onExit,
 }: {
   frames: Frame[];
   moduleTitle: string;
+  subjectName?: string;
+  grade?: number;
+  semester?: number;
+  userName?: string;
   onJump: (i: number) => void;
   onExit: () => void;
 }) {
@@ -45,6 +53,33 @@ export function Sidebar({
           <p className="sidebar-eyebrow">Modul Interaktif</p>
           <h1 className="sidebar-title">{moduleTitle}</h1>
         </div>
+      </div>
+
+      <div className="sidebar-info">
+        {subjectName && (
+          <div className="sidebar-info-row">
+            <span className="sidebar-info-label">Mapel</span>
+            <span className="sidebar-info-value">{subjectName}</span>
+          </div>
+        )}
+        {grade && (
+          <div className="sidebar-info-row">
+            <span className="sidebar-info-label">Kelas</span>
+            <span className="sidebar-info-value">Kelas {grade}</span>
+          </div>
+        )}
+        {semester && (
+          <div className="sidebar-info-row">
+            <span className="sidebar-info-label">Semester</span>
+            <span className="sidebar-info-value">Semester {semester}</span>
+          </div>
+        )}
+        {userName && (
+          <div className="sidebar-info-row">
+            <span className="sidebar-info-label">Murid</span>
+            <span className="sidebar-info-value">{userName}</span>
+          </div>
+        )}
       </div>
 
       <div className="sidebar-progress">
