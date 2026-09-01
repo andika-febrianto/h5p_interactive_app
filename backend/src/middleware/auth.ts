@@ -1,6 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
 import { verifyAccessToken, clientIdForUser, type Role } from '../lib/auth.js';
-import { prisma } from '../lib/prisma.js';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -71,39 +70,10 @@ export async function requireActiveAccess(req: Request, res: Response, next: Nex
     res.status(401).json({ error: 'Login diperlukan.' });
     return;
   }
-  // Teachers and Parents aren't gated by trial/subscription status —
-  // this only restricts a STUDENT's access to consuming module content.
-  // Teachers manage content; Parents need to view module frames to create
-  // assignments for their children.
-  if (req.auth.role === 'TEACHER' || req.auth.role === 'PARENT') {
-    next();
-    return;
-  }
-  try {
-    const subscription = await prisma.subscription.findUnique({ where: { userId: req.auth.userId } });
-    const hasAccess = !!subscription && subscription.currentPeriodEnd > new Date();
-    if (!hasAccess) {
-      // Check if this is a parent-assigned module — allow access even without active subscription
-      const moduleId = req.params.moduleId || req.params.id;
-      if (moduleId) {
-        const hasAssignment = await prisma.parentAssignment.findFirst({
-          where: { childId: req.auth.userId, materialId: moduleId },
-        });
-        if (hasAssignment) {
-          next();
-          return;
-        }
-      }
-      res.status(403).json({
-        error: 'Masa aktif langganan Anda sudah berakhir. Berlangganan untuk melanjutkan belajar.',
-        code: 'SUBSCRIPTION_REQUIRED',
-      });
-      return;
-    }
-    next();
-  } catch (err) {
-    next(err);
-  }
+  // Subscription check is temporarily disabled for all roles.
+  // Students, Teachers, and Parents can access module content freely.
+  next();
+  return;
 }
 
 /** Resolves the effective progress-tracking clientId + userId for this
