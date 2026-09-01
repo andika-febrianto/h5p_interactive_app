@@ -556,6 +556,7 @@ export interface ParentAssignment {
   title: string
   description: string | null
   materialId: string | null
+  selectedFrames: string[] | null
   dueDate: string | null
   status: string
   notes: string | null
@@ -626,6 +627,7 @@ export function createAssignment(body: {
   title: string
   description?: string
   materialId?: string
+  selectedFrames?: string[]
   dueDate?: string
 }): Promise<ParentAssignment> {
   return request('/parent/assignments', {

@@ -329,6 +329,7 @@ const createAssignmentSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   materialId: z.string().optional(),
+  selectedFrames: z.array(z.string()).optional(),
   dueDate: z.string().datetime().optional(),
 });
 
@@ -342,7 +343,7 @@ parentRouter.post('/assignments', requireRole('PARENT'), async (req, res, next) 
       return;
     }
 
-    const { childId, title, description, materialId, dueDate } = parsed.data;
+    const { childId, title, description, materialId, selectedFrames, dueDate } = parsed.data;
 
     // Verify the child is linked to this parent
     const relationship = await prisma.parentChild.findUnique({
@@ -361,6 +362,7 @@ parentRouter.post('/assignments', requireRole('PARENT'), async (req, res, next) 
         title,
         description,
         materialId,
+        selectedFrames: selectedFrames ?? undefined,
         dueDate: dueDate ? new Date(dueDate) : null,
       },
       include: {

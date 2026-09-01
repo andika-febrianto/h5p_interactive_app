@@ -11,17 +11,37 @@ import {
   createAssignment,
   deleteAssignment,
   fetchModules,
+  fetchModule,
   fetchSubjects,
   type ChildInfo,
   type ModuleProgress,
   type ParentAssignment,
   type ModuleSummary,
+  type Module,
   type Subject,
 } from '../../lib/api'
 import { ApiError } from '../../lib/api'
 import { grades, semesters } from '../../data/grades'
 
 type Tab = 'children' | 'assignments'
+
+const KIND_ICON: Record<string, string> = {
+  text: '📄',
+  quiz: '❓',
+  dragdrop: '🧩',
+  video: '🎬',
+  pdf: '📕',
+  shortanswer: '✏️',
+}
+
+const KIND_LABEL: Record<string, string> = {
+  text: 'Materi',
+  quiz: 'Kuis',
+  dragdrop: 'Drag & Drop',
+  video: 'Video Interaktif',
+  pdf: 'Dokumen PDF',
+  shortanswer: 'Isian Singkat',
+}
 
 export default function ParentDashboard() {
   const { user } = useAuth()
@@ -51,9 +71,13 @@ export default function ParentDashboard() {
   const [assignments, setAssignments] = useState<ParentAssignment[]>([])
   const [assignmentsLoading, setAssignmentsLoading] = useState(true)
   const [subjects, setSubjects] = useState<Subject[]>([])
-  const [selectedSubjectId, setSelectedSubjectId] = useState('')
   const [selectedChildId, setSelectedChildId] = useState('')
+  const [selectedSubjectId, setSelectedSubjectId] = useState('')
+  const [selectedModuleId, setSelectedModuleId] = useState('')
   const [availableModules, setAvailableModules] = useState<ModuleSummary[]>([])
+  const [selectedModule, setSelectedModule] = useState<Module | null>(null)
+  const [selectedFrames, setSelectedFrames] = useState<string[]>([])
+  const [dueDate, setDueDate] = useState('')
   const [assigning, setAssigning] = useState(false)
   const [assignError, setAssignError] = useState<string | null>(null)
   const [assignSuccess, setAssignSuccess] = useState<string | null>(null)
@@ -112,6 +136,35 @@ export default function ParentDashboard() {
     }
   }, [selectedChildId, selectedSubjectId, children])
 
+  // Load module details when module is selected
+  useEffect(() => {
+    if (!selectedModuleId) {
+      setSelectedModule(null)
+      setSelectedFrames([])
+      return
+    }
+    fetchModule(selectedModuleId)
+      .then((mod) => {
+        setSelectedModule(mod)
+        // Auto-select all frames by default
+        setSelectedFrames(mod.frames.map((f) => f.id))
+      })
+      .catch(() => {
+        setSelectedModule(null)
+        setSelectedFrames([])
+      })
+  }, [selectedModuleId])
+
+  // Reset assignment form when child or subject changes
+  useEffect(() => {
+    setSelectedModuleId('')
+    setSelectedModule(null)
+    setSelectedFrames([])
+    setDueDate('')
+    setAssignError(null)
+    setAssignSuccess(null)
+  }, [selectedChildId, selectedSubjectId])
+
   // Create child account handler
   const handleCreateChild = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -150,29 +203,58 @@ export default function ParentDashboard() {
       if (selectedChildId === childId) {
         setSelectedChildId('')
         setSelectedSubjectId('')
-        setAvailableModules([])
+        setSelectedModuleId('')
+        setSelectedModule(null)
+        setSelectedFrames([])
       }
     } catch (err) {
       alert(err instanceof ApiError ? err.message : 'Gagal menghapus anak.')
     }
   }
 
-  // Assign module to child
-  const handleAssignModule = async (moduleId: string, moduleTitle: string) => {
-    if (!selectedChildId) return
+  // Toggle frame selection
+  const toggleFrame = (id: string) => {
+    setSelectedFrames((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    )
+  }
+
+  // Select all / deselect all frames
+  const toggleAllFrames = () => {
+    if (!selectedModule) return
+    if (selectedFrames.length === selectedModule.frames.length) {
+      setSelectedFrames([])
+    } else {
+      setSelectedFrames(selectedModule.frames.map((f) => f.id))
+    }
+  }
+
+  // Assign module to child with selected frames
+  const handleAssign = async () => {
+    if (!selectedChildId || !selectedModule || selectedFrames.length === 0) return
     setAssignError(null)
     setAssignSuccess(null)
     setAssigning(true)
     try {
+      const selectedChildInfo = children.find((c) => c.id === selectedChildId)
       await createAssignment({
         childId: selectedChildId,
-        title: moduleTitle,
-        materialId: moduleId,
+        title: selectedModule.title,
+        materialId: selectedModule.id,
+        selectedFrames,
+        dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
       })
-      setAssignSuccess(`✓ "${moduleTitle}" berhasil ditugaskan!`)
+      setAssignSuccess(
+        `✓ "${selectedModule.title}" (${selectedFrames.length} panel) berhasil ditugaskan ke ${selectedChildInfo?.name ?? 'anak'}!`
+      )
       // Reload assignments
       const updated = await fetchAssignments()
       setAssignments(updated)
+      // Reset form
+      setSelectedModuleId('')
+      setSelectedModule(null)
+      setSelectedFrames([])
+      setDueDate('')
     } catch (err) {
       setAssignError(
         err instanceof ApiError ? err.message : 'Gagal menugaskan modul.',
@@ -232,7 +314,7 @@ export default function ParentDashboard() {
             className={activeTab === 'assignments' ? 'btn-primary' : 'btn-secondary'}
             onClick={() => setActiveTab('assignments')}
           >
-            📋 Tugas
+            📋 Buat Tugas
           </button>
         </div>
 
@@ -488,7 +570,7 @@ export default function ParentDashboard() {
         {/* Assignments Tab */}
         {activeTab === 'assignments' && (
           <div>
-            {/* Assignment Form: Select Child → Subject → Module → Assign */}
+            {/* Assignment Form */}
             <div
               className='auth-form'
               style={{
@@ -499,24 +581,15 @@ export default function ParentDashboard() {
               }}
             >
               <h3 style={{ margin: '0 0 12px', fontFamily: 'var(--font-display)' }}>
-                📚 Tugaskan Materi
+                📚 Buat Tugas
               </h3>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
-                Pilih anak, mata pelajaran, lalu klik "Tugaskan" pada modul yang diinginkan.
-              </p>
 
               {/* Step 1: Select Child */}
               <label className='auth-field'>
-                <span>1. Pilih Anak</span>
+                <span>Anak</span>
                 <select
                   value={selectedChildId}
-                  onChange={(e) => {
-                    setSelectedChildId(e.target.value)
-                    setSelectedSubjectId('')
-                    setAvailableModules([])
-                    setAssignError(null)
-                    setAssignSuccess(null)
-                  }}
+                  onChange={(e) => setSelectedChildId(e.target.value)}
                 >
                   <option value=''>-- Pilih Anak --</option>
                   {children.map((c) => (
@@ -530,15 +603,10 @@ export default function ParentDashboard() {
               {/* Step 2: Select Subject */}
               {selectedChildId && (
                 <label className='auth-field'>
-                  <span>2. Pilih Mata Pelajaran</span>
+                  <span>Mata Pelajaran</span>
                   <select
                     value={selectedSubjectId}
-                    onChange={(e) => {
-                      setSelectedSubjectId(e.target.value)
-                      setAvailableModules([])
-                      setAssignError(null)
-                      setAssignSuccess(null)
-                    }}
+                    onChange={(e) => setSelectedSubjectId(e.target.value)}
                   >
                     <option value=''>-- Pilih Mata Pelajaran --</option>
                     {subjects.map((s) => (
@@ -550,6 +618,110 @@ export default function ParentDashboard() {
                 </label>
               )}
 
+              {/* Step 3: Select Module (Topik) */}
+              {selectedChildId && selectedSubjectId && (
+                <label className='auth-field'>
+                  <span>Topik</span>
+                  <select
+                    value={selectedModuleId}
+                    onChange={(e) => setSelectedModuleId(e.target.value)}
+                  >
+                    <option value=''>-- Pilih Topik --</option>
+                    {availableModules.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
+              {/* Step 4: Select Frames (Bahasan) */}
+              {selectedModule && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>
+                      Pilih Bahasan
+                    </span>
+                    <button
+                      type='button'
+                      onClick={toggleAllFrames}
+                      style={{
+                        fontSize: 12,
+                        color: 'var(--primary)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {selectedFrames.length === selectedModule.frames.length
+                        ? 'Batalkan Semua'
+                        : 'Pilih Semua'}
+                    </button>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                      padding: 12,
+                      background: 'var(--gray-50)',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    {selectedModule.frames.map((frame) => (
+                      <label
+                        key={frame.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          padding: '6px 8px',
+                          cursor: 'pointer',
+                          borderRadius: 'var(--radius-sm)',
+                          background: selectedFrames.includes(frame.id)
+                            ? 'var(--primary-bg)'
+                            : 'transparent',
+                        }}
+                      >
+                        <input
+                          type='checkbox'
+                          checked={selectedFrames.includes(frame.id)}
+                          onChange={() => toggleFrame(frame.id)}
+                          style={{ width: 16, height: 16 }}
+                        />
+                        <span style={{ fontSize: 14 }}>
+                          {KIND_ICON[frame.kind] ?? '📄'}
+                        </span>
+                        <span style={{ fontSize: 13, fontWeight: 500 }}>
+                          {frame.title}
+                        </span>
+                        <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                          ({KIND_LABEL[frame.kind] ?? frame.kind})
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6 }}>
+                    {selectedFrames.length} dari {selectedModule.frames.length} panel dipilih
+                  </p>
+                </div>
+              )}
+
+              {/* Step 5: Deadline */}
+              {selectedModule && (
+                <label className='auth-field' style={{ marginTop: 12 }}>
+                  <span>Deadline</span>
+                  <input
+                    type='datetime-local'
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                  />
+                </label>
+              )}
+
               {/* Error/Success messages */}
               {assignError && <p className='auth-error'>{assignError}</p>}
               {assignSuccess && (
@@ -558,52 +730,19 @@ export default function ParentDashboard() {
                 </p>
               )}
 
-              {/* Step 3: Available Modules */}
-              {selectedChildId && selectedSubjectId && (
-                <div style={{ marginTop: 12 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-                    3. Pilih Modul untuk ditugaskan:
-                  </p>
-                  {availableModules.length === 0 ? (
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                      Tidak ada modul tersedia untuk mata pelajaran ini.
-                    </p>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {availableModules.map((mod) => (
-                        <div
-                          key={mod.id}
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '10px 12px',
-                            background: 'var(--gray-50)',
-                            borderRadius: 'var(--radius-sm)',
-                            border: '1px solid var(--border)',
-                          }}
-                        >
-                          <div>
-                            <span style={{ fontWeight: 600, fontSize: 13 }}>
-                              {mod.title}
-                            </span>
-                            <span style={{ fontSize: 11, color: 'var(--text-secondary)', marginLeft: 8 }}>
-                              {mod.estimatedMinutes} · {mod.frameCount} panel
-                            </span>
-                          </div>
-                          <button
-                            type='button'
-                            className='btn-primary btn-small'
-                            disabled={assigning}
-                            onClick={() => handleAssignModule(mod.id, mod.title)}
-                          >
-                            {assigning ? '...' : `Tugaskan ke ${selectedChildInfo?.name ?? 'Anak'}`}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              {/* Assign button */}
+              {selectedModule && selectedFrames.length > 0 && (
+                <button
+                  type='button'
+                  className='btn-primary'
+                  disabled={assigning}
+                  onClick={handleAssign}
+                  style={{ marginTop: 12 }}
+                >
+                  {assigning
+                    ? 'Menugaskan...'
+                    : `Tugaskan ke ${selectedChildInfo?.name ?? 'Anak'}`}
+                </button>
               )}
             </div>
 
@@ -636,6 +775,9 @@ export default function ParentDashboard() {
                         </h4>
                         <p className='module-card-summary' style={{ fontSize: 12 }}>
                           Untuk: {getChildName(a.childId)}
+                          {a.selectedFrames && (
+                            <> · {a.selectedFrames.length} panel</>
+                          )}
                         </p>
                         <p
                           className='module-card-summary'
@@ -661,6 +803,16 @@ export default function ParentDashboard() {
                                   ? '✅ Selesai'
                                   : '⚠️ Terlambat'}
                           </span>
+                          {a.dueDate && (
+                            <>
+                              {' · Deadline: '}
+                              {new Date(a.dueDate).toLocaleDateString('id-ID', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric',
+                              })}
+                            </>
+                          )}
                         </p>
                       </div>
                       <button
