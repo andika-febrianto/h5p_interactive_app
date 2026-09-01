@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TopBar from '../../components/TopBar'
 import { useAuth } from '../../context/AuthContext'
@@ -6,9 +6,18 @@ import {
   fetchChildAssignments,
   fetchModule,
   fetchChildModuleProgress,
+  fetchNotifications,
+  fetchUnreadCount,
+  markNotificationRead,
+  markAllNotificationsRead,
+  fetchAssignmentQuestions,
+  askQuestion,
+  markAssignmentStarted,
   type ParentAssignment,
   type Module,
   type FrameProgress,
+  type Notification,
+  type Question,
 } from '../../lib/api'
 import { getSubjectById } from '../../data/subjects'
 
@@ -32,6 +41,18 @@ export default function ChildDashboard() {
     Record<string, Record<string, FrameProgress>>
   >({})
 
+  // Notifications
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [showNotifications, setShowNotifications] = useState(false)
+
+  // Questions
+  const [expandedAssignment, setExpandedAssignment] = useState<string | null>(null)
+  const [questions, setQuestions] = useState<Record<string, Question[]>>({})
+  const [newQuestion, setNewQuestion] = useState('')
+  const [sendingQuestion, setSendingQuestion] = useState(false)
+
+  // Load assignments
   useEffect(() => {
     if (!user?.id) return
     fetchChildAssignments(user.id)
@@ -48,7 +69,6 @@ export default function ChildDashboard() {
               )
               .catch(() => {})
 
-            // Fetch frame-level progress for this module
             fetchChildModuleProgress(user.id!, a.materialId)
               .then((frames) => {
                 const map: Record<string, FrameProgress> = {}
@@ -67,6 +87,85 @@ export default function ChildDashboard() {
       .catch(() => setAssignments([]))
       .finally(() => setAssignmentsLoading(false))
   }, [user?.id])
+
+  // Load notifications
+  const loadNotifications = useCallback(() => {
+    if (!user?.id) return
+    fetchNotifications()
+      .then(setNotifications)
+      .catch(() => setNotifications([]))
+    fetchUnreadCount()
+      .then((data) => setUnreadCount(data.count))
+      .catch(() => setUnreadCount(0))
+  }, [user?.id])
+
+  useEffect(() => {
+    loadNotifications()
+    const interval = setInterval(loadNotifications, 30000) // Poll every 30s
+    return () => clearInterval(interval)
+  }, [loadNotifications])
+
+  // Load questions when assignment is expanded
+  const loadQuestions = useCallback(async (assignmentId: string) => {
+    try {
+      const data = await fetchAssignmentQuestions(assignmentId)
+      setQuestions((prev) => ({ ...prev, [assignmentId]: data }))
+    } catch {
+      setQuestions((prev) => ({ ...prev, [assignmentId]: [] }))
+    }
+  }, [])
+
+  useEffect(() => {
+    if (expandedAssignment) {
+      loadQuestions(expandedAssignment)
+    }
+  }, [expandedAssignment, loadQuestions])
+
+  // Handle notification click
+  const handleNotificationClick = async (notif: Notification) => {
+    await markNotificationRead(notif.id)
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n)),
+    )
+    setUnreadCount((prev) => Math.max(0, prev - 1))
+    if (notif.assignmentId) {
+      // Navigate to the assignment's module if it has a materialId
+      const assignment = assignments.find((a) => a.id === notif.assignmentId)
+      if (assignment?.materialId) {
+        navigate(`/modul/${assignment.materialId}?assignment=${notif.assignmentId}`)
+      }
+    }
+  }
+
+  // Handle marking all notifications as read
+  const handleMarkAllRead = async () => {
+    await markAllNotificationsRead()
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+    setUnreadCount(0)
+  }
+
+  // Handle sending a question
+  const handleSendQuestion = async (assignmentId: string) => {
+    if (!newQuestion.trim()) return
+    setSendingQuestion(true)
+    try {
+      await askQuestion(assignmentId, newQuestion.trim())
+      setNewQuestion('')
+      await loadQuestions(assignmentId)
+    } catch {
+      // Silently fail
+    } finally {
+      setSendingQuestion(false)
+    }
+  }
+
+  // Handle starting assignment
+  const handleStartAssignment = async (assignment: ParentAssignment) => {
+    if (assignment.materialId) {
+      await markAssignmentStarted(assignment.id).catch(() => {})
+      navigate(`/modul/${assignment.materialId}?assignment=${assignment.id}`)
+    }
+  }
 
   const getFilteredFrames = (assignment: ParentAssignment) => {
     const mod = assignment.materialId
@@ -118,8 +217,129 @@ export default function ChildDashboard() {
       <div className='home-inner'>
         <TopBar />
 
-        <p className='home-eyebrow'>Halo, {user?.name}! 👋</p>
-        <h1 className='home-title'>Tugas Saya</h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div>
+            <p className='home-eyebrow'>Halo, {user?.name}! 👋</p>
+            <h1 className='home-title'>Tugas Saya</h1>
+          </div>
+
+          {/* Notification Bell */}
+          <div style={{ position: 'relative' }}>
+            <button
+              type='button'
+              onClick={() => setShowNotifications(!showNotifications)}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: 24,
+                cursor: 'pointer',
+                position: 'relative',
+                padding: 8,
+              }}
+            >
+              🔔
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 2,
+                    right: 2,
+                    background: 'var(--error)',
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    borderRadius: '50%',
+                    width: 18,
+                    height: 18,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notification Dropdown */}
+            {showNotifications && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  width: 340,
+                  maxHeight: 400,
+                  overflowY: 'auto',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                  zIndex: 100,
+                  marginTop: 8,
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 16px',
+                    borderBottom: '1px solid var(--border)',
+                  }}
+                >
+                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>Notifikasi</h4>
+                  {unreadCount > 0 && (
+                    <button
+                      type='button'
+                      onClick={handleMarkAllRead}
+                      style={{
+                        fontSize: 11,
+                        color: 'var(--primary)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Tandai semua dibaca
+                    </button>
+                  )}
+                </div>
+                {notifications.length === 0 ? (
+                  <p style={{ padding: 16, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+                    Belum ada notifikasi
+                  </p>
+                ) : (
+                  notifications.map((notif) => (
+                    <div
+                      key={notif.id}
+                      onClick={() => handleNotificationClick(notif)}
+                      style={{
+                        padding: '10px 16px',
+                        borderBottom: '1px solid var(--border)',
+                        cursor: 'pointer',
+                        background: notif.read ? 'transparent' : 'rgba(59, 130, 246, 0.05)',
+                        borderLeft: notif.read ? '3px solid transparent' : '3px solid var(--primary)',
+                      }}
+                    >
+                      <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {notif.type === 'new_assignment' ? '📚' : notif.type === 'parent_reply' ? '💬' : '📢'}{' '}
+                        {notif.title}
+                      </p>
+                      <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-secondary)' }}>
+                        {notif.message}
+                      </p>
+                      <p style={{ margin: '4px 0 0', fontSize: 10, color: 'var(--text-tertiary)' }}>
+                        {new Date(notif.createdAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
         {assignmentsLoading ? (
           <p className='home-empty'>Memuat tugas...</p>
@@ -161,6 +381,8 @@ export default function ChildDashboard() {
               const subjectName = getSubjectName(mod?.subjectId)
               const topicName = mod?.title || a.title
               const progress = getAssignmentProgress(a)
+              const isExpanded = expandedAssignment === a.id
+              const assignmentQuestions = questions[a.id] ?? []
 
               return (
                 <div
@@ -344,7 +566,6 @@ export default function ChildDashboard() {
                                 : '1px solid transparent',
                             }}
                           >
-                            {/* Step number */}
                             <span
                               style={{
                                 width: 24,
@@ -367,12 +588,10 @@ export default function ChildDashboard() {
                               {isCompleted ? '✓' : idx + 1}
                             </span>
 
-                            {/* Icon */}
                             <span style={{ fontSize: 16, flexShrink: 0 }}>
                               {KIND_ICON[frame.kind] ?? '📄'}
                             </span>
 
-                            {/* Title */}
                             <span
                               style={{
                                 fontSize: 13,
@@ -388,7 +607,6 @@ export default function ChildDashboard() {
                               {frame.title}
                             </span>
 
-                            {/* Accuracy badge */}
                             {isCompleted && accuracy > 0 && (
                               <span
                                 style={{
@@ -448,33 +666,127 @@ export default function ChildDashboard() {
                           ? `📝 ${progress.pct}% selesai`
                           : '⏳ Menunggu dikerjakan'}
                     </span>
-                    {a.materialId && progress.pct < 100 && (
-                      <button
-                        type='button'
-                        className='btn-primary btn-small'
-                        onClick={() =>
-                          navigate(
-                            `/modul/${a.materialId}?assignment=${a.id}`,
-                          )
-                        }
-                      >
-                        {progress.pct > 0 ? 'Lanjutkan →' : 'Kerjakan →'}
-                      </button>
-                    )}
-                    {a.materialId && progress.pct === 100 && (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {/* Question button */}
                       <button
                         type='button'
                         className='btn-secondary btn-small'
                         onClick={() =>
-                          navigate(
-                            `/modul/${a.materialId}?assignment=${a.id}`,
-                          )
+                          setExpandedAssignment(isExpanded ? null : a.id)
                         }
+                        style={{ fontSize: 12 }}
                       >
-                        Tinjau Ulang →
+                        💬 Tanya Orang Tua ({assignmentQuestions.length})
                       </button>
-                    )}
+                      {a.materialId && progress.pct < 100 && (
+                        <button
+                          type='button'
+                          className='btn-primary btn-small'
+                          onClick={() => handleStartAssignment(a)}
+                        >
+                          {progress.pct > 0 ? 'Lanjutkan →' : 'Kerjakan →'}
+                        </button>
+                      )}
+                      {a.materialId && progress.pct === 100 && (
+                        <button
+                          type='button'
+                          className='btn-secondary btn-small'
+                          onClick={() =>
+                            navigate(
+                              `/modul/${a.materialId}?assignment=${a.id}`,
+                            )
+                          }
+                        >
+                          Tinjau Ulang →
+                        </button>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Questions Section */}
+                  {isExpanded && (
+                    <div
+                      style={{
+                        marginTop: 14,
+                        padding: 16,
+                        background: 'var(--gray-50)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border)',
+                      }}
+                    >
+                      <h4 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700 }}>
+                        💬 Pertanyaan ke Orang Tua
+                      </h4>
+
+                      {/* Existing questions */}
+                      {assignmentQuestions.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+                          {assignmentQuestions.map((q) => (
+                            <div
+                              key={q.id}
+                              style={{
+                                padding: 12,
+                                background: '#fff',
+                                borderRadius: 'var(--radius-sm)',
+                                border: '1px solid var(--border)',
+                              }}
+                            >
+                              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                                ❓ {q.question}
+                              </p>
+                              {q.reply ? (
+                                <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--success)', paddingLeft: 16, borderLeft: '2px solid var(--success)' }}>
+                                  💬 {q.reply}
+                                  <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 8 }}>
+                                    {new Date(q.repliedAt!).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </p>
+                              ) : (
+                                <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                                  Menunggu balasan...
+                                </p>
+                              )}
+                              <p style={{ margin: '4px 0 0', fontSize: 10, color: 'var(--text-tertiary)' }}>
+                                {new Date(q.createdAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Ask question form */}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          type='text'
+                          value={newQuestion}
+                          onChange={(e) => setNewQuestion(e.target.value)}
+                          placeholder='Ketik pertanyaan ke orang tua...'
+                          style={{
+                            flex: 1,
+                            padding: '8px 12px',
+                            border: '1px solid var(--border)',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: 13,
+                            background: '#fff',
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !sendingQuestion) {
+                              handleSendQuestion(a.id)
+                            }
+                          }}
+                        />
+                        <button
+                          type='button'
+                          className='btn-primary btn-small'
+                          onClick={() => handleSendQuestion(a.id)}
+                          disabled={sendingQuestion || !newQuestion.trim()}
+                          style={{ fontSize: 12 }}
+                        >
+                          {sendingQuestion ? '...' : 'Kirim'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })}

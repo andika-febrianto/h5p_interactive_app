@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TopBar from '../../components/TopBar'
 import { useAuth } from '../../context/AuthContext'
@@ -13,12 +13,20 @@ import {
   fetchModule,
   fetchSubjects,
   fetchChildModuleProgress,
+  fetchNotifications,
+  fetchUnreadCount,
+  markNotificationRead,
+  markAllNotificationsRead,
+  fetchAssignmentQuestions,
+  replyToQuestion,
   type ChildInfo,
   type ParentAssignment,
   type ModuleSummary,
   type Module,
   type Subject,
   type FrameProgress,
+  type Notification,
+  type Question,
 } from '../../lib/api'
 import { ApiError } from '../../lib/api'
 import { grades, semesters } from '../../data/grades'
@@ -47,6 +55,16 @@ export default function ParentDashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<Tab>('children')
+
+  // Notifications
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [showNotifications, setShowNotifications] = useState(false)
+
+  // Questions
+  const [questions, setQuestions] = useState<Record<string, Question[]>>({})
+  const [replyText, setReplyText] = useState<Record<string, string>>({})
+  const [sendingReply, setSendingReply] = useState<string | null>(null)
 
   // Children state
   const [children, setChildren] = useState<ChildInfo[]>([])
@@ -103,6 +121,22 @@ export default function ParentDashboard() {
       .catch(() => setChildren([]))
       .finally(() => setChildrenLoading(false))
   }, [])
+
+  // Load notifications
+  const loadNotifications = useCallback(() => {
+    fetchNotifications()
+      .then(setNotifications)
+      .catch(() => setNotifications([]))
+    fetchUnreadCount()
+      .then((data) => setUnreadCount(data.count))
+      .catch(() => setUnreadCount(0))
+  }, [])
+
+  useEffect(() => {
+    loadNotifications()
+    const interval = setInterval(loadNotifications, 30000)
+    return () => clearInterval(interval)
+  }, [loadNotifications])
 
   // Load assignments
   useEffect(() => {
@@ -355,6 +389,65 @@ export default function ParentDashboard() {
   const getChildName = (childId: string) =>
     children.find((c) => c.id === childId)?.name ?? childId
 
+  // Handle notification click
+  const handleNotificationClick = async (notif: Notification) => {
+    await markNotificationRead(notif.id)
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n)),
+    )
+    setUnreadCount((prev) => Math.max(0, prev - 1))
+  }
+
+  // Handle marking all notifications as read
+  const handleMarkAllRead = async () => {
+    await markAllNotificationsRead()
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+    setUnreadCount(0)
+  }
+
+  // Load questions for a child's assignments
+  const loadChildQuestions = useCallback(async (childId: string) => {
+    const childAssignments = assignments.filter((a) => a.childId === childId)
+    const allQuestions: Record<string, Question[]> = {}
+    await Promise.all(
+      childAssignments.map(async (a) => {
+        try {
+          const qs = await fetchAssignmentQuestions(a.id)
+          allQuestions[a.id] = qs
+        } catch {
+          allQuestions[a.id] = []
+        }
+      })
+    )
+    setQuestions(allQuestions)
+  }, [assignments])
+
+  // Load questions when child is selected for progress
+  useEffect(() => {
+    if (selectedChild) {
+      loadChildQuestions(selectedChild.id)
+    }
+  }, [selectedChild, loadChildQuestions])
+
+  // Handle reply to question
+  const handleReply = async (questionId: string) => {
+    const text = replyText[questionId]
+    if (!text?.trim()) return
+    setSendingReply(questionId)
+    try {
+      await replyToQuestion(questionId, text.trim())
+      setReplyText((prev) => ({ ...prev, [questionId]: '' }))
+      // Reload questions
+      if (selectedChild) {
+        await loadChildQuestions(selectedChild.id)
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setSendingReply(null)
+    }
+  }
+
   // Get frame progress for a specific assignment
   const getFrameProgressForAssignment = (
     materialId: string | null,
@@ -395,16 +488,145 @@ export default function ParentDashboard() {
     <div className='home-page'>
       <div className='home-inner'>
         <TopBar />
-        <button
-          type='button'
-          className='home-back'
-          onClick={() => navigate('/kelas')}
-        >
-          ← Ke perpustakaan belajar
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <button
+              type='button'
+              className='home-back'
+              onClick={() => navigate('/kelas')}
+            >
+              ← Ke perpustakaan belajar
+            </button>
+            <p className='home-eyebrow'>Orang Tua · {user?.name}</p>
+            <h1 className='home-title'>Dashboard Orang Tua</h1>
+          </div>
 
-        <p className='home-eyebrow'>Orang Tua · {user?.name}</p>
-        <h1 className='home-title'>Dashboard Orang Tua</h1>
+          {/* Notification Bell */}
+          <div style={{ position: 'relative' }}>
+            <button
+              type='button'
+              onClick={() => setShowNotifications(!showNotifications)}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: 24,
+                cursor: 'pointer',
+                position: 'relative',
+                padding: 8,
+              }}
+            >
+              🔔
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 2,
+                    right: 2,
+                    background: 'var(--error)',
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    borderRadius: '50%',
+                    width: 18,
+                    height: 18,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notification Dropdown */}
+            {showNotifications && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  width: 360,
+                  maxHeight: 420,
+                  overflowY: 'auto',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                  zIndex: 100,
+                  marginTop: 8,
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 16px',
+                    borderBottom: '1px solid var(--border)',
+                  }}
+                >
+                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>Notifikasi</h4>
+                  {unreadCount > 0 && (
+                    <button
+                      type='button'
+                      onClick={handleMarkAllRead}
+                      style={{
+                        fontSize: 11,
+                        color: 'var(--primary)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Tandai semua dibaca
+                    </button>
+                  )}
+                </div>
+                {notifications.length === 0 ? (
+                  <p style={{ padding: 16, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+                    Belum ada notifikasi
+                  </p>
+                ) : (
+                  notifications.map((notif) => {
+                    const typeIcon: Record<string, string> = {
+                      assignment_created: '📋',
+                      child_started: '▶️',
+                      child_completed: '✅',
+                      child_question: '❓',
+                      new_assignment: '📚',
+                      parent_reply: '💬',
+                    }
+                    return (
+                      <div
+                        key={notif.id}
+                        onClick={() => handleNotificationClick(notif)}
+                        style={{
+                          padding: '10px 16px',
+                          borderBottom: '1px solid var(--border)',
+                          cursor: 'pointer',
+                          background: notif.read ? 'transparent' : 'rgba(59, 130, 246, 0.05)',
+                          borderLeft: notif.read ? '3px solid transparent' : '3px solid var(--primary)',
+                        }}
+                      >
+                        <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {typeIcon[notif.type] ?? '📢'} {notif.title}
+                        </p>
+                        <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-secondary)' }}>
+                          {notif.message}
+                        </p>
+                        <p style={{ margin: '4px 0 0', fontSize: 10, color: 'var(--text-tertiary)' }}>
+                          {new Date(notif.createdAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            )}
+          </div>
+        </div>
         <p className='home-lede'>
           Buat akun anak, tugaskan materi belajar, dan pantau
           progresnya.
@@ -1291,6 +1513,18 @@ export default function ParentDashboard() {
                                     ? '✅ Selesai'
                                     : '⚠️ Terlambat'}
                             </span>
+                            {(() => {
+                              const aq = questions[a.id] ?? []
+                              const unreplied = aq.filter((q) => !q.reply)
+                              if (unreplied.length > 0) {
+                                return (
+                                  <span style={{ marginLeft: 8, fontSize: 11, color: '#f59e0b', fontWeight: 600 }}>
+                                    ❓ {unreplied.length} pertanyaan belum dibalas
+                                  </span>
+                                )
+                              }
+                              return null
+                            })()}
                             {a.dueDate && (
                               <>
                                 {' · Deadline: '}
@@ -1369,6 +1603,73 @@ export default function ParentDashboard() {
                           Hapus
                         </button>
                       </div>
+
+                      {/* Questions & Reply Section */}
+                      {questions[a.id] && questions[a.id].length > 0 && (
+                        <div
+                          style={{
+                            marginTop: 12,
+                            paddingTop: 12,
+                            borderTop: '1px solid var(--border)',
+                          }}
+                        >
+                          <p style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+                            💬 Pertanyaan dari {getChildName(a.childId)}:
+                          </p>
+                          {questions[a.id].map((q) => (
+                            <div
+                              key={q.id}
+                              style={{
+                                padding: 10,
+                                background: 'var(--gray-50)',
+                                borderRadius: 'var(--radius-sm)',
+                                marginBottom: 8,
+                              }}
+                            >
+                              <p style={{ margin: 0, fontSize: 12, fontWeight: 500 }}>
+                                ❓ {q.question}
+                              </p>
+                              <p style={{ margin: '4px 0 0', fontSize: 10, color: 'var(--text-tertiary)' }}>
+                                {new Date(q.createdAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                              {q.reply ? (
+                                <div style={{ marginTop: 6, paddingLeft: 12, borderLeft: '2px solid var(--success)' }}>
+                                  <p style={{ margin: 0, fontSize: 12, color: 'var(--success)' }}>
+                                    💬 {q.reply}
+                                  </p>
+                                  <p style={{ margin: '2px 0 0', fontSize: 10, color: 'var(--text-tertiary)' }}>
+                                    {new Date(q.repliedAt!).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                  </p>
+                                </div>
+                              ) : (
+                                <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+                                  <input
+                                    type='text'
+                                    value={replyText[q.id] ?? ''}
+                                    onChange={(e) => setReplyText((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                                    placeholder='Balas pertanyaan...'
+                                    style={{ flex: 1, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontSize: 12 }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && sendingReply !== q.id) {
+                                        handleReply(q.id)
+                                      }
+                                    }}
+                                  />
+                                  <button
+                                    type='button'
+                                    className='btn-primary btn-small'
+                                    onClick={() => handleReply(q.id)}
+                                    disabled={sendingReply === q.id || !replyText[q.id]?.trim()}
+                                    style={{ fontSize: 11 }}
+                                  >
+                                    {sendingReply === q.id ? '...' : 'Balas'}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )
                 })}

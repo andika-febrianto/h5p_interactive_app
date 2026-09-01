@@ -54,6 +54,9 @@ model User {
   readingProgress ReadingProgress[]
   assignmentsGiven ParentAssignment[] @relation("Parent")
   assignmentsReceived ParentAssignment[] @relation("Child")
+  notifications Notification[]
+  questionsAsked Question[] @relation("QuestionChild")
+  questionsAnswered Question[] @relation("QuestionParent")
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
@@ -274,4 +277,42 @@ model ParentAssignment {
   @@index([parentId])
   @@index([childId])
   @@map("parent_assignments")
+}
+
+// Notifications for parent-child communication
+model Notification {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          String   // 'assignment_created' | 'child_started' | 'child_completed' | 'child_question' | 'parent_reply' | 'new_assignment'
+  title         String
+  message       String
+  assignmentId  String?
+  assignment    ParentAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  read          Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+// Questions from children to parents about assignments
+model Question {
+  id            String   @id @default(cuid())
+  assignmentId  String
+  assignment    ParentAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  childId       String
+  child         User     @relation("QuestionChild", fields: [childId], references: [id], onDelete: Cascade)
+  parentId      String
+  parent        User     @relation("QuestionParent", fields: [parentId], references: [id], onDelete: Cascade)
+  question      String
+  reply         String?
+  createdAt     DateTime @default(now())
+  repliedAt     DateTime?
+
+  @@index([assignmentId])
+  @@index([childId])
+  @@index([parentId])
+  @@map("questions")
 }

@@ -683,3 +683,101 @@ export function fetchChildAssignments(
     `/parent/children/${encodeURIComponent(childId)}/assignments`,
   )
 }
+
+// ---------- Notifications ----------
+
+export interface Notification {
+  id: string
+  userId: string
+  type: string
+  title: string
+  message: string
+  assignmentId: string | null
+  read: boolean
+  createdAt: string
+}
+
+export function fetchNotifications(): Promise<Notification[]> {
+  return request('/parent/notifications')
+}
+
+export function fetchUnreadCount(): Promise<{ count: number }> {
+  return request('/parent/notifications/unread-count')
+}
+
+export function markNotificationRead(id: string): Promise<void> {
+  return request(`/parent/notifications/${encodeURIComponent(id)}/read`, {
+    method: 'PUT',
+  })
+}
+
+export function markAllNotificationsRead(): Promise<void> {
+  return request('/parent/notifications/read-all', { method: 'PUT' })
+}
+
+// ---------- Questions ----------
+
+export interface Question {
+  id: string
+  assignmentId: string
+  childId: string
+  parentId: string
+  question: string
+  reply: string | null
+  createdAt: string
+  repliedAt: string | null
+}
+
+export function fetchAssignmentQuestions(
+  assignmentId: string,
+): Promise<Question[]> {
+  return request(
+    `/parent/assignments/${encodeURIComponent(assignmentId)}/questions`,
+  )
+}
+
+export function askQuestion(
+  assignmentId: string,
+  question: string,
+): Promise<Question> {
+  return request(
+    `/parent/assignments/${encodeURIComponent(assignmentId)}/questions`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ question }),
+    },
+  )
+}
+
+export function replyToQuestion(
+  questionId: string,
+  reply: string,
+): Promise<Question> {
+  return request(
+    `/parent/questions/${encodeURIComponent(questionId)}/reply`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ reply }),
+    },
+  )
+}
+
+// ---------- Assignment Status ----------
+
+export function markAssignmentStarted(
+  assignmentId: string,
+): Promise<void> {
+  return request(
+    `/parent/assignments/${encodeURIComponent(assignmentId)}/start`,
+    { method: 'POST' },
+  )
+}
+
+export function markAssignmentCompleted(
+  assignmentId: string,
+): Promise<void> {
+  return request(
+    `/parent/assignments/${encodeURIComponent(assignmentId)}/complete`,
+    { method: 'POST' },
+  )
+}

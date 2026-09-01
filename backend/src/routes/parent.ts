@@ -415,11 +415,40 @@ parentRouter.post('/assignments', requireRole('PARENT'), async (req, res, next) 
       },
     });
 
+    // Create notification for child about new assignment
+    const parent = await prisma.user.findUnique({ where: { id: parentId }, select: { name: true } });
+    await prisma.notification.create({
+      data: {
+        userId: childId,
+        type: 'new_assignment',
+        title: `${parent?.name ?? 'Orang Tua'} memberikan tugas baru`,
+        message: `Anda mendapat tugas: ${title}`,
+        assignmentId: assignment.id,
+      },
+    });
+
+    // Also create notification for parent that assignment was created
+    await prisma.notification.create({
+      data: {
+        userId: parentId,
+        type: 'assignment_created',
+        title: 'Tugas berhasil dibuat',
+        message: `Tugas "${title}" telah ditugaskan ke ${getChildNameForNotif(childId)}`,
+        assignmentId: assignment.id,
+      },
+    });
+
     res.status(201).json(assignment);
   } catch (err) {
     next(err);
   }
 });
+
+// Helper to get child name for notifications
+async function getChildNameForNotif(childId: string): Promise<string> {
+  const child = await prisma.user.findUnique({ where: { id: childId }, select: { name: true } });
+  return child?.name ?? 'anak';
+}
 
 // PUT /api/parent/assignments/:id - Update an assignment
 const updateAssignmentSchema = z.object({
@@ -532,6 +561,284 @@ parentRouter.get('/children/:childId/assignments', async (req, res, next) => {
     });
 
     res.json(assignments);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/parent/assignments/:assignmentId/start - Child started working on assignment
+parentRouter.post('/assignments/:assignmentId/start', async (req, res, next) => {
+  try {
+    const authUserId = req.auth!.userId;
+    const { assignmentId } = req.params;
+
+    const assignment = await prisma.parentAssignment.findUnique({ where: { id: assignmentId } });
+    if (!assignment || assignment.childId !== authUserId) {
+      res.status(404).json({ error: 'Tugas tidak ditemukan.' });
+      return;
+    }
+
+    // Update assignment status to in_progress if still pending
+    if (assignment.status === 'pending') {
+      await prisma.parentAssignment.update({
+        where: { id: assignmentId },
+        data: { status: 'in_progress' },
+      });
+    }
+
+    // Check if notification already exists (avoid duplicates)
+    const existing = await prisma.notification.findFirst({
+      where: { userId: assignment.parentId, type: 'child_started', assignmentId },
+    });
+
+    if (!existing) {
+      const child = await prisma.user.findUnique({ where: { id: authUserId }, select: { name: true } });
+      await prisma.notification.create({
+        data: {
+          userId: assignment.parentId,
+          type: 'child_started',
+          title: `${child?.name ?? 'Anak'} mulai mengerjakan tugas`,
+          message: `${child?.name ?? 'Anak'} sedang mengerjakan "${assignment.title}"`,
+          assignmentId,
+        },
+      });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/parent/assignments/:assignmentId/complete - Child completed assignment
+parentRouter.post('/assignments/:assignmentId/complete', async (req, res, next) => {
+  try {
+    const authUserId = req.auth!.userId;
+    const { assignmentId } = req.params;
+
+    const assignment = await prisma.parentAssignment.findUnique({ where: { id: assignmentId } });
+    if (!assignment || assignment.childId !== authUserId) {
+      res.status(404).json({ error: 'Tugas tidak ditemukan.' });
+      return;
+    }
+
+    // Update assignment status to completed
+    await prisma.parentAssignment.update({
+      where: { id: assignmentId },
+      data: { status: 'completed' },
+    });
+
+    // Check if notification already exists
+    const existing = await prisma.notification.findFirst({
+      where: { userId: assignment.parentId, type: 'child_completed', assignmentId },
+    });
+
+    if (!existing) {
+      const child = await prisma.user.findUnique({ where: { id: authUserId }, select: { name: true } });
+      await prisma.notification.create({
+        data: {
+          userId: assignment.parentId,
+          type: 'child_completed',
+          title: `${child?.name ?? 'Anak'} menyelesaikan tugas`,
+          message: `${child?.name ?? 'Anak'} telah selesai mengerjakan "${assignment.title}"`,
+          assignmentId,
+        },
+      });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Notifications ----------
+
+// GET /api/parent/notifications - Get notifications for the current user (PARENT or STUDENT)
+parentRouter.get('/notifications', async (req, res, next) => {
+  try {
+    const userId = req.auth!.userId;
+    const notifications = await prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    res.json(notifications);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/parent/notifications/unread-count - Get unread notification count
+parentRouter.get('/notifications/unread-count', async (req, res, next) => {
+  try {
+    const userId = req.auth!.userId;
+    const count = await prisma.notification.count({
+      where: { userId, read: false },
+    });
+    res.json({ count });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/parent/notifications/:id/read - Mark a notification as read
+parentRouter.put('/notifications/:id/read', async (req, res, next) => {
+  try {
+    const userId = req.auth!.userId;
+    const { id } = req.params;
+    const notification = await prisma.notification.findUnique({ where: { id } });
+    if (!notification || notification.userId !== userId) {
+      res.status(404).json({ error: 'Notifikasi tidak ditemukan.' });
+      return;
+    }
+    await prisma.notification.update({ where: { id }, data: { read: true } });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/parent/notifications/read-all - Mark all notifications as read
+parentRouter.put('/notifications/read-all', async (req, res, next) => {
+  try {
+    const userId = req.auth!.userId;
+    await prisma.notification.updateMany({
+      where: { userId, read: false },
+      data: { read: true },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Questions ----------
+
+// GET /api/parent/assignments/:assignmentId/questions - Get questions for an assignment
+parentRouter.get('/assignments/:assignmentId/questions', async (req, res, next) => {
+  try {
+    const authUserId = req.auth!.userId;
+    const authRole = req.auth!.role;
+    const { assignmentId } = req.params;
+
+    const assignment = await prisma.parentAssignment.findUnique({ where: { id: assignmentId } });
+    if (!assignment) {
+      res.status(404).json({ error: 'Tugas tidak ditemukan.' });
+      return;
+    }
+
+    // Parent can see questions for their own assignments, student can see questions they asked
+    if (authRole === 'PARENT' && assignment.parentId !== authUserId) {
+      res.status(403).json({ error: 'Akses ditolak.' });
+      return;
+    }
+    if (authRole === 'STUDENT' && assignment.childId !== authUserId) {
+      res.status(403).json({ error: 'Akses ditolak.' });
+      return;
+    }
+
+    const questions = await prisma.question.findMany({
+      where: { assignmentId },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(questions);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/parent/assignments/:assignmentId/questions - Ask a question (STUDENT only)
+const askQuestionSchema = z.object({ question: z.string().trim().min(1, 'Pertanyaan tidak boleh kosong') });
+
+parentRouter.post('/assignments/:assignmentId/questions', async (req, res, next) => {
+  try {
+    const authUserId = req.auth!.userId;
+    const authRole = req.auth!.role;
+    const { assignmentId } = req.params;
+
+    if (authRole !== 'STUDENT') {
+      res.status(403).json({ error: 'Hanya anak yang bisa mengirim pertanyaan.' });
+      return;
+    }
+
+    const parsed = askQuestionSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Data tidak valid' });
+      return;
+    }
+
+    const assignment = await prisma.parentAssignment.findUnique({ where: { id: assignmentId } });
+    if (!assignment || assignment.childId !== authUserId) {
+      res.status(404).json({ error: 'Tugas tidak ditemukan.' });
+      return;
+    }
+
+    const question = await prisma.question.create({
+      data: {
+        assignmentId,
+        childId: authUserId,
+        parentId: assignment.parentId,
+        question: parsed.data.question,
+      },
+    });
+
+    // Create notification for parent
+    const child = await prisma.user.findUnique({ where: { id: authUserId }, select: { name: true } });
+    await prisma.notification.create({
+      data: {
+        userId: assignment.parentId,
+        type: 'child_question',
+        title: `${child?.name ?? 'Anak'} mengajukan pertanyaan`,
+        message: parsed.data.question,
+        assignmentId,
+      },
+    });
+
+    res.status(201).json(question);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/parent/questions/:questionId/reply - Reply to a question (PARENT only)
+const replyQuestionSchema = z.object({ reply: z.string().trim().min(1, 'Balasan tidak boleh kosong') });
+
+parentRouter.put('/questions/:questionId/reply', requireRole('PARENT'), async (req, res, next) => {
+  try {
+    const parentId = req.auth!.userId;
+    const { questionId } = req.params;
+
+    const parsed = replyQuestionSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Data tidak valid' });
+      return;
+    }
+
+    const existing = await prisma.question.findUnique({ where: { id: questionId } });
+    if (!existing || existing.parentId !== parentId) {
+      res.status(404).json({ error: 'Pertanyaan tidak ditemukan.' });
+      return;
+    }
+
+    const question = await prisma.question.update({
+      where: { id: questionId },
+      data: { reply: parsed.data.reply, repliedAt: new Date() },
+    });
+
+    // Create notification for child
+    const parent = await prisma.user.findUnique({ where: { id: parentId }, select: { name: true } });
+    await prisma.notification.create({
+      data: {
+        userId: existing.childId,
+        type: 'parent_reply',
+        title: `${parent?.name ?? 'Orang Tua'} membalas pertanyaan Anda`,
+        message: parsed.data.reply,
+        assignmentId: existing.assignmentId,
+      },
+    });
+
+    res.json(question);
   } catch (err) {
     next(err);
   }
