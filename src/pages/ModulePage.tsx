@@ -171,8 +171,13 @@ export default function ModulePage() {
     )
   }
 
+  // Compute filtered frames count for ProgressProvider
+  const visibleFrames = selectedFrameIds && selectedFrameIds.length > 0
+    ? mod.frames.filter((f) => selectedFrameIds.includes(f.id))
+    : mod.frames
+
   return (
-    <ProgressProvider totalFrames={mod.frames.length} moduleId={mod.id}>
+    <ProgressProvider totalFrames={visibleFrames.length} moduleId={mod.id}>
       <ModuleRunner mod={mod} filteredFrames={selectedFrameIds ?? undefined} />
     </ProgressProvider>
   )
