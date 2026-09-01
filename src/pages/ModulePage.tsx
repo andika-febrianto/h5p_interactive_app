@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext'
 import { getSubjectById } from '../data/subjects'
 import type { Module } from '../types/storyboard'
 
-function ModuleRunner({ mod, filteredFrames }: { mod: Module; filteredFrames?: string[] }) {
+function ModuleRunner({ mod, filteredFrames, assignmentId }: { mod: Module; filteredFrames?: string[]; assignmentId?: string | null }) {
   const { currentIndex, setCurrentIndex, resetProgress, loading, error } =
     useProgress()
   const navigate = useNavigate()
@@ -28,10 +28,16 @@ function ModuleRunner({ mod, filteredFrames }: { mod: Module; filteredFrames?: s
     setCurrentIndex(Math.min(currentIndex + 1, frames.length))
   const handleJump = (i: number) => setCurrentIndex(i)
   const handleRestart = () => resetProgress()
-  const handleExit = () =>
-    navigate(
-      `/kelas/${mod.grade}/semester/${mod.semester}/mapel/${mod.subjectId}`,
-    )
+  const handleExit = () => {
+    // If this is a child completing a parent assignment, go back to child dashboard
+    if (user?.role === 'STUDENT' && assignmentId) {
+      navigate('/anak')
+    } else {
+      navigate(
+        `/kelas/${mod.grade}/semester/${mod.semester}/mapel/${mod.subjectId}`,
+      )
+    }
+  }
 
   if (loading) {
     return (
@@ -122,7 +128,7 @@ export default function ModulePage() {
   }, [assignmentId, user?.id])
 
   if (notFound) {
-    return <Navigate to='/kelas' replace />
+    return <Navigate to={user?.role === 'STUDENT' ? '/anak' : '/kelas'} replace />
   }
 
   if (locked) {
@@ -177,7 +183,7 @@ export default function ModulePage() {
 
   return (
     <ProgressProvider totalFrames={visibleFrames.length} moduleId={mod.id}>
-      <ModuleRunner mod={mod} filteredFrames={selectedFrameIds ?? undefined} />
+      <ModuleRunner mod={mod} filteredFrames={selectedFrameIds ?? undefined} assignmentId={assignmentId} />
     </ProgressProvider>
   )
 }

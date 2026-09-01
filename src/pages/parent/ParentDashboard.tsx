@@ -131,34 +131,46 @@ export default function ParentDashboard() {
     const childAssignments = assignments.filter(
       (a) => a.childId === selectedChild.id,
     )
+
+    if (childAssignments.length === 0) {
+      setProgressLoading(false)
+      return
+    }
+
+    const fetches: Promise<unknown>[] = []
     childAssignments.forEach((a) => {
-      if (a.materialId && a.selectedFrames) {
+      if (a.materialId) {
         // Load module if not cached
         if (!moduleCache[a.materialId]) {
-          fetchModule(a.materialId)
-            .then((mod) =>
-              setModuleCache((prev) => ({
-                ...prev,
-                [a.materialId!]: mod,
-              })),
-            )
-            .catch(() => {})
+          fetches.push(
+            fetchModule(a.materialId)
+              .then((mod) =>
+                setModuleCache((prev) => ({
+                  ...prev,
+                  [a.materialId!]: mod,
+                })),
+              )
+              .catch(() => {}),
+          )
         }
         // Load frame progress
-        fetchChildModuleProgress(selectedChild.id, a.materialId)
-          .then((frames) => {
-            const map: Record<string, FrameProgress> = {}
-            frames.forEach((f) => {
-              map[f.frameSlug] = f
+        fetches.push(
+          fetchChildModuleProgress(selectedChild.id, a.materialId)
+            .then((frames) => {
+              const map: Record<string, FrameProgress> = {}
+              frames.forEach((f) => {
+                map[f.frameSlug] = f
+              })
+              setAssignmentProgress((prev) => ({
+                ...prev,
+                [a.materialId!]: map,
+              }))
             })
-            setAssignmentProgress((prev) => ({
-              ...prev,
-              [a.materialId!]: map,
-            }))
-          })
-          .catch(() => {})
+            .catch(() => {}),
+        )
       }
     })
+    Promise.all(fetches).finally(() => setProgressLoading(false))
   }, [selectedChild, assignments])
 
   // Load available modules when child and subject are selected
