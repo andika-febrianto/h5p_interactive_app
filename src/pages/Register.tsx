@@ -3,8 +3,6 @@ import TopBar from '../components/TopBar';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../lib/api';
-import { grades, semesters } from '../data/grades';
-import type { UserRole } from '../types/storyboard';
 
 export default function Register() {
   const { register } = useAuth();
@@ -12,9 +10,6 @@ export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('STUDENT');
-  const [grade, setGrade] = useState<number>(1);
-  const [semester, setSemester] = useState<number>(1);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -23,21 +18,8 @@ export default function Register() {
     setError(null);
     setSubmitting(true);
     try {
-      await register(
-        name,
-        email,
-        password,
-        role,
-        role === 'STUDENT' ? grade : undefined,
-        role === 'STUDENT' ? semester : undefined,
-      );
-      if (role === 'PARENT') {
-        navigate('/orangtua');
-      } else if (role === 'STUDENT' && grade && semester) {
-        navigate(`/kelas/${grade}/semester/${semester}`);
-      } else {
-        navigate('/kelas');
-      }
+      await register(name, email, password, 'PARENT');
+      navigate('/orangtua');
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : 'Gagal mendaftar. Coba lagi.',
@@ -51,29 +33,17 @@ export default function Register() {
     <div className='home-page'>
       <div className='home-inner auth-form-page'>
         <TopBar />
-        <h1 className='home-title'>Daftar Akun</h1>
+        <h1 className='home-title'>Daftar Akun Orang Tua</h1>
 
         <form className='auth-form' onSubmit={handleSubmit}>
           <label className='auth-field'>
-            <span>Daftar Sebagai</span>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as UserRole)}
-              required
-            >
-              <option value='STUDENT'>Murid (Anak)</option>
-              <option value='PARENT'>Orang Tua</option>
-            </select>
-          </label>
-
-          <label className='auth-field'>
-            <span>{role === 'PARENT' ? 'Nama Lengkap' : 'Nama Lengkap Anak'} *</span>
+            <span>Nama Lengkap *</span>
             <input
               type='text'
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              placeholder='Nama lengkap'
+              placeholder='Nama lengkap orang tua'
               autoComplete='name'
             />
           </label>
@@ -101,39 +71,6 @@ export default function Register() {
               autoComplete='new-password'
             />
           </label>
-
-          {role === 'STUDENT' && (
-            <div className="auth-grade-semester">
-              <label className="auth-field">
-                <span>Kelas</span>
-                <select
-                  value={grade}
-                  onChange={(e) => setGrade(Number(e.target.value))}
-                  required
-                >
-                  {grades.map((g) => (
-                    <option key={g.level} value={g.level}>
-                      {g.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="auth-field">
-                <span>Semester</span>
-                <select
-                  value={semester}
-                  onChange={(e) => setSemester(Number(e.target.value))}
-                  required
-                >
-                  {semesters.map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          )}
 
           {error && <p className="auth-error">{error}</p>}
 

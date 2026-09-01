@@ -19,6 +19,7 @@ import SubjectManager from './pages/teacher/SubjectManager';
 import ModuleManager from './pages/teacher/ModuleManager';
 import ModuleEditor from './pages/teacher/ModuleEditor';
 import ParentDashboard from './pages/parent/ParentDashboard';
+import ChildDashboard from './pages/child/ChildDashboard';
 
 export default function App() {
   return (
@@ -123,6 +124,16 @@ export default function App() {
               <RequireRole role="PARENT">
                 <ParentDashboard />
               </RequireRole>
+            }
+          />
+
+          {/* Child dashboard */}
+          <Route
+            path="/anak"
+            element={
+              <RequireAuth>
+                <ChildDashboard />
+              </RequireAuth>
             }
           />
         </Routes>

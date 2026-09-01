@@ -520,6 +520,8 @@ export interface ChildInfo {
   email: string
   grade: number | null
   semester: number | null
+  birthDate: string | null
+  gender: string | null
 }
 
 export interface ModuleProgress {
@@ -563,10 +565,18 @@ export function fetchChildren(): Promise<ChildInfo[]> {
   return request('/parent/children')
 }
 
-export function linkChild(email: string): Promise<ChildInfo> {
+export function addChild(body: {
+  name: string
+  email: string
+  password: string
+  grade: number
+  semester: number
+  birthDate?: string
+  gender?: string
+}): Promise<ChildInfo> {
   return request('/parent/children', {
     method: 'POST',
-    body: JSON.stringify({ email }),
+    body: JSON.stringify(body),
   })
 }
 

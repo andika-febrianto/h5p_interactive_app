@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { hashPassword } from '../lib/auth.js';
 
 export const parentRouter = Router();
 
@@ -26,6 +27,8 @@ parentRouter.get('/children', async (req, res, next) => {
             email: true,
             grade: true,
             semester: true,
+            birthDate: true,
+            gender: true,
           },
         },
       },
@@ -38,46 +41,52 @@ parentRouter.get('/children', async (req, res, next) => {
   }
 });
 
-// POST /api/parent/children - Link a child to this parent
-const linkChildSchema = z.object({
+// POST /api/parent/children - Create a new child (student) account and link to this parent
+const addChildSchema = z.object({
+  name: z.string().trim().min(2, 'Nama minimal 2 karakter'),
   email: z.string().trim().toLowerCase().email('Email tidak valid'),
+  password: z.string().min(6, 'Kata sandi minimal 6 karakter'),
+  grade: z.number().int().min(1).max(6),
+  semester: z.number().int().min(1).max(2),
+  birthDate: z.string().optional(),
+  gender: z.enum(['Laki-laki', 'Perempuan']).optional(),
 });
 
 parentRouter.post('/children', async (req, res, next) => {
   try {
     const parentId = req.auth!.userId;
-    const parsed = linkChildSchema.safeParse(req.body);
+    const parsed = addChildSchema.safeParse(req.body);
     
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Data tidak valid' });
       return;
     }
 
-    const { email } = parsed.data;
+    const { name, email, password, grade, semester, birthDate, gender } = parsed.data;
 
-    // Find the child by email
-    const child = await prisma.user.findUnique({ where: { email } });
-    if (!child) {
-      res.status(404).json({ error: 'Murid tidak ditemukan dengan email tersebut.' });
+    // Check if email already exists
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      res.status(409).json({ error: 'Email sudah terdaftar.' });
       return;
     }
 
-    if (child.role !== 'STUDENT') {
-      res.status(400).json({ error: 'Email tersebut bukan akun murid.' });
-      return;
-    }
-
-    // Check if already linked
-    const existing = await prisma.parentChild.findUnique({
-      where: { parentId_childId: { parentId, childId: child.id } },
+    // Create the child (student) account
+    const passwordHash = await hashPassword(password);
+    const child = await prisma.user.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        role: 'STUDENT',
+        grade,
+        semester,
+        birthDate: birthDate ? new Date(birthDate) : null,
+        gender: gender ?? null,
+      },
     });
 
-    if (existing) {
-      res.status(409).json({ error: 'Murid sudah terhubung dengan akun Anda.' });
-      return;
-    }
-
-    // Create the link
+    // Create the parent-child link
     await prisma.parentChild.create({
       data: { parentId, childId: child.id },
     });
@@ -88,6 +97,8 @@ parentRouter.post('/children', async (req, res, next) => {
       email: child.email,
       grade: child.grade,
       semester: child.semester,
+      birthDate: child.birthDate,
+      gender: child.gender,
     });
   } catch (err) {
     next(err);

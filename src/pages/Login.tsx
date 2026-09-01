@@ -21,14 +21,8 @@ export default function Login() {
 
       if (loggedInUser.role === 'PARENT') {
         navigate('/orangtua')
-      } else if (
-        loggedInUser.role === 'STUDENT' &&
-        loggedInUser.grade &&
-        loggedInUser.semester
-      ) {
-        navigate(
-          `/kelas/${loggedInUser.grade}/semester/${loggedInUser.semester}`,
-        )
+      } else if (loggedInUser.role === 'STUDENT') {
+        navigate('/anak')
       } else {
         navigate('/kelas')
       }

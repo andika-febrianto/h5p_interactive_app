@@ -4,17 +4,20 @@ import TopBar from '../../components/TopBar'
 import { useAuth } from '../../context/AuthContext'
 import {
   fetchChildren,
-  linkChild,
+  addChild,
   unlinkChild,
   fetchChildProgress,
   fetchAssignments,
   createAssignment,
   deleteAssignment,
+  fetchModules,
   type ChildInfo,
   type ModuleProgress,
   type ParentAssignment,
+  type ModuleSummary,
 } from '../../lib/api'
 import { ApiError } from '../../lib/api'
+import { grades, semesters } from '../../data/grades'
 
 type Tab = 'children' | 'assignments'
 
@@ -26,9 +29,16 @@ export default function ParentDashboard() {
   // Children state
   const [children, setChildren] = useState<ChildInfo[]>([])
   const [childrenLoading, setChildrenLoading] = useState(true)
-  const [addChildEmail, setAddChildEmail] = useState('')
-  const [addChildError, setAddChildError] = useState<string | null>(null)
-  const [addChildSubmitting, setAddChildSubmitting] = useState(false)
+  const [showCreateChild, setShowCreateChild] = useState(false)
+  const [childForm, setChildForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    grade: 1,
+    semester: 1,
+  })
+  const [childError, setChildError] = useState<string | null>(null)
+  const [childSubmitting, setChildSubmitting] = useState(false)
 
   // Progress state
   const [selectedChild, setSelectedChild] = useState<ChildInfo | null>(null)
@@ -39,8 +49,10 @@ export default function ParentDashboard() {
   const [assignments, setAssignments] = useState<ParentAssignment[]>([])
   const [assignmentsLoading, setAssignmentsLoading] = useState(true)
   const [showAssignmentForm, setShowAssignmentForm] = useState(false)
+  const [availableModules, setAvailableModules] = useState<ModuleSummary[]>([])
   const [assignmentForm, setAssignmentForm] = useState({
     childId: '',
+    materialId: '',
     title: '',
     description: '',
     dueDate: '',
@@ -77,27 +89,48 @@ export default function ParentDashboard() {
       .finally(() => setProgressLoading(false))
   }, [selectedChild])
 
-  // Add child handler
-  const handleAddChild = async (e: React.FormEvent) => {
+  // Load available modules when child is selected for assignment
+  useEffect(() => {
+    if (!assignmentForm.childId) {
+      setAvailableModules([])
+      return
+    }
+    const child = children.find((c) => c.id === assignmentForm.childId)
+    if (child?.grade && child?.semester) {
+      fetchModules({ grade: child.grade, semester: child.semester })
+        .then(setAvailableModules)
+        .catch(() => setAvailableModules([]))
+    }
+  }, [assignmentForm.childId, children])
+
+  // Create child account handler
+  const handleCreateChild = async (e: React.FormEvent) => {
     e.preventDefault()
-    setAddChildError(null)
-    setAddChildSubmitting(true)
+    setChildError(null)
+    setChildSubmitting(true)
     try {
-      const newChild = await linkChild(addChildEmail)
+      const newChild = await addChild({
+        name: childForm.name,
+        email: childForm.email,
+        password: childForm.password,
+        grade: childForm.grade,
+        semester: childForm.semester,
+      })
       setChildren((prev) => [...prev, newChild])
-      setAddChildEmail('')
+      setChildForm({ name: '', email: '', password: '', grade: 1, semester: 1 })
+      setShowCreateChild(false)
     } catch (err) {
-      setAddChildError(
-        err instanceof ApiError ? err.message : 'Gagal menambahkan murid.',
+      setChildError(
+        err instanceof ApiError ? err.message : 'Gagal membuat akun anak.',
       )
     } finally {
-      setAddChildSubmitting(false)
+      setChildSubmitting(false)
     }
   }
 
   // Remove child handler
   const handleRemoveChild = async (childId: string) => {
-    if (!confirm('Yakin ingin menghapus murid ini dari daftar?')) return
+    if (!confirm('Yakin ingin menghapus anak ini dari daftar?')) return
     try {
       await unlinkChild(childId)
       setChildren((prev) => prev.filter((c) => c.id !== childId))
@@ -106,7 +139,7 @@ export default function ParentDashboard() {
         setProgress([])
       }
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : 'Gagal menghapus murid.')
+      alert(err instanceof ApiError ? err.message : 'Gagal menghapus anak.')
     }
   }
 
@@ -116,16 +149,20 @@ export default function ParentDashboard() {
     setAssignmentError(null)
     setAssignmentSubmitting(true)
     try {
+      const selectedModule = availableModules.find(
+        (m) => m.id === assignmentForm.materialId,
+      )
       const newAssignment = await createAssignment({
         childId: assignmentForm.childId,
-        title: assignmentForm.title,
-        description: assignmentForm.description || undefined,
+        title: assignmentForm.title || selectedModule?.title || '',
+        description: assignmentForm.description || selectedModule?.summary || undefined,
+        materialId: assignmentForm.materialId || undefined,
         dueDate: assignmentForm.dueDate
           ? new Date(assignmentForm.dueDate).toISOString()
           : undefined,
       })
       setAssignments((prev) => [newAssignment, ...prev])
-      setAssignmentForm({ childId: '', title: '', description: '', dueDate: '' })
+      setAssignmentForm({ childId: '', materialId: '', title: '', description: '', dueDate: '' })
       setShowAssignmentForm(false)
     } catch (err) {
       setAssignmentError(
@@ -151,6 +188,9 @@ export default function ParentDashboard() {
   const getChildName = (childId: string) =>
     children.find((c) => c.id === childId)?.name ?? childId
 
+  // Find selected child for assignment form
+  const assignmentChild = children.find((c) => c.id === assignmentForm.childId)
+
   return (
     <div className='home-page'>
       <div className='home-inner'>
@@ -166,7 +206,7 @@ export default function ParentDashboard() {
         <p className='home-eyebrow'>Orang Tua · {user?.name}</p>
         <h1 className='home-title'>Dashboard Orang Tua</h1>
         <p className='home-lede'>
-          Kelola anak, pantau progres belajar, dan berikan tugas.
+          Buat akun anak, pantau progres belajar, dan berikan tugas dari materi yang tersedia.
         </p>
 
         {/* Tab Navigation */}
@@ -190,46 +230,129 @@ export default function ParentDashboard() {
         {/* Children Tab */}
         {activeTab === 'children' && (
           <div>
-            {/* Add Child Form */}
-            <div className='auth-form' style={{ marginBottom: 24, padding: 16, background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)' }}>
-              <h3 style={{ margin: '0 0 12px', fontFamily: 'var(--font-display)' }}>
-                Tambah Murid
-              </h3>
-              <form
-                onSubmit={handleAddChild}
-                style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}
+            {/* Create Child Account Button */}
+            <div style={{ marginBottom: 16 }}>
+              <button
+                type='button'
+                className='btn-primary'
+                onClick={() => setShowCreateChild(!showCreateChild)}
               >
-                <label className='auth-field' style={{ flex: 1, marginBottom: 0 }}>
-                  <span>Email Murid</span>
-                  <input
-                    type='email'
-                    value={addChildEmail}
-                    onChange={(e) => setAddChildEmail(e.target.value)}
-                    required
-                    placeholder='murid@sekolah.id'
-                    autoComplete='email'
-                  />
-                </label>
-                <button
-                  type='submit'
-                  className='btn-primary'
-                  disabled={addChildSubmitting}
-                  style={{ height: 'fit-content' }}
-                >
-                  {addChildSubmitting ? 'Menambahkan...' : 'Tambah'}
-                </button>
-              </form>
-              {addChildError && (
-                <p className='auth-error' style={{ marginTop: 8 }}>{addChildError}</p>
-              )}
+                {showCreateChild ? 'Batal' : '+ Buat Akun Anak Baru'}
+              </button>
             </div>
+
+            {/* Create Child Account Form */}
+            {showCreateChild && (
+              <div
+                className='auth-form'
+                style={{
+                  marginBottom: 24,
+                  padding: 16,
+                  background: 'var(--bg-card)',
+                  borderRadius: 'var(--radius-lg)',
+                }}
+              >
+                <h3 style={{ margin: '0 0 12px', fontFamily: 'var(--font-display)' }}>
+                  Buat Akun Anak
+                </h3>
+                <form onSubmit={handleCreateChild}>
+                  <label className='auth-field'>
+                    <span>Nama Lengkap Anak</span>
+                    <input
+                      type='text'
+                      value={childForm.name}
+                      onChange={(e) =>
+                        setChildForm((prev) => ({ ...prev, name: e.target.value }))
+                      }
+                      required
+                      placeholder='Nama lengkap anak'
+                    />
+                  </label>
+                  <label className='auth-field'>
+                    <span>Email (untuk login anak)</span>
+                    <input
+                      type='email'
+                      value={childForm.email}
+                      onChange={(e) =>
+                        setChildForm((prev) => ({ ...prev, email: e.target.value }))
+                      }
+                      required
+                      placeholder='anak@sekolah.id'
+                    />
+                  </label>
+                  <label className='auth-field'>
+                    <span>Kata Sandi</span>
+                    <input
+                      type='password'
+                      value={childForm.password}
+                      onChange={(e) =>
+                        setChildForm((prev) => ({ ...prev, password: e.target.value }))
+                      }
+                      required
+                      minLength={6}
+                      placeholder='Minimal 6 karakter'
+                    />
+                  </label>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <label className='auth-field' style={{ flex: 1 }}>
+                      <span>Kelas</span>
+                      <select
+                        value={childForm.grade}
+                        onChange={(e) =>
+                          setChildForm((prev) => ({
+                            ...prev,
+                            grade: Number(e.target.value),
+                          }))
+                        }
+                        required
+                      >
+                        {grades.map((g) => (
+                          <option key={g.level} value={g.level}>
+                            {g.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className='auth-field' style={{ flex: 1 }}>
+                      <span>Semester</span>
+                      <select
+                        value={childForm.semester}
+                        onChange={(e) =>
+                          setChildForm((prev) => ({
+                            ...prev,
+                            semester: Number(e.target.value),
+                          }))
+                        }
+                        required
+                      >
+                        {semesters.map((s) => (
+                          <option key={s.value} value={s.value}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  {childError && (
+                    <p className='auth-error'>{childError}</p>
+                  )}
+                  <button
+                    type='submit'
+                    className='btn-primary'
+                    disabled={childSubmitting}
+                  >
+                    {childSubmitting ? 'Membuat...' : 'Buat Akun Anak'}
+                  </button>
+                </form>
+              </div>
+            )}
 
             {/* Children List */}
             {childrenLoading ? (
               <p className='home-empty'>Memuat data anak...</p>
             ) : children.length === 0 ? (
               <p className='home-empty'>
-                Belum ada murid yang ditambahkan. Masukkan email murid di atas untuk memulai.
+                Belum ada akun anak. Klik "Buat Akun Anak Baru" untuk memulai.
               </p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -266,6 +389,9 @@ export default function ParentDashboard() {
                           {child.grade && ` · Kelas ${child.grade}`}
                           {child.semester && ` · Semester ${child.semester}`}
                         </p>
+                        <p className='module-card-summary' style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                          🔑 Login: {child.email} / [password yang dibuat]
+                        </p>
                       </div>
                       <button
                         type='button'
@@ -293,7 +419,7 @@ export default function ParentDashboard() {
                     fontFamily: 'var(--font-display)',
                   }}
                 >
-                  Progres Belajar: {selectedChild.name}
+                  📊 Progres Belajar: {selectedChild.name}
                 </h3>
                 {progressLoading ? (
                   <p className='home-empty'>Memuat progres...</p>
@@ -382,25 +508,55 @@ export default function ParentDashboard() {
                 </h3>
                 <form onSubmit={handleCreateAssignment}>
                   <label className='auth-field'>
-                    <span>Pilih Murid</span>
+                    <span>Pilih Anak</span>
                     <select
                       value={assignmentForm.childId}
                       onChange={(e) =>
                         setAssignmentForm((prev) => ({
                           ...prev,
                           childId: e.target.value,
+                          materialId: '',
                         }))
                       }
                       required
                     >
-                      <option value=''>-- Pilih Murid --</option>
+                      <option value=''>-- Pilih Anak --</option>
                       {children.map((c) => (
                         <option key={c.id} value={c.id}>
-                          {c.name}
+                          {c.name} (Kelas {c.grade} / Semester {c.semester})
                         </option>
                       ))}
                     </select>
                   </label>
+
+                  {assignmentChild && (
+                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 12px' }}>
+                      Materi untuk Kelas {assignmentChild.grade} / Semester {assignmentChild.semester}
+                    </p>
+                  )}
+
+                  <label className='auth-field'>
+                    <span>Pilih Materi / Modul</span>
+                    <select
+                      value={assignmentForm.materialId}
+                      onChange={(e) => {
+                        const mod = availableModules.find((m) => m.id === e.target.value)
+                        setAssignmentForm((prev) => ({
+                          ...prev,
+                          materialId: e.target.value,
+                          title: prev.title || mod?.title || '',
+                        }))
+                      }}
+                    >
+                      <option value=''>-- Pilih Materi (opsional) --</option>
+                      {availableModules.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.title} ({m.estimatedMinutes})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
                   <label className='auth-field'>
                     <span>Judul Tugas</span>
                     <input
@@ -502,12 +658,12 @@ export default function ParentDashboard() {
                             }}
                           >
                             {a.status === 'pending'
-                              ? 'Menunggu'
+                              ? '⏳ Menunggu'
                               : a.status === 'in_progress'
-                                ? 'Dikerjakan'
+                                ? '📝 Dikerjakan'
                                 : a.status === 'completed'
-                                  ? 'Selesai'
-                                  : 'Terlambat'}
+                                  ? '✅ Selesai'
+                                  : '⚠️ Terlambat'}
                           </span>
                           {a.dueDate &&
                             ` · Deadline: ${new Date(a.dueDate).toLocaleDateString('id-ID')}`}
