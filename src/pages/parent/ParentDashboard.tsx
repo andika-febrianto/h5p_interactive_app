@@ -11,10 +11,12 @@ import {
   createAssignment,
   deleteAssignment,
   fetchModules,
+  fetchSubjects,
   type ChildInfo,
   type ModuleProgress,
   type ParentAssignment,
   type ModuleSummary,
+  type Subject,
 } from '../../lib/api'
 import { ApiError } from '../../lib/api'
 import { grades, semesters } from '../../data/grades'
@@ -49,6 +51,8 @@ export default function ParentDashboard() {
   const [assignments, setAssignments] = useState<ParentAssignment[]>([])
   const [assignmentsLoading, setAssignmentsLoading] = useState(true)
   const [showAssignmentForm, setShowAssignmentForm] = useState(false)
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [selectedSubjectId, setSelectedSubjectId] = useState('')
   const [availableModules, setAvailableModules] = useState<ModuleSummary[]>([])
   const [assignmentForm, setAssignmentForm] = useState({
     childId: '',
@@ -89,7 +93,14 @@ export default function ParentDashboard() {
       .finally(() => setProgressLoading(false))
   }, [selectedChild])
 
-  // Load available modules when child is selected for assignment
+  // Load subjects on mount
+  useEffect(() => {
+    fetchSubjects()
+      .then(setSubjects)
+      .catch(() => setSubjects([]))
+  }, [])
+
+  // Load available modules when child and subject are selected
   useEffect(() => {
     if (!assignmentForm.childId) {
       setAvailableModules([])
@@ -97,11 +108,15 @@ export default function ParentDashboard() {
     }
     const child = children.find((c) => c.id === assignmentForm.childId)
     if (child?.grade && child?.semester) {
-      fetchModules({ grade: child.grade, semester: child.semester })
+      fetchModules({
+        grade: child.grade,
+        semester: child.semester,
+        subjectId: selectedSubjectId || undefined,
+      })
         .then(setAvailableModules)
         .catch(() => setAvailableModules([]))
     }
-  }, [assignmentForm.childId, children])
+  }, [assignmentForm.childId, selectedSubjectId, children])
 
   // Create child account handler
   const handleCreateChild = async (e: React.FormEvent) => {
@@ -163,6 +178,7 @@ export default function ParentDashboard() {
       })
       setAssignments((prev) => [newAssignment, ...prev])
       setAssignmentForm({ childId: '', materialId: '', title: '', description: '', dueDate: '' })
+      setSelectedSubjectId('')
       setShowAssignmentForm(false)
     } catch (err) {
       setAssignmentError(
@@ -511,13 +527,14 @@ export default function ParentDashboard() {
                     <span>Pilih Anak</span>
                     <select
                       value={assignmentForm.childId}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setAssignmentForm((prev) => ({
                           ...prev,
                           childId: e.target.value,
                           materialId: '',
                         }))
-                      }
+                        setSelectedSubjectId('')
+                      }}
                       required
                     >
                       <option value=''>-- Pilih Anak --</option>
@@ -533,6 +550,26 @@ export default function ParentDashboard() {
                     <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 12px' }}>
                       Materi untuk Kelas {assignmentChild.grade} / Semester {assignmentChild.semester}
                     </p>
+                  )}
+
+                  {assignmentForm.childId && (
+                    <label className='auth-field'>
+                      <span>Pilih Mata Pelajaran</span>
+                      <select
+                        value={selectedSubjectId}
+                        onChange={(e) => {
+                          setSelectedSubjectId(e.target.value)
+                          setAssignmentForm((prev) => ({ ...prev, materialId: '' }))
+                        }}
+                      >
+                        <option value=''>-- Semua Mata Pelajaran --</option>
+                        {subjects.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.icon} {s.shortName}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   )}
 
                   <label className='auth-field'>

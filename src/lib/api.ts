@@ -1,11 +1,13 @@
 import type {
   Module,
-  Subject,
+  Subject as SubjectType,
   FrameResult,
   Frame,
   User,
   UserRole,
 } from '../types/storyboard'
+
+export type Subject = SubjectType
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'
 const ACCESS_TOKEN_KEY = 'h5p-access-token'

@@ -6,14 +6,13 @@ import { hashPassword } from '../lib/auth.js';
 
 export const parentRouter = Router();
 
-// All parent routes require authentication and PARENT role
+// All parent routes require authentication (but not necessarily PARENT role)
 parentRouter.use(requireAuth);
-parentRouter.use(requireRole('PARENT'));
 
 // ---------- Parent-Child Relationships ----------
 
 // GET /api/parent/children - List all children linked to this parent
-parentRouter.get('/children', async (req, res, next) => {
+parentRouter.get('/children', requireRole('PARENT'), async (req, res, next) => {
   try {
     const parentId = req.auth!.userId;
     
@@ -52,7 +51,7 @@ const addChildSchema = z.object({
   gender: z.enum(['Laki-laki', 'Perempuan']).optional(),
 });
 
-parentRouter.post('/children', async (req, res, next) => {
+parentRouter.post('/children', requireRole('PARENT'), async (req, res, next) => {
   try {
     const parentId = req.auth!.userId;
     const parsed = addChildSchema.safeParse(req.body);
@@ -106,7 +105,7 @@ parentRouter.post('/children', async (req, res, next) => {
 });
 
 // DELETE /api/parent/children/:childId - Unlink a child
-parentRouter.delete('/children/:childId', async (req, res, next) => {
+parentRouter.delete('/children/:childId', requireRole('PARENT'), async (req, res, next) => {
   try {
     const parentId = req.auth!.userId;
     const { childId } = req.params;
@@ -133,7 +132,7 @@ parentRouter.delete('/children/:childId', async (req, res, next) => {
 // ---------- Child Progress ----------
 
 // GET /api/parent/children/:childId/progress - Get progress for a specific child
-parentRouter.get('/children/:childId/progress', async (req, res, next) => {
+parentRouter.get('/children/:childId/progress', requireRole('PARENT'), async (req, res, next) => {
   try {
     const parentId = req.auth!.userId;
     const { childId } = req.params;
@@ -199,7 +198,7 @@ parentRouter.get('/children/:childId/progress', async (req, res, next) => {
 // ---------- Reading Progress ----------
 
 // GET /api/parent/children/:childId/reading - Get reading progress for a child
-parentRouter.get('/children/:childId/reading', async (req, res, next) => {
+parentRouter.get('/children/:childId/reading', requireRole('PARENT'), async (req, res, next) => {
   try {
     const parentId = req.auth!.userId;
     const { childId } = req.params;
@@ -235,7 +234,7 @@ const readingProgressSchema = z.object({
   status: z.enum(['not_started', 'in_progress', 'completed']).optional(),
 });
 
-parentRouter.post('/children/:childId/reading', async (req, res, next) => {
+parentRouter.post('/children/:childId/reading', requireRole('PARENT'), async (req, res, next) => {
   try {
     const parentId = req.auth!.userId;
     const { childId } = req.params;
@@ -290,7 +289,7 @@ parentRouter.post('/children/:childId/reading', async (req, res, next) => {
 // ---------- Parent Assignments ----------
 
 // GET /api/parent/assignments - List all assignments created by this parent
-parentRouter.get('/assignments', async (req, res, next) => {
+parentRouter.get('/assignments', requireRole('PARENT'), async (req, res, next) => {
   try {
     const parentId = req.auth!.userId;
 
@@ -319,7 +318,7 @@ const createAssignmentSchema = z.object({
   dueDate: z.string().datetime().optional(),
 });
 
-parentRouter.post('/assignments', async (req, res, next) => {
+parentRouter.post('/assignments', requireRole('PARENT'), async (req, res, next) => {
   try {
     const parentId = req.auth!.userId;
     const parsed = createAssignmentSchema.safeParse(req.body);
@@ -373,7 +372,7 @@ const updateAssignmentSchema = z.object({
   notes: z.string().optional(),
 });
 
-parentRouter.put('/assignments/:id', async (req, res, next) => {
+parentRouter.put('/assignments/:id', requireRole('PARENT'), async (req, res, next) => {
   try {
     const parentId = req.auth!.userId;
     const { id } = req.params;
@@ -419,7 +418,7 @@ parentRouter.put('/assignments/:id', async (req, res, next) => {
 });
 
 // DELETE /api/parent/assignments/:id - Delete an assignment
-parentRouter.delete('/assignments/:id', async (req, res, next) => {
+parentRouter.delete('/assignments/:id', requireRole('PARENT'), async (req, res, next) => {
   try {
     const parentId = req.auth!.userId;
     const { id } = req.params;
@@ -443,23 +442,33 @@ parentRouter.delete('/assignments/:id', async (req, res, next) => {
 });
 
 // GET /api/parent/children/:childId/assignments - Get assignments for a specific child
+// This endpoint is accessible by both PARENT (own child) and STUDENT (own assignments)
 parentRouter.get('/children/:childId/assignments', async (req, res, next) => {
   try {
-    const parentId = req.auth!.userId;
+    const authUserId = req.auth!.userId;
+    const authRole = req.auth!.role;
     const { childId } = req.params;
 
-    // Verify the child is linked to this parent
-    const relationship = await prisma.parentChild.findUnique({
-      where: { parentId_childId: { parentId, childId } },
-    });
+    // If parent, verify the child is linked to this parent
+    if (authRole === 'PARENT') {
+      const relationship = await prisma.parentChild.findUnique({
+        where: { parentId_childId: { parentId: authUserId, childId } },
+      });
 
-    if (!relationship) {
-      res.status(404).json({ error: 'Murid tidak terhubung dengan akun Anda.' });
+      if (!relationship) {
+        res.status(404).json({ error: 'Murid tidak terhubung dengan akun Anda.' });
+        return;
+      }
+    }
+
+    // If student, they can only view their own assignments
+    if (authRole === 'STUDENT' && authUserId !== childId) {
+      res.status(403).json({ error: 'Anda hanya bisa melihat tugas sendiri.' });
       return;
     }
 
     const assignments = await prisma.parentAssignment.findMany({
-      where: { parentId, childId },
+      where: { childId },
       orderBy: { createdAt: 'desc' },
     });
 
