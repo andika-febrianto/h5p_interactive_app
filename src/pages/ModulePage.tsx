@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import TopBar from '../components/TopBar'
-import { useParams, useNavigate, Navigate } from 'react-router-dom'
+import { useParams, useNavigate, Navigate, useSearchParams } from 'react-router-dom'
 import { ProgressProvider, useProgress } from '../context/ProgressContext'
 import { fetchModule, ApiError } from '../lib/api'
 import { Sidebar } from '../components/Sidebar'
@@ -10,12 +10,17 @@ import { useAuth } from '../context/AuthContext'
 import { getSubjectById } from '../data/subjects'
 import type { Module } from '../types/storyboard'
 
-function ModuleRunner({ mod }: { mod: Module }) {
+function ModuleRunner({ mod, filteredFrames }: { mod: Module; filteredFrames?: string[] }) {
   const { currentIndex, setCurrentIndex, resetProgress, loading, error } =
     useProgress()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const frames = mod.frames
+  const allFrames = mod.frames
+  // If filteredFrames (selected frame IDs from parent assignment) is provided,
+  // show only those frames. Otherwise show all.
+  const frames = filteredFrames && filteredFrames.length > 0
+    ? allFrames.filter((f) => filteredFrames.includes(f.id))
+    : allFrames
   const isSummary = currentIndex >= frames.length
   const subject = getSubjectById(mod.subjectId)
 
@@ -81,11 +86,16 @@ export default function ModulePage() {
   const [notFound, setNotFound] = useState(false)
   const [locked, setLocked] = useState(false)
 
+  const [searchParams] = useSearchParams()
+  const assignmentId = searchParams.get('assignment')
+  const [selectedFrameIds, setSelectedFrameIds] = useState<string[] | null>(null)
+
   useEffect(() => {
     if (!moduleId) return
     setMod(null)
     setNotFound(false)
     setLocked(false)
+    setSelectedFrameIds(null)
     fetchModule(moduleId)
       .then(setMod)
       .catch((err) => {
@@ -96,6 +106,21 @@ export default function ModulePage() {
         }
       })
   }, [moduleId])
+
+  // If there's an assignment ID, fetch it to get selectedFrames
+  useEffect(() => {
+    if (!assignmentId) return
+    import('../lib/api').then(({ fetchAssignments }) =>
+      fetchAssignments()
+        .then((assignments) => {
+          const a = assignments.find((x) => x.id === assignmentId)
+          if (a?.selectedFrames && a.selectedFrames.length > 0) {
+            setSelectedFrameIds(a.selectedFrames)
+          }
+        })
+        .catch(() => {})
+    )
+  }, [assignmentId])
 
   if (notFound) {
     return <Navigate to='/kelas' replace />
@@ -148,7 +173,7 @@ export default function ModulePage() {
 
   return (
     <ProgressProvider totalFrames={mod.frames.length} moduleId={mod.id}>
-      <ModuleRunner mod={mod} />
+      <ModuleRunner mod={mod} filteredFrames={selectedFrameIds ?? undefined} />
     </ProgressProvider>
   )
 }

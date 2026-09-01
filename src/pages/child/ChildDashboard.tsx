@@ -242,7 +242,7 @@ export default function ChildDashboard() {
                         type='button'
                         className='btn-primary btn-small'
                         onClick={() =>
-                          navigate(`/modul/${a.materialId}`)
+                          navigate(`/modul/${a.materialId}?assignment=${a.id}`)
                         }
                       >
                         Kerjakan →
@@ -253,7 +253,7 @@ export default function ChildDashboard() {
                         type='button'
                         className='btn-secondary btn-small'
                         onClick={() =>
-                          navigate(`/modul/${a.materialId}`)
+                          navigate(`/modul/${a.materialId}?assignment=${a.id}`)
                         }
                       >
                         Tinjau Ulang →
