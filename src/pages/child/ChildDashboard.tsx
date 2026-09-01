@@ -8,47 +8,30 @@ import {
   type ParentAssignment,
   type Module,
 } from '../../lib/api'
-
-const KIND_LABEL: Record<string, string> = {
-  text: 'Baca Materi',
-  quiz: 'Kerjakan Kuis',
-  dragdrop: 'Latihan Drag & Drop',
-  video: 'Tonton Video',
-  pdf: 'Baca Dokumen',
-  shortanswer: 'Kerjakan Latihan',
-}
-
-const KIND_ICON: Record<string, string> = {
-  text: '📄',
-  quiz: '❓',
-  dragdrop: '🧩',
-  video: '🎬',
-  pdf: '📕',
-  shortanswer: '✏️',
-}
+import { getSubjectById } from '../../data/subjects'
 
 export default function ChildDashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
 
-  // Assignments state
   const [assignments, setAssignments] = useState<ParentAssignment[]>([])
   const [assignmentsLoading, setAssignmentsLoading] = useState(true)
-
-  // Module details for assignments
   const [moduleCache, setModuleCache] = useState<Record<string, Module>>({})
 
-  // Load assignments for this child
   useEffect(() => {
     if (!user?.id) return
     fetchChildAssignments(user.id)
       .then((data) => {
         setAssignments(data)
-        // Pre-fetch module details for assignments with materialId
         data.forEach((a) => {
           if (a.materialId && !moduleCache[a.materialId]) {
             fetchModule(a.materialId)
-              .then((mod) => setModuleCache((prev) => ({ ...prev, [a.materialId!]: mod })))
+              .then((mod) =>
+                setModuleCache((prev) => ({
+                  ...prev,
+                  [a.materialId!]: mod,
+                })),
+              )
               .catch(() => {})
           }
         })
@@ -57,19 +40,19 @@ export default function ChildDashboard() {
       .finally(() => setAssignmentsLoading(false))
   }, [user?.id])
 
-  // Count stats
-  const pendingCount = assignments.filter((a) => a.status === 'pending').length
-  const inProgressCount = assignments.filter((a) => a.status === 'in_progress').length
-  const completedCount = assignments.filter((a) => a.status === 'completed').length
-
-  // Get filtered frames for an assignment
   const getFilteredFrames = (assignment: ParentAssignment) => {
     const mod = assignment.materialId ? moduleCache[assignment.materialId] : null
     if (!mod) return []
     if (!assignment.selectedFrames || assignment.selectedFrames.length === 0) {
-      return mod.frames // Show all frames if none selected
+      return mod.frames
     }
     return mod.frames.filter((f) => assignment.selectedFrames!.includes(f.id))
+  }
+
+  const getSubjectName = (subjectId?: string | null) => {
+    if (!subjectId) return ''
+    const sub = getSubjectById(subjectId)
+    return sub?.shortName || sub?.name || subjectId
   }
 
   return (
@@ -78,79 +61,8 @@ export default function ChildDashboard() {
         <TopBar />
 
         <p className='home-eyebrow'>Halo, {user?.name}! 👋</p>
-        <h1 className='home-title'>Tugas Belajarku</h1>
-        <p className='home-lede'>
-          Kerjakan tugas yang diberikan orang tuamu, atau mulai belajar mandiri.
-        </p>
+        <h1 className='home-title'>Tugas Saya</h1>
 
-        {/* Stats */}
-        {assignments.length > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              gap: 12,
-              marginBottom: 24,
-              flexWrap: 'wrap',
-            }}
-          >
-            <div
-              style={{
-                flex: 1,
-                minWidth: 120,
-                padding: '12px 16px',
-                background: 'var(--bg-card)',
-                borderRadius: 'var(--radius-lg)',
-                textAlign: 'center',
-                border: '1px solid var(--border)',
-              }}
-            >
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--warning)' }}>
-                {pendingCount}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                Menunggu
-              </div>
-            </div>
-            <div
-              style={{
-                flex: 1,
-                minWidth: 120,
-                padding: '12px 16px',
-                background: 'var(--bg-card)',
-                borderRadius: 'var(--radius-lg)',
-                textAlign: 'center',
-                border: '1px solid var(--border)',
-              }}
-            >
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary)' }}>
-                {inProgressCount}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                Dikerjakan
-              </div>
-            </div>
-            <div
-              style={{
-                flex: 1,
-                minWidth: 120,
-                padding: '12px 16px',
-                background: 'var(--bg-card)',
-                borderRadius: 'var(--radius-lg)',
-                textAlign: 'center',
-                border: '1px solid var(--border)',
-              }}
-            >
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--success)' }}>
-                {completedCount}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                Selesai
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Assignments */}
         {assignmentsLoading ? (
           <p className='home-empty'>Memuat tugas...</p>
         ) : assignments.length === 0 ? (
@@ -164,7 +76,9 @@ export default function ChildDashboard() {
               className='btn-primary'
               onClick={() => {
                 if (user?.grade && user?.semester) {
-                  navigate(`/kelas/${user.grade}/semester/${user.semester}`)
+                  navigate(
+                    `/kelas/${user.grade}/semester/${user.semester}`,
+                  )
                 } else {
                   navigate('/kelas')
                 }
@@ -177,108 +91,175 @@ export default function ChildDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {assignments.map((a) => {
               const filteredFrames = getFilteredFrames(a)
+              const mod = a.materialId ? moduleCache[a.materialId] : null
+              const subjectName = getSubjectName(mod?.subjectId)
+              const topicName = mod?.title || a.title
+              const statusIcon =
+                a.status === 'completed'
+                  ? '✅'
+                  : a.status === 'in_progress'
+                    ? '📝'
+                    : '⏳'
+              const statusLabel =
+                a.status === 'completed'
+                  ? 'Selesai'
+                  : a.status === 'in_progress'
+                    ? 'Sedang dikerjakan'
+                    : 'Menunggu dikerjakan'
 
               return (
                 <div
                   key={a.id}
-                  className='subject-card'
                   style={{
-                    cursor: a.materialId ? 'pointer' : 'default',
-                    borderColor:
-                      a.status === 'completed'
-                        ? 'var(--success)'
-                        : 'var(--border)',
-                  }}
-                  onClick={() => {
-                    if (a.materialId) {
-                      navigate(`/modul/${a.materialId}`)
-                    }
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: 20,
                   }}
                 >
-                  <div style={{ flex: 1 }}>
-                    {/* Assignment Title */}
-                    <h4 className='module-card-title' style={{ fontSize: 15 }}>
-                      {a.status === 'completed' ? '✅ ' : a.status === 'in_progress' ? '📝 ' : '⏳ '}
-                      {a.title}
-                    </h4>
-
-                    {/* Frame-based tasks list */}
-                    {filteredFrames.length > 0 && (
-                      <div style={{ marginTop: 10, marginBottom: 8 }}>
-                        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
-                          Yang harus dikerjakan:
+                  {/* Header: subject + topic */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 12,
+                    }}
+                  >
+                    <span style={{ fontSize: 28 }}>📚</span>
+                    <div style={{ flex: 1 }}>
+                      {subjectName && (
+                        <p
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: 'var(--primary)',
+                            textTransform: 'uppercase',
+                            letterSpacing: 0.5,
+                            marginBottom: 2,
+                          }}
+                        >
+                          {subjectName}
                         </p>
-                        {filteredFrames.map((frame, i) => (
-                          <div
-                            key={frame.id}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 8,
-                              padding: '5px 0',
-                              fontSize: 13,
-                              color: 'var(--text-primary)',
-                            }}
-                          >
-                            <span style={{ fontSize: 14 }}>
-                              {KIND_ICON[frame.kind] ?? '📄'}
-                            </span>
-                            <span>
-                              {i + 1}. {KIND_LABEL[frame.kind] ?? frame.title}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Status */}
-                    <p
-                      className='module-card-summary'
-                      style={{ fontSize: 11, marginTop: 4 }}
-                    >
-                      Status:{' '}
-                      <span
+                      )}
+                      <h3
                         style={{
-                          color:
-                            a.status === 'completed'
-                              ? 'var(--success)'
-                              : a.status === 'overdue'
-                                ? 'var(--error)'
-                                : 'var(--text-secondary)',
-                          fontWeight: 600,
+                          fontSize: 17,
+                          fontWeight: 700,
+                          color: 'var(--text-primary)',
+                          margin: 0,
                         }}
                       >
-                        {a.status === 'pending'
-                          ? 'Menunggu dikerjakan'
-                          : a.status === 'in_progress'
-                            ? 'Sedang dikerjakan'
-                            : a.status === 'completed'
-                              ? 'Selesai dikerjakan'
-                              : 'Terlambat'}
-                      </span>
-                      {a.dueDate && (
-                        <>
-                          {' · Deadline: '}
+                        {topicName}
+                      </h3>
+                    </div>
+                  </div>
+
+                  {/* Meta: from + deadline */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 16,
+                      marginTop: 10,
+                      fontSize: 13,
+                      color: 'var(--text-secondary)',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <span>
+                      👤 Dari:{' '}
+                      <strong style={{ color: 'var(--text-primary)' }}>
+                        {a.parentId ? 'Orang Tua' : 'Sistem'}
+                      </strong>
+                    </span>
+                    {a.dueDate && (
+                      <span>
+                        📅 Deadline:{' '}
+                        <strong style={{ color: 'var(--text-primary)' }}>
                           {new Date(a.dueDate).toLocaleDateString('id-ID', {
                             day: 'numeric',
                             month: 'long',
                             year: 'numeric',
                           })}
-                        </>
-                      )}
-                    </p>
+                        </strong>
+                      </span>
+                    )}
+                    <span>{filteredFrames.length} bahasan</span>
                   </div>
 
-                  {/* Start button */}
-                  {a.materialId && (
-                    <button
-                      type='button'
-                      className='btn-primary btn-small'
-                      style={{ fontSize: 12, flexShrink: 0 }}
+                  {/* Frames checklist */}
+                  {filteredFrames.length > 0 && (
+                    <div
+                      style={{
+                        marginTop: 14,
+                        borderTop: '1px solid var(--border)',
+                        paddingTop: 12,
+                      }}
                     >
-                      Kerjakan →
-                    </button>
+                      {filteredFrames.map((frame) => (
+                        <div
+                          key={frame.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            padding: '6px 0',
+                            fontSize: 14,
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          <span style={{ opacity: 0.4, fontSize: 16 }}>☐</span>
+                          <span>{frame.title}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
+
+                  {/* Status + Kerjakan button */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginTop: 14,
+                      paddingTop: 12,
+                      borderTop: '1px solid var(--border)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 13,
+                        color:
+                          a.status === 'completed'
+                            ? 'var(--success)'
+                            : 'var(--text-secondary)',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {statusIcon} {statusLabel}
+                    </span>
+                    {a.materialId && a.status !== 'completed' && (
+                      <button
+                        type='button'
+                        className='btn-primary btn-small'
+                        onClick={() =>
+                          navigate(`/modul/${a.materialId}`)
+                        }
+                      >
+                        Kerjakan →
+                      </button>
+                    )}
+                    {a.materialId && a.status === 'completed' && (
+                      <button
+                        type='button'
+                        className='btn-secondary btn-small'
+                        onClick={() =>
+                          navigate(`/modul/${a.materialId}`)
+                        }
+                      >
+                        Tinjau Ulang →
+                      </button>
+                    )}
+                  </div>
                 </div>
               )
             })}

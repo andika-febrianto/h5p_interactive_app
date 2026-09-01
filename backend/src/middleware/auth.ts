@@ -83,6 +83,17 @@ export async function requireActiveAccess(req: Request, res: Response, next: Nex
     const subscription = await prisma.subscription.findUnique({ where: { userId: req.auth.userId } });
     const hasAccess = !!subscription && subscription.currentPeriodEnd > new Date();
     if (!hasAccess) {
+      // Check if this is a parent-assigned module — allow access even without active subscription
+      const moduleId = req.params.moduleId || req.params.id;
+      if (moduleId) {
+        const hasAssignment = await prisma.parentAssignment.findFirst({
+          where: { childId: req.auth.userId, materialId: moduleId },
+        });
+        if (hasAssignment) {
+          next();
+          return;
+        }
+      }
       res.status(403).json({
         error: 'Masa aktif langganan Anda sudah berakhir. Berlangganan untuk melanjutkan belajar.',
         code: 'SUBSCRIPTION_REQUIRED',
