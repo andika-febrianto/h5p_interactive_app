@@ -1768,6 +1768,25 @@ textarea:focus {
   outline: none;
   box-shadow: 0 0 0 4px rgba(124, 107, 255, 0.12);
 }
+.auth-field select {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 500;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--gray-200);
+  background: var(--white);
+  color: var(--text-primary);
+  min-height: 50px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  appearance: auto;
+}
+.auth-field select:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(124, 107, 255, 0.12);
+}
 
 .auth-role-field {
   border: 2px solid var(--gray-200);
