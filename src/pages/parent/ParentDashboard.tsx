@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TopBar from '../../components/TopBar'
 import { useAuth } from '../../context/AuthContext'
@@ -463,6 +463,26 @@ export default function ParentDashboard() {
 
   // Get selected child info
   const selectedChildInfo = children.find((c) => c.id === selectedChildId)
+
+  const filteredTaskAssignments = useMemo(() => {
+    let result = assignments
+    if (taskSearchQuery.trim()) {
+      const q = taskSearchQuery.toLowerCase()
+      result = result.filter((a) => {
+        const childName = getChildName(a.childId).toLowerCase()
+        const title = (a.title || '').toLowerCase()
+        return title.includes(q) || childName.includes(q)
+      })
+    }
+    return [...result].sort((a, b) => {
+      if (taskSortOrder === 'newest') return (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
+      if (taskSortOrder === 'oldest') return (a.createdAt ?? '').localeCompare(b.createdAt ?? '')
+      if (taskSortOrder === 'deadline') return (a.dueDate ?? 'z').localeCompare(b.dueDate ?? 'z')
+      if (taskSortOrder === 'child') return getChildName(a.childId).localeCompare(getChildName(b.childId))
+      const statusOrder: Record<string, number> = { overdue: 0, in_progress: 1, pending: 2, completed: 3 }
+      return (statusOrder[a.status] ?? 4) - (statusOrder[b.status] ?? 4)
+    })
+  }, [assignments, taskSearchQuery, taskSortOrder, children])
 
   return (
     <div className='home-page'>
@@ -1298,7 +1318,7 @@ export default function ParentDashboard() {
                         gap: 12,
                       }}
                     >
-                      {filtered.map((a) => {
+                      {filteredTaskAssignments.map((a) => {
                         const completion = getAssignmentCompletion(a)
 
                   // Deadline-based card color

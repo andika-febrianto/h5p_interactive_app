@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TopBar from '../../components/TopBar'
 import { useAuth } from '../../context/AuthContext'
@@ -86,7 +86,7 @@ export default function ChildDashboard() {
       })
       .catch(() => setAssignments([]))
       .finally(() => setAssignmentsLoading(false))
-  }, [user?.id])
+  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Trigger student notification checks on load
   useEffect(() => {
@@ -137,10 +137,13 @@ export default function ChildDashboard() {
       ? moduleCache[assignment.materialId]
       : null
     if (!mod) return []
-    if (!assignment.selectedFrames || assignment.selectedFrames.length === 0) {
+    const frames = Array.isArray(assignment.selectedFrames)
+      ? assignment.selectedFrames
+      : []
+    if (frames.length === 0) {
       return mod.frames
     }
-    return mod.frames.filter((f) => assignment.selectedFrames!.includes(f.id))
+    return mod.frames.filter((f) => frames.includes(f.id))
   }
 
   const getFrameProgress = (
@@ -171,6 +174,28 @@ export default function ChildDashboard() {
     const sub = getSubjectById(subjectId)
     return sub?.shortName || sub?.name || subjectId
   }
+
+  // ─── Filtered & sorted assignments ───
+  const filteredAssignments = useMemo(() => {
+    let result = assignments
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter((a) => {
+        const mod = a.materialId ? moduleCache[a.materialId] : null
+        const topicName = (mod?.title || a.title || '').toLowerCase()
+        const subjectName = getSubjectName(mod?.subjectId).toLowerCase()
+        return topicName.includes(q) || subjectName.includes(q)
+      })
+    }
+    result = [...result].sort((a, b) => {
+      if (sortOrder === 'newest') return (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
+      if (sortOrder === 'oldest') return (a.createdAt ?? '').localeCompare(b.createdAt ?? '')
+      if (sortOrder === 'deadline') return (a.dueDate ?? 'z').localeCompare(b.dueDate ?? 'z')
+      const statusOrder: Record<string, number> = { overdue: 0, in_progress: 1, pending: 2, completed: 3 }
+      return (statusOrder[a.status] ?? 4) - (statusOrder[b.status] ?? 4)
+    })
+    return result
+  }, [assignments, searchQuery, sortOrder, moduleCache])
 
   return (
     <div className='home-page'>
@@ -285,528 +310,505 @@ export default function ChildDashboard() {
               </select>
             </div>
 
-            {/* Filtered & Sorted assignments */}
-            {(() => {
-              let filtered = assignments
-              if (searchQuery.trim()) {
-                const q = searchQuery.toLowerCase()
-                filtered = filtered.filter((a) => {
+            {/* Assignment Cards */}
+            {filteredAssignments.length === 0 && searchQuery.trim() ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '20px 0', fontSize: 14 }}>
+                Tidak ada tugas yang cocok dengan pencarian.
+              </p>
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 16,
+                }}
+              >
+                {filteredAssignments.map((a) => {
+                  const filteredFrames = getFilteredFrames(a)
                   const mod = a.materialId ? moduleCache[a.materialId] : null
-                  const topicName = (mod?.title || a.title || '').toLowerCase()
-                  const subjectName = getSubjectName(mod?.subjectId).toLowerCase()
-                  return topicName.includes(q) || subjectName.includes(q)
-                })
-              }
-              filtered = [...filtered].sort((a, b) => {
-                if (sortOrder === 'newest') return (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
-                if (sortOrder === 'oldest') return (a.createdAt ?? '').localeCompare(b.createdAt ?? '')
-                if (sortOrder === 'deadline') return (a.dueDate ?? 'z').localeCompare(b.dueDate ?? 'z')
-                // status: overdue first, then in_progress, pending, completed
-                const statusOrder: Record<string, number> = { overdue: 0, in_progress: 1, pending: 2, completed: 3 }
-                return (statusOrder[a.status] ?? 4) - (statusOrder[b.status] ?? 4)
-              })
-              if (filtered.length === 0 && searchQuery.trim()) {
-                return (
-                  <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '20px 0', fontSize: 14 }}>
-                    Tidak ada tugas yang cocok dengan pencarian.
-                  </p>
-                )
-              }
-              return (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 16,
-                  }}
-                >
-                  {filtered.map((a) => {
-                    const filteredFrames = getFilteredFrames(a)
-                    const mod = a.materialId ? moduleCache[a.materialId] : null
-              const subjectName = getSubjectName(mod?.subjectId)
-              const topicName = mod?.title || a.title
-              const progress = getAssignmentProgress(a)
-              const isExpanded = expandedAssignment === a.id
-              const assignmentQuestions = questions[a.id] ?? []
+                  const subjectName = getSubjectName(mod?.subjectId)
+                  const topicName = mod?.title || a.title
+                  const progress = getAssignmentProgress(a)
+                  const isExpanded = expandedAssignment === a.id
+                  const assignmentQuestions = questions[a.id] ?? []
 
-              // Deadline-based card color
-              const now = new Date()
-              const isCompleted = progress.total > 0 && progress.completed === progress.total
-              let cardBg = 'var(--bg-card)'
-              let cardBorder = '1px solid var(--border)'
-              if (isCompleted) {
-                // Completed = white/default
-              } else if (a.dueDate) {
-                const due = new Date(a.dueDate)
-                const hoursLeft = (due.getTime() - now.getTime()) / (1000 * 60 * 60)
-                if (hoursLeft < 0) {
-                  // Overdue
-                  cardBg = 'rgba(239, 68, 68, 0.06)'
-                  cardBorder = '1.5px solid #ef4444'
-                } else if (hoursLeft <= 24) {
-                  // Approaching deadline
-                  cardBg = 'rgba(245, 158, 11, 0.06)'
-                  cardBorder = '1.5px solid #f59e0b'
-                }
-              }
+                  // Deadline-based card color
+                  const now = new Date()
+                  const isCompleted = progress.total > 0 && progress.completed === progress.total
+                  let cardBg = 'var(--bg-card)'
+                  let cardBorder = '1px solid var(--border)'
+                  if (isCompleted) {
+                    // Completed = white/default
+                  } else if (a.dueDate) {
+                    const due = new Date(a.dueDate)
+                    const hoursLeft = (due.getTime() - now.getTime()) / (1000 * 60 * 60)
+                    if (hoursLeft < 0) {
+                      cardBg = 'rgba(239, 68, 68, 0.06)'
+                      cardBorder = '1.5px solid #ef4444'
+                    } else if (hoursLeft <= 24) {
+                      cardBg = 'rgba(245, 158, 11, 0.06)'
+                      cardBorder = '1.5px solid #f59e0b'
+                    }
+                  }
 
-              return (
-                <div
-                  key={a.id}
-                  style={{
-                    background: cardBg,
-                    border: cardBorder,
-                    borderRadius: 'var(--radius-lg)',
-                    padding: 20,
-                  }}
-                >
-                  {/* Header: subject + topic */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 12,
-                    }}
-                  >
-                    <span style={{ fontSize: 28 }}>📚</span>
-                    <div style={{ flex: 1 }}>
-                      {subjectName && (
-                        <p
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 600,
-                            color: 'var(--primary)',
-                            textTransform: 'uppercase',
-                            letterSpacing: 0.5,
-                            marginBottom: 2,
-                          }}
-                        >
-                          {subjectName}
-                        </p>
-                      )}
-                      <h3
-                        style={{
-                          fontSize: 19,
-                          fontWeight: 700,
-                          color: 'var(--text-primary)',
-                          margin: 0,
-                        }}
-                      >
-                        {topicName}
-                      </h3>
-                    </div>
-                  </div>
-
-                  {/* Meta: from + deadline */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 16,
-                      marginTop: 10,
-                      fontSize: 14,
-                      color: 'var(--text-secondary)',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <span>
-                      👤 Dari:{' '}
-                      <strong style={{ color: 'var(--text-primary)' }}>
-                        {a.parentId ? 'Orang Tua' : 'Sistem'}
-                      </strong>
-                    </span>
-                    {a.dueDate && (
-                      <span>
-                        📅 Deadline:{' '}
-                        <strong style={{ color: 'var(--text-primary)' }}>
-                          {new Date(a.dueDate).toLocaleDateString('id-ID', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                          })}
-                        </strong>
-                      </span>
-                    )}
-                    <span>
-                      {progress.completed}/{progress.total} bahasan selesai
-                    </span>
-                  </div>
-
-                  {/* Progress Bar */}
-                  {filteredFrames.length > 0 && (
-                    <div style={{ marginTop: 14 }}>
+                  return (
+                    <div
+                      key={a.id}
+                      style={{
+                        background: cardBg,
+                        border: cardBorder,
+                        borderRadius: 'var(--radius-lg)',
+                        padding: 20,
+                      }}
+                    >
+                      {/* Header: subject + topic */}
                       <div
                         style={{
                           display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginBottom: 6,
+                          alignItems: 'flex-start',
+                          gap: 12,
                         }}
                       >
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: 'var(--text-secondary)',
-                          }}
-                        >
-                          Progress
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color:
-                              progress.pct === 100
-                                ? 'var(--success)'
-                                : 'var(--primary)',
-                          }}
-                        >
-                          {progress.pct}%
-                        </span>
+                        <span style={{ fontSize: 28 }}>📚</span>
+                        <div style={{ flex: 1 }}>
+                          {subjectName && (
+                            <p
+                              style={{
+                                fontSize: 14,
+                                fontWeight: 600,
+                                color: 'var(--primary)',
+                                textTransform: 'uppercase',
+                                letterSpacing: 0.5,
+                                marginBottom: 2,
+                              }}
+                            >
+                              {subjectName}
+                            </p>
+                          )}
+                          <h3
+                            style={{
+                              fontSize: 19,
+                              fontWeight: 700,
+                              color: 'var(--text-primary)',
+                              margin: 0,
+                            }}
+                          >
+                            {topicName}
+                          </h3>
+                        </div>
                       </div>
+
+                      {/* Meta: from + deadline */}
                       <div
                         style={{
-                          height: 8,
-                          borderRadius: 999,
-                          background: 'var(--gray-200)',
-                          overflow: 'hidden',
+                          display: 'flex',
+                          gap: 16,
+                          marginTop: 10,
+                          fontSize: 14,
+                          color: 'var(--text-secondary)',
+                          flexWrap: 'wrap',
                         }}
                       >
-                        <div
-                          style={{
-                            height: '100%',
-                            width: `${progress.pct}%`,
-                            background:
-                              progress.pct === 100
-                                ? 'var(--success)'
-                                : 'var(--primary)',
-                            borderRadius: 999,
-                            transition: 'width 0.4s ease',
-                          }}
-                        />
+                        <span>
+                          👤 Dari:{' '}
+                          <strong style={{ color: 'var(--text-primary)' }}>
+                            {a.parentId ? 'Orang Tua' : 'Sistem'}
+                          </strong>
+                        </span>
+                        {a.dueDate && (
+                          <span>
+                            📅 Deadline:{' '}
+                            <strong style={{ color: 'var(--text-primary)' }}>
+                              {new Date(a.dueDate).toLocaleDateString('id-ID', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric',
+                              })}
+                            </strong>
+                          </span>
+                        )}
+                        <span>
+                          {progress.completed}/{progress.total} bahasan selesai
+                        </span>
                       </div>
-                    </div>
-                  )}
 
-                  {/* Frames list with per-frame progress */}
-                  {filteredFrames.length > 0 && (
-                    <div
-                      style={{
-                        marginTop: 14,
-                        borderTop: '1px solid var(--border)',
-                        paddingTop: 12,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 8,
-                      }}
-                    >
-                      {filteredFrames.map((frame, idx) => {
-                        const fp = getFrameProgress(a.materialId, frame.id)
-                        const isCompleted = fp?.completed ?? false
-                        const accuracy = fp?.accuracy ?? 0
-
-                        return (
+                      {/* Progress Bar */}
+                      {filteredFrames.length > 0 && (
+                        <div style={{ marginTop: 14 }}>
                           <div
-                            key={frame.id}
                             style={{
                               display: 'flex',
+                              justifyContent: 'space-between',
                               alignItems: 'center',
-                              gap: 10,
-                              padding: '8px 10px',
-                              borderRadius: 'var(--radius-sm)',
-                              background: isCompleted
-                                ? 'rgba(16, 185, 129, 0.08)'
-                                : 'transparent',
-                              border: isCompleted
-                                ? '1px solid rgba(16, 185, 129, 0.2)'
-                                : '1px solid transparent',
+                              marginBottom: 6,
                             }}
                           >
                             <span
                               style={{
-                                width: 24,
-                                height: 24,
-                                borderRadius: '50%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: 12,
-                                fontWeight: 700,
-                                background: isCompleted
-                                  ? 'var(--success)'
-                                  : 'var(--gray-200)',
-                                color: isCompleted
-                                  ? '#fff'
-                                  : 'var(--text-secondary)',
-                                flexShrink: 0,
+                                fontSize: 13,
+                                fontWeight: 600,
+                                color: 'var(--text-secondary)',
                               }}
                             >
-                              {isCompleted ? '✓' : idx + 1}
+                              Progress
                             </span>
-
-                            <span style={{ fontSize: 16, flexShrink: 0 }}>
-                              {KIND_ICON[frame.kind] ?? '📄'}
-                            </span>
-
                             <span
                               style={{
                                 fontSize: 13,
-                                fontWeight: 500,
-                                color: 'var(--text-primary)',
-                                flex: 1,
-                                textDecoration: isCompleted
-                                  ? 'line-through'
-                                  : 'none',
-                                opacity: isCompleted ? 0.7 : 1,
-                              }}
-                            >
-                              {frame.title}
-                            </span>
-
-                            {isCompleted && accuracy > 0 && (
-                              <span
-                                style={{                                fontSize: 12,
-                                fontWeight: 600,
+                                fontWeight: 700,
                                 color:
-                                    accuracy >= 80
-                                      ? 'var(--success)'
-                                      : accuracy >= 60
-                                        ? '#f59e0b'
-                                        : 'var(--error)',
-                                  background:
-                                    accuracy >= 80
-                                      ? 'rgba(16, 185, 129, 0.1)'
-                                      : accuracy >= 60
-                                        ? 'rgba(245, 158, 11, 0.1)'
-                                        : 'rgba(239, 68, 68, 0.1)',
-                                  padding: '2px 8px',
-                                  borderRadius: 999,
-                                }}
-                              >
-                                {accuracy}%
-                              </span>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-
-                  {/* Status + Kerjakan button */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginTop: 14,
-                      paddingTop: 12,
-                      borderTop: '1px solid var(--border)',
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 13,
-                        color:
-                          progress.pct === 100
-                            ? 'var(--success)'
-                            : progress.pct > 0
-                              ? 'var(--primary)'
-                              : 'var(--text-secondary)',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {progress.pct === 100
-                        ? '✅ Selesai'
-                        : progress.pct > 0
-                          ? `📝 ${progress.pct}% selesai`
-                          : '⏳ Menunggu dikerjakan'}
-                    </span>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      {/* Question button */}
-                      <button
-                        type='button'
-                        className='btn-secondary btn-small'
-                        onClick={() =>
-                          setExpandedAssignment(isExpanded ? null : a.id)
-                        }
-                        style={{ fontSize: 13 }}
-                      >
-                        💬 Tanya Orang Tua ({assignmentQuestions.length})
-                      </button>
-                      {a.materialId && progress.pct < 100 && (
-                        <button
-                          type='button'
-                          className='btn-primary btn-small'
-                          onClick={() => handleStartAssignment(a)}
-                        >
-                          {progress.pct > 0 ? 'Lanjutkan →' : 'Kerjakan →'}
-                        </button>
-                      )}
-                      {a.materialId && progress.pct === 100 && (
-                        <button
-                          type='button'
-                          className='btn-secondary btn-small'
-                          onClick={() =>
-                            navigate(
-                              `/modul/${a.materialId}?assignment=${a.id}`,
-                            )
-                          }
-                        >
-                          Tinjau Ulang →
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Questions Section */}
-                  {isExpanded && (
-                    <div
-                      style={{
-                        marginTop: 14,
-                        padding: 16,
-                        background: 'var(--gray-50)',
-                        borderRadius: 'var(--radius-md)',
-                        border: '1px solid var(--border)',
-                      }}
-                    >
-                      <h4
-                        style={{
-                          margin: '0 0 12px',
-                          fontSize: 14,
-                          fontWeight: 700,
-                        }}
-                      >
-                        💬 Pertanyaan ke Orang Tua
-                      </h4>
-
-                      {/* Existing questions */}
-                      {assignmentQuestions.length > 0 && (
-                        <div
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 10,
-                            marginBottom: 14,
-                          }}
-                        >
-                          {assignmentQuestions.map((q) => (
-                            <div
-                              key={q.id}
-                              style={{
-                                padding: 12,
-                                background: '#fff',
-                                borderRadius: 'var(--radius-sm)',
-                                border: '1px solid var(--border)',
+                                  progress.pct === 100
+                                    ? 'var(--success)'
+                                    : 'var(--primary)',
                               }}
                             >
-                              <p
-                                style={{
-                                  margin: 0,
-                                  fontSize: 13,
-                                  fontWeight: 600,
-                                  color: 'var(--text-primary)',
-                                }}
-                              >
-                                ❓ {q.question}
-                              </p>
-                              {q.reply ? (
-                                <p
-                                  style={{
-                                    margin: '8px 0 0',
-                                    fontSize: 12,
-                                    color: 'var(--success)',
-                                    paddingLeft: 16,
-                                    borderLeft: '2px solid var(--success)',
-                                  }}
-                                >
-                                  💬 {q.reply}
-                                  <span
-                                    style={{
-                                      fontSize: 10,
-                                      color: 'var(--text-tertiary)',
-                                      marginLeft: 8,
-                                    }}
-                                  >
-                                    {new Date(q.repliedAt!).toLocaleString(
-                                      'id-ID',
-                                      {
-                                        day: 'numeric',
-                                        month: 'short',
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                      },
-                                    )}
-                                  </span>
-                                </p>
-                              ) : (
-                                <p
-                                  style={{
-                                    margin: '8px 0 0',
-                                    fontSize: 11,
-                                    color: 'var(--text-secondary)',
-                                    fontStyle: 'italic',
-                                  }}
-                                >
-                                  Menunggu balasan...
-                                </p>
-                              )}
-                              <p
-                                style={{
-                                  margin: '4px 0 0',
-                                  fontSize: 10,
-                                  color: 'var(--text-tertiary)',
-                                }}
-                              >
-                                {new Date(q.createdAt).toLocaleString('id-ID', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </p>
-                            </div>
-                          ))}
+                              {progress.pct}%
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              height: 8,
+                              borderRadius: 999,
+                              background: 'var(--gray-200)',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <div
+                              style={{
+                                height: '100%',
+                                width: `${progress.pct}%`,
+                                background:
+                                  progress.pct === 100
+                                    ? 'var(--success)'
+                                    : 'var(--primary)',
+                                borderRadius: 999,
+                                transition: 'width 0.4s ease',
+                              }}
+                            />
+                          </div>
                         </div>
                       )}
 
-                      {/* Ask question form */}
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <input
-                          type='text'
-                          value={newQuestion}
-                          onChange={(e) => setNewQuestion(e.target.value)}
-                          placeholder='Ketik pertanyaan ke orang tua...'
+                      {/* Frames list with per-frame progress */}
+                      {filteredFrames.length > 0 && (
+                        <div
                           style={{
-                            flex: 1,
-                            padding: '8px 12px',
-                            border: '1px solid var(--border)',
-                            borderRadius: 'var(--radius-sm)',
-                            fontSize: 13,
-                            background: '#fff',
+                            marginTop: 14,
+                            borderTop: '1px solid var(--border)',
+                            paddingTop: 12,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 8,
                           }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !sendingQuestion) {
-                              handleSendQuestion(a.id)
-                            }
-                          }}
-                        />
-                        <button
-                          type='button'
-                          className='btn-primary btn-small'
-                          onClick={() => handleSendQuestion(a.id)}
-                          disabled={sendingQuestion || !newQuestion.trim()}
-                          style={{ fontSize: 12 }}
                         >
-                          {sendingQuestion ? '...' : 'Kirim'}
-                        </button>
+                          {filteredFrames.map((frame, idx) => {
+                            const fp = getFrameProgress(a.materialId, frame.id)
+                            const isFrameCompleted = fp?.completed ?? false
+                            const accuracy = fp?.accuracy ?? 0
+
+                            return (
+                              <div
+                                key={frame.id}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 10,
+                                  padding: '8px 10px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  background: isFrameCompleted
+                                    ? 'rgba(16, 185, 129, 0.08)'
+                                    : 'transparent',
+                                  border: isFrameCompleted
+                                    ? '1px solid rgba(16, 185, 129, 0.2)'
+                                    : '1px solid transparent',
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    background: isFrameCompleted
+                                      ? 'var(--success)'
+                                      : 'var(--gray-200)',
+                                    color: isFrameCompleted
+                                      ? '#fff'
+                                      : 'var(--text-secondary)',
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {isFrameCompleted ? '✓' : idx + 1}
+                                </span>
+
+                                <span style={{ fontSize: 16, flexShrink: 0 }}>
+                                  {KIND_ICON[frame.kind] ?? '📄'}
+                                </span>
+
+                                <span
+                                  style={{
+                                    fontSize: 13,
+                                    fontWeight: 500,
+                                    color: 'var(--text-primary)',
+                                    flex: 1,
+                                    textDecoration: isFrameCompleted
+                                      ? 'line-through'
+                                      : 'none',
+                                    opacity: isFrameCompleted ? 0.7 : 1,
+                                  }}
+                                >
+                                  {frame.title}
+                                </span>
+
+                                {isFrameCompleted && accuracy > 0 && (
+                                  <span
+                                    style={{
+                                      fontSize: 12,
+                                      fontWeight: 600,
+                                      color:
+                                        accuracy >= 80
+                                          ? 'var(--success)'
+                                          : accuracy >= 60
+                                            ? '#f59e0b'
+                                            : 'var(--error)',
+                                      background:
+                                        accuracy >= 80
+                                          ? 'rgba(16, 185, 129, 0.1)'
+                                          : accuracy >= 60
+                                            ? 'rgba(245, 158, 11, 0.1)'
+                                            : 'rgba(239, 68, 68, 0.1)',
+                                      padding: '2px 8px',
+                                      borderRadius: 999,
+                                    }}
+                                  >
+                                    {accuracy}%
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+
+                      {/* Status + Kerjakan button */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginTop: 14,
+                          paddingTop: 12,
+                          borderTop: '1px solid var(--border)',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 13,
+                            color:
+                              progress.pct === 100
+                                ? 'var(--success)'
+                                : progress.pct > 0
+                                  ? 'var(--primary)'
+                                  : 'var(--text-secondary)',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {progress.pct === 100
+                            ? '✅ Selesai'
+                            : progress.pct > 0
+                              ? `📝 ${progress.pct}% selesai`
+                              : '⏳ Menunggu dikerjakan'}
+                        </span>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          {/* Question button */}
+                          <button
+                            type='button'
+                            className='btn-secondary btn-small'
+                            onClick={() =>
+                              setExpandedAssignment(isExpanded ? null : a.id)
+                            }
+                            style={{ fontSize: 13 }}
+                          >
+                            💬 Tanya Orang Tua ({assignmentQuestions.length})
+                          </button>
+                          {a.materialId && progress.pct < 100 && (
+                            <button
+                              type='button'
+                              className='btn-primary btn-small'
+                              onClick={() => handleStartAssignment(a)}
+                            >
+                              {progress.pct > 0 ? 'Lanjutkan →' : 'Kerjakan →'}
+                            </button>
+                          )}
+                          {a.materialId && progress.pct === 100 && (
+                            <button
+                              type='button'
+                              className='btn-secondary btn-small'
+                              onClick={() =>
+                                navigate(
+                                  `/modul/${a.materialId}?assignment=${a.id}`,
+                                )
+                              }
+                            >
+                              Tinjau Ulang →
+                            </button>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Questions Section */}
+                      {isExpanded && (
+                        <div
+                          style={{
+                            marginTop: 14,
+                            padding: 16,
+                            background: 'var(--gray-50)',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid var(--border)',
+                          }}
+                        >
+                          <h4
+                            style={{
+                              margin: '0 0 12px',
+                              fontSize: 14,
+                              fontWeight: 700,
+                            }}
+                          >
+                            💬 Pertanyaan ke Orang Tua
+                          </h4>
+
+                          {/* Existing questions */}
+                          {assignmentQuestions.length > 0 && (
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 10,
+                                marginBottom: 14,
+                              }}
+                            >
+                              {assignmentQuestions.map((q) => (
+                                <div
+                                  key={q.id}
+                                  style={{
+                                    padding: 12,
+                                    background: '#fff',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: '1px solid var(--border)',
+                                  }}
+                                >
+                                  <p
+                                    style={{
+                                      margin: 0,
+                                      fontSize: 13,
+                                      fontWeight: 600,
+                                      color: 'var(--text-primary)',
+                                    }}
+                                  >
+                                    ❓ {q.question}
+                                  </p>
+                                  {q.reply ? (
+                                    <p
+                                      style={{
+                                        margin: '8px 0 0',
+                                        fontSize: 12,
+                                        color: 'var(--success)',
+                                        paddingLeft: 16,
+                                        borderLeft: '2px solid var(--success)',
+                                      }}
+                                    >
+                                      💬 {q.reply}
+                                      <span
+                                        style={{
+                                          fontSize: 10,
+                                          color: 'var(--text-tertiary)',
+                                          marginLeft: 8,
+                                        }}
+                                      >
+                                        {new Date(q.repliedAt!).toLocaleString(
+                                          'id-ID',
+                                          {
+                                            day: 'numeric',
+                                            month: 'short',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                          },
+                                        )}
+                                      </span>
+                                    </p>
+                                  ) : (
+                                    <p
+                                      style={{
+                                        margin: '8px 0 0',
+                                        fontSize: 11,
+                                        color: 'var(--text-secondary)',
+                                        fontStyle: 'italic',
+                                      }}
+                                    >
+                                      Menunggu balasan...
+                                    </p>
+                                  )}
+                                  <p
+                                    style={{
+                                      margin: '4px 0 0',
+                                      fontSize: 10,
+                                      color: 'var(--text-tertiary)',
+                                    }}
+                                  >
+                                    {new Date(q.createdAt).toLocaleString('id-ID', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Ask question form */}
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <input
+                              type='text'
+                              value={newQuestion}
+                              onChange={(e) => setNewQuestion(e.target.value)}
+                              placeholder='Ketik pertanyaan ke orang tua...'
+                              style={{
+                                flex: 1,
+                                padding: '8px 12px',
+                                border: '1px solid var(--border)',
+                                borderRadius: 'var(--radius-sm)',
+                                fontSize: 13,
+                                background: '#fff',
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !sendingQuestion) {
+                                  handleSendQuestion(a.id)
+                                }
+                              }}
+                            />
+                            <button
+                              type='button'
+                              className='btn-primary btn-small'
+                              onClick={() => handleSendQuestion(a.id)}
+                              disabled={sendingQuestion || !newQuestion.trim()}
+                              style={{ fontSize: 12 }}
+                            >
+                              {sendingQuestion ? '...' : 'Kirim'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              )
-            })}
-            </div>
-          )})}
+                  )
+                })}
+              </div>
+            )}
           </>
         )}
       </div>
