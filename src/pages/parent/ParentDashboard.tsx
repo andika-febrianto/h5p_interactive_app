@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TopBar from '../../components/TopBar'
 import { useAuth } from '../../context/AuthContext'
@@ -14,10 +14,7 @@ import {
   fetchModule,
   fetchSubjects,
   fetchChildModuleProgress,
-  fetchNotifications,
-  fetchUnreadCount,
-  markNotificationRead,
-  markAllNotificationsRead,
+
   fetchAssignmentQuestions,
   replyToQuestion,
   checkDeadlines,
@@ -29,7 +26,6 @@ import {
   type Module,
   type Subject,
   type FrameProgress,
-  type Notification,
   type Question,
 } from '../../lib/api'
 import { ApiError } from '../../lib/api'
@@ -60,11 +56,7 @@ export default function ParentDashboard() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<Tab>('children')
 
-  // Notifications
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [showNotifications, setShowNotifications] = useState(false)
-  const notifRef = useRef<HTMLButtonElement>(null)
+
 
   // Questions
   const [questions, setQuestions] = useState<Record<string, Question[]>>({})
@@ -125,25 +117,12 @@ export default function ParentDashboard() {
       .finally(() => setChildrenLoading(false))
   }, [])
 
-  // Load notifications
-  const loadNotifications = useCallback(() => {
-    fetchNotifications()
-      .then(setNotifications)
-      .catch(() => setNotifications([]))
-    fetchUnreadCount()
-      .then((data) => setUnreadCount(data.count))
-      .catch(() => setUnreadCount(0))
-  }, [])
-
+  // Trigger scheduled notification checks on load
   useEffect(() => {
-    loadNotifications()
-    const interval = setInterval(loadNotifications, 30000)
-    // Trigger scheduled checks on load (deadline, no_activity, overdue)
     checkDeadlines().catch(() => {})
     generateWeeklyReport().catch(() => {})
     generateMonthlyReport().catch(() => {})
-    return () => clearInterval(interval)
-  }, [loadNotifications])
+  }, [])
 
   // Load assignments
   useEffect(() => {
@@ -259,23 +238,6 @@ export default function ParentDashboard() {
     setAssignError(null)
     setAssignSuccess(null)
   }, [selectedChildId, selectedSubjectId])
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        notifRef.current &&
-        !notifRef.current.contains(event.target as Node)
-      ) {
-        setShowNotifications(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
 
   // Create child account handler
   const handleCreateChild = async (e: React.FormEvent) => {
@@ -395,22 +357,6 @@ export default function ParentDashboard() {
   // Find child name by id
   const getChildName = (childId: string) =>
     children.find((c) => c.id === childId)?.name ?? childId
-
-  // Handle notification click
-  const handleNotificationClick = async (notif: Notification) => {
-    await markNotificationRead(notif.id)
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n)),
-    )
-    setUnreadCount((prev) => Math.max(0, prev - 1))
-  }
-
-  // Handle marking all notifications as read
-  const handleMarkAllRead = async () => {
-    await markAllNotificationsRead()
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
-    setUnreadCount(0)
-  }
 
   // Load questions for a child's assignments
   const loadChildQuestions = useCallback(
@@ -537,178 +483,6 @@ export default function ParentDashboard() {
             <h1 className='home-title'>Dashboard Orang Tua</h1>
           </div>
 
-          {/* Notification Bell */}
-          <div style={{ position: 'relative' }}>
-            <button
-              type='button'
-              ref={notifRef}
-              onClick={() => setShowNotifications(!showNotifications)}
-              style={{
-                background: 'none',
-                border: 'none',
-                fontSize: 24,
-                cursor: 'pointer',
-                position: 'relative',
-                padding: 8,
-              }}
-            >
-              🔔
-              {unreadCount > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 2,
-                    right: 2,
-                    background: 'var(--error)',
-                    color: '#fff',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    borderRadius: '50%',
-                    width: 18,
-                    height: 18,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            {/* Notification Dropdown */}
-            {showNotifications && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  width: 360,
-                  maxHeight: 420,
-                  overflowY: 'auto',
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-lg)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-                  zIndex: 100,
-                  marginTop: 8,
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px 16px',
-                    borderBottom: '1px solid var(--border)',
-                  }}
-                >
-                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>
-                    Notifikasi
-                  </h4>
-                  {unreadCount > 0 && (
-                    <button
-                      type='button'
-                      onClick={handleMarkAllRead}
-                      style={{
-                        fontSize: 11,
-                        color: 'var(--primary)',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                      }}
-                    >
-                      Tandai semua dibaca
-                    </button>
-                  )}
-                </div>
-                {notifications.length === 0 ? (
-                  <p
-                    style={{
-                      padding: 16,
-                      textAlign: 'center',
-                      color: 'var(--text-secondary)',
-                      fontSize: 13,
-                    }}
-                  >
-                    Belum ada notifikasi
-                  </p>
-                ) : (
-                  notifications.map((notif) => {
-                    const typeIcon: Record<string, string> = {
-                      child_account_created: '🎉',
-                      assignment_created: '📚',
-                      child_started: '📝',
-                      child_completed: '✅',
-                      high_score: '🌟',
-                      low_score: '⚠️',
-                      no_activity: '😴',
-                      deadline_approaching: '⏰',
-                      assignment_overdue: '🚨',
-                      weekly_report: '📊',
-                      monthly_report: '🏆',
-                      new_badge: '🥇',
-                      new_assignment: '📚',
-                      child_question: '❓',
-                      parent_reply: '💬',
-                    }
-                    return (
-                      <div
-                        key={notif.id}
-                        onClick={() => handleNotificationClick(notif)}
-                        style={{
-                          padding: '10px 16px',
-                          borderBottom: '1px solid var(--border)',
-                          cursor: 'pointer',
-                          background: notif.read
-                            ? 'transparent'
-                            : 'rgba(59, 130, 246, 0.05)',
-                          borderLeft: notif.read
-                            ? '3px solid transparent'
-                            : '3px solid var(--primary)',
-                        }}
-                      >
-                        <p
-                          style={{
-                            margin: 0,
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: 'var(--text-primary)',
-                          }}
-                        >
-                          {typeIcon[notif.type] ?? '📢'} {notif.title}
-                        </p>
-                        <p
-                          style={{
-                            margin: '4px 0 0',
-                            fontSize: 11,
-                            color: 'var(--text-secondary)',
-                          }}
-                        >
-                          {notif.message}
-                        </p>
-                        <p
-                          style={{
-                            margin: '4px 0 0',
-                            fontSize: 10,
-                            color: 'var(--text-tertiary)',
-                          }}
-                        >
-                          {new Date(notif.createdAt).toLocaleString('id-ID', {
-                            day: 'numeric',
-                            month: 'short',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
-                      </div>
-                    )
-                  })
-                )}
-              </div>
-            )}
-          </div>
         </div>
         <p className='home-lede'>
           Buat akun anak, tugaskan materi belajar, dan pantau progresnya.

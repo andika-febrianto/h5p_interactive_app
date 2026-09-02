@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TopBar from '../../components/TopBar'
 import { useAuth } from '../../context/AuthContext'
@@ -6,10 +6,7 @@ import {
   fetchChildAssignments,
   fetchModule,
   fetchChildModuleProgress,
-  fetchNotifications,
-  fetchUnreadCount,
-  markNotificationRead,
-  markAllNotificationsRead,
+
   fetchAssignmentQuestions,
   askQuestion,
   markAssignmentStarted,
@@ -17,7 +14,6 @@ import {
   type ParentAssignment,
   type Module,
   type FrameProgress,
-  type Notification,
   type Question,
 } from '../../lib/api'
 import { getSubjectById } from '../../data/subjects'
@@ -42,11 +38,7 @@ export default function ChildDashboard() {
     Record<string, Record<string, FrameProgress>>
   >({})
 
-  // Notifications
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [showNotifications, setShowNotifications] = useState(false)
-  const notifRef = useRef<HTMLButtonElement>(null)
+
 
   // Questions
   const [expandedAssignment, setExpandedAssignment] = useState<string | null>(
@@ -92,24 +84,10 @@ export default function ChildDashboard() {
       .finally(() => setAssignmentsLoading(false))
   }, [user?.id])
 
-  // Load notifications
-  const loadNotifications = useCallback(() => {
-    if (!user?.id) return
-    fetchNotifications()
-      .then(setNotifications)
-      .catch(() => setNotifications([]))
-    fetchUnreadCount()
-      .then((data) => setUnreadCount(data.count))
-      .catch(() => setUnreadCount(0))
-  }, [user?.id])
-
+  // Trigger student notification checks on load
   useEffect(() => {
-    loadNotifications()
-    const interval = setInterval(loadNotifications, 30000) // Poll every 30s
-    // Trigger student notification checks on load
     checkStudentNotifications().catch(() => {})
-    return () => clearInterval(interval)
-  }, [loadNotifications])
+  }, [user?.id])
 
   // Load questions when assignment is expanded
   const loadQuestions = useCallback(async (assignmentId: string) => {
@@ -126,48 +104,6 @@ export default function ChildDashboard() {
       loadQuestions(expandedAssignment)
     }
   }, [expandedAssignment, loadQuestions])
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        notifRef.current &&
-        !notifRef.current.contains(event.target as Node)
-      ) {
-        setShowNotifications(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
-
-  // Handle notification click
-  const handleNotificationClick = async (notif: Notification) => {
-    await markNotificationRead(notif.id)
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n)),
-    )
-    setUnreadCount((prev) => Math.max(0, prev - 1))
-    if (notif.assignmentId) {
-      // Navigate to the assignment's module if it has a materialId
-      const assignment = assignments.find((a) => a.id === notif.assignmentId)
-      if (assignment?.materialId) {
-        navigate(
-          `/modul/${assignment.materialId}?assignment=${notif.assignmentId}`,
-        )
-      }
-    }
-  }
-
-  // Handle marking all notifications as read
-  const handleMarkAllRead = async () => {
-    await markAllNotificationsRead()
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
-    setUnreadCount(0)
-  }
 
   // Handle sending a question
   const handleSendQuestion = async (assignmentId: string) => {
@@ -251,191 +187,7 @@ export default function ChildDashboard() {
           </div>
 
           {/* Notification Bell */}
-          <div style={{ position: 'relative' }}>
-            <button
-              type='button'
-              ref={notifRef}
-              onClick={() => setShowNotifications(!showNotifications)}
-              style={{
-                background: 'none',
-                border: 'none',
-                fontSize: 24,
-                cursor: 'pointer',
-                position: 'relative',
-                padding: 8,
-              }}
-            >
-              🔔
-              {unreadCount > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 2,
-                    right: 2,
-                    background: 'var(--error)',
-                    color: '#fff',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    borderRadius: '50%',
-                    width: 18,
-                    height: 18,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {unreadCount}
-                </span>
-              )}
-            </button>
 
-            {/* Notification Dropdown */}
-            {showNotifications && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  width: 340,
-                  maxHeight: 400,
-                  overflowY: 'auto',
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-lg)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-                  zIndex: 100,
-                  marginTop: 8,
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px 16px',
-                    borderBottom: '1px solid var(--border)',
-                  }}
-                >
-                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>
-                    Notifikasi
-                  </h4>
-                  {unreadCount > 0 && (
-                    <button
-                      type='button'
-                      onClick={handleMarkAllRead}
-                      style={{
-                        fontSize: 11,
-                        color: 'var(--primary)',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                      }}
-                    >
-                      Tandai semua dibaca
-                    </button>
-                  )}
-                </div>
-                {notifications.length === 0 ? (
-                  <p
-                    style={{
-                      padding: 16,
-                      textAlign: 'center',
-                      color: 'var(--text-secondary)',
-                      fontSize: 13,
-                    }}
-                  >
-                    Belum ada notifikasi
-                  </p>
-                ) : (
-                  notifications.map((notif) => (
-                    <div
-                      key={notif.id}
-                      onClick={() => handleNotificationClick(notif)}
-                      style={{
-                        padding: '10px 16px',
-                        borderBottom: '1px solid var(--border)',
-                        cursor: 'pointer',
-                        background: notif.read
-                          ? 'transparent'
-                          : 'rgba(59, 130, 246, 0.05)',
-                        borderLeft: notif.read
-                          ? '3px solid transparent'
-                          : '3px solid var(--primary)',
-                      }}
-                    >
-                      <p
-                        style={{
-                          margin: 0,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        {(() => {
-                          const icons: Record<string, string> = {
-                            // Student notifications (12)
-                            new_assignment: '📚',
-                            new_module_available: '✨',
-                            continue_learning: '📖',
-                            assignment_almost_due: '⏰',
-                            assignment_completed_child: '🎉',
-                            perfect_score: '🏆',
-                            badge_earned: '🥇',
-                            study_streak: '🔥',
-                            streak_lost: '💤',
-                            achievement_unlocked: '⭐',
-                            encouragement: '💪',
-                            daily_reminder: '📅',
-                            // Parent-originated
-                            parent_reply: '💬',
-                            assignment_created: '📚',
-                            child_started: '📝',
-                            child_completed: '✅',
-                            high_score: '🌟',
-                            low_score: '⚠️',
-                            child_account_created: '🎉',
-                            no_activity: '😴',
-                            deadline_approaching: '⏰',
-                            assignment_overdue: '🚨',
-                            weekly_report: '📊',
-                            monthly_report: '🏆',
-                            new_badge: '🥇',
-                            child_question: '❓',
-                          }
-                          return icons[notif.type] ?? '📢'
-                        })()}{' '}
-                        {notif.title}
-                      </p>
-                      <p
-                        style={{
-                          margin: '4px 0 0',
-                          fontSize: 11,
-                          color: 'var(--text-secondary)',
-                        }}
-                      >
-                        {notif.message}
-                      </p>
-                      <p
-                        style={{
-                          margin: '4px 0 0',
-                          fontSize: 10,
-                          color: 'var(--text-tertiary)',
-                        }}
-                      >
-                        {new Date(notif.createdAt).toLocaleString('id-ID', {
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
         </div>
 
         {assignmentsLoading ? (
