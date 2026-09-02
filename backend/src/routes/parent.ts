@@ -104,6 +104,16 @@ parentRouter.post('/children', requireRole('PARENT'), async (req, res, next) => 
       data: { parentId, childId: child.id },
     });
 
+    // 1. child_account_created notification
+    await prisma.notification.create({
+      data: {
+        userId: parentId,
+        type: 'child_account_created',
+        title: '🎉 Akun Anak Berhasil Dibuat',
+        message: `Akun belajar untuk ${name} telah berhasil dibuat dan siap digunakan.`,
+      },
+    });
+
     res.status(201).json({
       id: child.id,
       name: child.name,
@@ -427,16 +437,34 @@ parentRouter.post('/assignments', requireRole('PARENT'), async (req, res, next) 
       },
     });
 
-    // Also create notification for parent that assignment was created
+    // 2. assignment_created notification for parent
     await prisma.notification.create({
       data: {
         userId: parentId,
         type: 'assignment_created',
-        title: 'Tugas berhasil dibuat',
-        message: `Tugas "${title}" telah ditugaskan ke ${getChildNameForNotif(childId)}`,
+        title: '📚 Tugas Baru Diberikan',
+        message: `Modul "${title}" telah diberikan kepada ${getChildNameForNotif(childId)}.`,
         assignmentId: assignment.id,
       },
     });
+
+    // 8. deadline_approaching notification if dueDate is within 24h
+    if (dueDate) {
+      const due = new Date(dueDate);
+      const now = new Date();
+      const hoursLeft = (due.getTime() - now.getTime()) / (1000 * 60 * 60);
+      if (hoursLeft > 0 && hoursLeft <= 24) {
+        await prisma.notification.create({
+          data: {
+            userId: parentId,
+            type: 'deadline_approaching',
+            title: '⏰ Deadline Mendekat',
+            message: `Tugas "${title}" akan berakhir dalam ${Math.round(hoursLeft)} jam.`,
+            assignmentId: assignment.id,
+          },
+        });
+      }
+    }
 
     res.status(201).json(assignment);
   } catch (err) {
@@ -586,7 +614,7 @@ parentRouter.post('/assignments/:assignmentId/start', async (req, res, next) => 
       });
     }
 
-    // Check if notification already exists (avoid duplicates)
+    // 3. child_started notification
     const existing = await prisma.notification.findFirst({
       where: { userId: assignment.parentId, type: 'child_started', assignmentId },
     });
@@ -597,8 +625,8 @@ parentRouter.post('/assignments/:assignmentId/start', async (req, res, next) => 
         data: {
           userId: assignment.parentId,
           type: 'child_started',
-          title: `${child?.name ?? 'Anak'} mulai mengerjakan tugas`,
-          message: `${child?.name ?? 'Anak'} sedang mengerjakan "${assignment.title}"`,
+          title: '📝 Tugas Mulai Dikerjakan',
+          message: `${child?.name ?? 'Anak'} mulai mengerjakan modul "${assignment.title}".`,
           assignmentId,
         },
       });
@@ -628,7 +656,7 @@ parentRouter.post('/assignments/:assignmentId/complete', async (req, res, next) 
       data: { status: 'completed' },
     });
 
-    // Check if notification already exists
+    // 4. child_completed notification
     const existing = await prisma.notification.findFirst({
       where: { userId: assignment.parentId, type: 'child_completed', assignmentId },
     });
@@ -639,8 +667,8 @@ parentRouter.post('/assignments/:assignmentId/complete', async (req, res, next) 
         data: {
           userId: assignment.parentId,
           type: 'child_completed',
-          title: `${child?.name ?? 'Anak'} menyelesaikan tugas`,
-          message: `${child?.name ?? 'Anak'} telah selesai mengerjakan "${assignment.title}"`,
+          title: '✅ Tugas Selesai',
+          message: `${child?.name ?? 'Anak'} telah menyelesaikan modul "${assignment.title}".`,
           assignmentId,
         },
       });
@@ -839,6 +867,357 @@ parentRouter.put('/questions/:questionId/reply', requireRole('PARENT'), async (r
     });
 
     res.json(question);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Score Notifications ----------
+
+// POST /api/parent/notify/score - Called when a child completes a quiz frame
+const notifyScoreSchema = z.object({
+  childId: z.string().min(1),
+  moduleId: z.string().min(1),
+  frameTitle: z.string().min(1),
+  score: z.number().int().min(0).max(100),
+});
+
+parentRouter.post('/notify/score', async (req, res, next) => {
+  try {
+    const authUserId = req.auth!.userId;
+    const parsed = notifyScoreSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Data tidak valid' });
+      return;
+    }
+
+    const { childId, moduleId, frameTitle, score } = parsed.data;
+
+    // Find parent of this child
+    const parentChild = await prisma.parentChild.findFirst({ where: { childId } });
+    if (!parentChild) {
+      res.status(404).json({ error: 'Parent tidak ditemukan.' });
+      return;
+    }
+
+    const child = await prisma.user.findUnique({ where: { id: childId }, select: { name: true } });
+    const childName = child?.name ?? 'Anak';
+
+    // Find assignment for this module+child
+    const assignment = await prisma.parentAssignment.findFirst({
+      where: { childId, materialId: moduleId },
+    });
+
+    // 5. high_score or 6. low_score notification
+    if (score >= 80) {
+      await prisma.notification.create({
+        data: {
+          userId: parentChild.parentId,
+          type: 'high_score',
+          title: '🌟 Nilai Sangat Baik',
+          message: `${childName} memperoleh nilai ${score}% pada kuis "${frameTitle}".`,
+          assignmentId: assignment?.id,
+        },
+      });
+    } else if (score <= 50) {
+      await prisma.notification.create({
+        data: {
+          userId: parentChild.parentId,
+          type: 'low_score',
+          title: '⚠️ Perlu Pendampingan',
+          message: `${childName} memperoleh nilai ${score}% pada kuis "${frameTitle}". Mungkin perlu belajar ulang.`,
+          assignmentId: assignment?.id,
+        },
+      });
+    }
+
+    // 12. new_badge - if score is 100% on any quiz
+    if (score === 100) {
+      await prisma.notification.create({
+        data: {
+          userId: parentChild.parentId,
+          type: 'new_badge',
+          title: '🥇 Lencana Baru',
+          message: `${childName} mendapatkan lencana "Sempurna!" untuk skor 100% pada "${frameTitle}".`,
+          assignmentId: assignment?.id,
+        },
+      });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Scheduled Notifications ----------
+
+// POST /api/parent/check/deadlines - Check for approaching deadlines (call on dashboard load)
+parentRouter.get('/check/deadlines', requireRole('PARENT'), async (req, res, next) => {
+  try {
+    const parentId = req.auth!.userId;
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    // Find assignments with deadlines within 24h that are still pending/in_progress
+    const assignments = await prisma.parentAssignment.findMany({
+      where: {
+        parentId,
+        dueDate: { gte: now, lte: tomorrow },
+        status: { in: ['pending', 'in_progress'] },
+      },
+      include: {
+        child: { select: { name: true } },
+      },
+    });
+
+    for (const a of assignments) {
+      // Skip if we already sent a deadline_approaching notification today
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const existing = await prisma.notification.findFirst({
+        where: {
+          userId: parentId,
+          type: 'deadline_approaching',
+          assignmentId: a.id,
+          createdAt: { gte: todayStart },
+        },
+      });
+      if (!existing) {
+        const hoursLeft = Math.round((a.dueDate!.getTime() - now.getTime()) / (1000 * 60 * 60));
+        await prisma.notification.create({
+          data: {
+            userId: parentId,
+            type: 'deadline_approaching',
+            title: '⏰ Deadline Mendekat',
+            message: `Tugas "${a.title}" untuk ${a.child.name} akan berakhir dalam ${hoursLeft} jam.`,
+            assignmentId: a.id,
+          },
+        });
+      }
+    }
+
+    // 9. Check overdue assignments
+    const overdueAssignments = await prisma.parentAssignment.findMany({
+      where: {
+        parentId,
+        dueDate: { lt: now },
+        status: { in: ['pending', 'in_progress'] },
+      },
+      include: {
+        child: { select: { name: true } },
+      },
+    });
+
+    for (const a of overdueAssignments) {
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const existing = await prisma.notification.findFirst({
+        where: {
+          userId: parentId,
+          type: 'assignment_overdue',
+          assignmentId: a.id,
+          createdAt: { gte: todayStart },
+        },
+      });
+      if (!existing) {
+        // Auto-update status to overdue
+        await prisma.parentAssignment.update({
+          where: { id: a.id },
+          data: { status: 'overdue' },
+        });
+        await prisma.notification.create({
+          data: {
+            userId: parentId,
+            type: 'assignment_overdue',
+            title: '🚨 Tugas Terlambat',
+            message: `${a.child.name} belum menyelesaikan tugas "${a.title}" yang telah melewati batas waktu.`,
+            assignmentId: a.id,
+          },
+        });
+      }
+    }
+
+    // 7. Check no activity (child hasn't logged in for 7 days)
+    const children = await prisma.parentChild.findMany({
+      where: { parentId },
+      include: {
+        child: { select: { id: true, name: true, updatedAt: true } },
+      },
+    });
+
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    for (const rel of children) {
+      if (rel.child.updatedAt < sevenDaysAgo) {
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const existing = await prisma.notification.findFirst({
+          where: {
+            userId: parentId,
+            type: 'no_activity',
+            createdAt: { gte: todayStart },
+            message: { contains: rel.child.name },
+          },
+        });
+        if (!existing) {
+          await prisma.notification.create({
+            data: {
+              userId: parentId,
+              type: 'no_activity',
+              title: '😴 Belum Ada Aktivitas',
+              message: `${rel.child.name} belum membuka Perpustakaan Belajar selama 7 hari.`,
+            },
+          });
+        }
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/parent/reports/weekly - Generate weekly progress report notification
+parentRouter.get('/reports/weekly', requireRole('PARENT'), async (req, res, next) => {
+  try {
+    const parentId = req.auth!.userId;
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const children = await prisma.parentChild.findMany({
+      where: { parentId },
+      include: {
+        child: { select: { id: true, name: true } },
+      },
+    });
+
+    for (const rel of children) {
+      // Count completed assignments in past week
+      const completedThisWeek = await prisma.parentAssignment.count({
+        where: {
+          childId: rel.child.id,
+          status: 'completed',
+          updatedAt: { gte: weekAgo },
+        },
+      });
+
+      // Count total frames completed
+      const clientId = `user:${rel.child.id}`;
+      const framesThisWeek = await prisma.progressRecord.count({
+        where: {
+          clientId,
+          completed: true,
+          updatedAt: { gte: weekAgo },
+        },
+      });
+
+      // Average accuracy
+      const records = await prisma.progressRecord.findMany({
+        where: {
+          clientId,
+          completed: true,
+          total: { gt: 0 },
+          updatedAt: { gte: weekAgo },
+        },
+      });
+      const avgScore = records.length > 0
+        ? Math.round(records.reduce((sum, r) => sum + Math.round((r.correct / r.total) * 100), 0) / records.length)
+        : 0;
+
+      // Only create if there was activity
+      if (completedThisWeek > 0 || framesThisWeek > 0) {
+        // Deduplicate - once per day
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const existing = await prisma.notification.findFirst({
+          where: {
+            userId: parentId,
+            type: 'weekly_report',
+            createdAt: { gte: todayStart },
+            message: { contains: rel.child.name },
+          },
+        });
+        if (!existing) {
+          await prisma.notification.create({
+            data: {
+              userId: parentId,
+              type: 'weekly_report',
+              title: '📊 Ringkasan Mingguan',
+              message: `Minggu ini ${rel.child.name} menyelesaikan ${completedThisWeek} tugas dan memperoleh rata-rata nilai ${avgScore}%.`,
+            },
+          });
+        }
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/parent/reports/monthly - Generate monthly progress report notification
+parentRouter.get('/reports/monthly', requireRole('PARENT'), async (req, res, next) => {
+  try {
+    const parentId = req.auth!.userId;
+    const now = new Date();
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const children = await prisma.parentChild.findMany({
+      where: { parentId },
+      include: {
+        child: { select: { id: true, name: true } },
+      },
+    });
+
+    for (const rel of children) {
+      // Count completed assignments in past month
+      const completedThisMonth = await prisma.parentAssignment.count({
+        where: {
+          childId: rel.child.id,
+          status: 'completed',
+          updatedAt: { gte: monthAgo },
+        },
+      });
+
+      // Total frames completed
+      const clientId = `user:${rel.child.id}`;
+      const framesThisMonth = await prisma.progressRecord.count({
+        where: {
+          clientId,
+          completed: true,
+          updatedAt: { gte: monthAgo },
+        },
+      });
+
+      // Count total frames (estimate study time from frames * ~3min each)
+      const estimatedMinutes = framesThisMonth * 3;
+      const hours = Math.floor(estimatedMinutes / 60);
+      const minutes = estimatedMinutes % 60;
+      const timeStr = hours > 0 ? `${hours} jam ${minutes} menit` : `${minutes} menit`;
+
+      if (completedThisMonth > 0 || framesThisMonth > 0) {
+        // Deduplicate - once per month
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const existing = await prisma.notification.findFirst({
+          where: {
+            userId: parentId,
+            type: 'monthly_report',
+            createdAt: { gte: monthStart },
+            message: { contains: rel.child.name },
+          },
+        });
+        if (!existing) {
+          await prisma.notification.create({
+            data: {
+              userId: parentId,
+              type: 'monthly_report',
+              title: '🏆 Ringkasan Bulanan',
+              message: `Bulan ini ${rel.child.name} menyelesaikan ${completedThisMonth} tugas dan belajar selama ${timeStr}.`,
+            },
+          });
+        }
+      }
+    }
+
+    res.json({ success: true });
   } catch (err) {
     next(err);
   }

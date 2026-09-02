@@ -781,3 +781,31 @@ export function markAssignmentCompleted(
     { method: 'POST' },
   )
 }
+
+// ---------- Score Notifications ----------
+
+export function notifyQuizScore(body: {
+  childId: string
+  moduleId: string
+  frameTitle: string
+  score: number
+}): Promise<void> {
+  return request('/parent/notify/score', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+// ---------- Scheduled Checks ----------
+
+export function checkDeadlines(): Promise<void> {
+  return request('/parent/check/deadlines')
+}
+
+export function generateWeeklyReport(): Promise<void> {
+  return request('/parent/reports/weekly')
+}
+
+export function generateMonthlyReport(): Promise<void> {
+  return request('/parent/reports/monthly')
+}

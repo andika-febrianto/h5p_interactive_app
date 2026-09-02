@@ -19,6 +19,9 @@ import {
   markAllNotificationsRead,
   fetchAssignmentQuestions,
   replyToQuestion,
+  checkDeadlines,
+  generateWeeklyReport,
+  generateMonthlyReport,
   type ChildInfo,
   type ParentAssignment,
   type ModuleSummary,
@@ -135,6 +138,10 @@ export default function ParentDashboard() {
   useEffect(() => {
     loadNotifications()
     const interval = setInterval(loadNotifications, 30000)
+    // Trigger scheduled checks on load (deadline, no_activity, overdue)
+    checkDeadlines().catch(() => {})
+    generateWeeklyReport().catch(() => {})
+    generateMonthlyReport().catch(() => {})
     return () => clearInterval(interval)
   }, [loadNotifications])
 
@@ -591,11 +598,20 @@ export default function ParentDashboard() {
                 ) : (
                   notifications.map((notif) => {
                     const typeIcon: Record<string, string> = {
-                      assignment_created: '📋',
-                      child_started: '▶️',
+                      child_account_created: '🎉',
+                      assignment_created: '📚',
+                      child_started: '📝',
                       child_completed: '✅',
-                      child_question: '❓',
+                      high_score: '🌟',
+                      low_score: '⚠️',
+                      no_activity: '😴',
+                      deadline_approaching: '⏰',
+                      assignment_overdue: '🚨',
+                      weekly_report: '📊',
+                      monthly_report: '🏆',
+                      new_badge: '🥇',
                       new_assignment: '📚',
+                      child_question: '❓',
                       parent_reply: '💬',
                     }
                     return (

@@ -324,7 +324,26 @@ export default function ChildDashboard() {
                       }}
                     >
                       <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {notif.type === 'new_assignment' ? '📚' : notif.type === 'parent_reply' ? '💬' : '📢'}{' '}
+                        {(() => {
+                          const icons: Record<string, string> = {
+                            new_assignment: '📚',
+                            parent_reply: '💬',
+                            assignment_created: '📚',
+                            child_started: '📝',
+                            child_completed: '✅',
+                            high_score: '🌟',
+                            low_score: '⚠️',
+                            child_account_created: '🎉',
+                            no_activity: '😴',
+                            deadline_approaching: '⏰',
+                            assignment_overdue: '🚨',
+                            weekly_report: '📊',
+                            monthly_report: '🏆',
+                            new_badge: '🥇',
+                            child_question: '❓',
+                          }
+                          return icons[notif.type] ?? '📢'
+                        })()}{' '}
                         {notif.title}
                       </p>
                       <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-secondary)' }}>
