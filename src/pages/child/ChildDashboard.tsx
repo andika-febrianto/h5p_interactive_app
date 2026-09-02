@@ -46,7 +46,7 @@ export default function ChildDashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [showNotifications, setShowNotifications] = useState(false)
-  const notifRef = useRef(null)
+  const notifRef = useRef<HTMLButtonElement>(null)
 
   // Questions
   const [expandedAssignment, setExpandedAssignment] = useState<string | null>(

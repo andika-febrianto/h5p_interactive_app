@@ -8,6 +8,7 @@ import {
   unlinkChild,
   fetchAssignments,
   createAssignment,
+  updateAssignment,
   deleteAssignment,
   fetchModules,
   fetchModule,
@@ -63,7 +64,7 @@ export default function ParentDashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [showNotifications, setShowNotifications] = useState(false)
-  const notifRef = useRef<HTMLDivElement>(null)
+  const notifRef = useRef<HTMLButtonElement>(null)
 
   // Questions
   const [questions, setQuestions] = useState<Record<string, Question[]>>({})
@@ -108,6 +109,13 @@ export default function ParentDashboard() {
   const [assigning, setAssigning] = useState(false)
   const [assignError, setAssignError] = useState<string | null>(null)
   const [assignSuccess, setAssignSuccess] = useState<string | null>(null)
+
+  // Edit assignment state
+  const [editingAssignment, setEditingAssignment] = useState<ParentAssignment | null>(null)
+  const [editDueDate, setEditDueDate] = useState('')
+  const [editSelectedFrames, setEditSelectedFrames] = useState<string[]>([])
+  const [editModule, setEditModule] = useState<Module | null>(null)
+  const [editSaving, setEditSaving] = useState(false)
 
   // Load children
   useEffect(() => {
@@ -430,6 +438,31 @@ export default function ParentDashboard() {
       loadChildQuestions(selectedChild.id)
     }
   }, [selectedChild, loadChildQuestions])
+
+  // Handle save edit assignment
+  const handleSaveEdit = async () => {
+    if (!editingAssignment) return
+    setEditSaving(true)
+    try {
+      await updateAssignment(editingAssignment.id, {
+        dueDate: editDueDate || undefined,
+        status: editingAssignment.status,
+      })
+      // Update local state
+      setAssignments((prev) =>
+        prev.map((a) =>
+          a.id === editingAssignment.id
+            ? { ...a, dueDate: editDueDate ? new Date(editDueDate).toISOString() : a.dueDate }
+            : a,
+        ),
+      )
+      setEditingAssignment(null)
+    } catch {
+      // silently fail
+    } finally {
+      setEditSaving(false)
+    }
+  }
 
   // Handle reply to question
   const handleReply = async (questionId: string) => {
@@ -1531,14 +1564,45 @@ export default function ParentDashboard() {
                             </div>
                           )}
                         </div>
-                        <button
-                          type='button'
-                          className='btn-secondary btn-small'
-                          onClick={() => handleDeleteAssignment(a.id)}
-                          style={{ fontSize: 12 }}
-                        >
-                          Hapus
-                        </button>
+                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                          <button
+                            type='button'
+                            className='btn-secondary btn-small'
+                            onClick={() => {
+                              setEditingAssignment(a)
+                              setEditDueDate(
+                                a.dueDate
+                                  ? new Date(a.dueDate).toISOString().split('T')[0]
+                                  : '',
+                              )
+                              setEditSelectedFrames(
+                                (a.selectedFrames as string[]) ?? [],
+                              )
+                              // Load module for frame editing
+                              if (a.materialId) {
+                                const cached = moduleCache[a.materialId]
+                                if (cached) {
+                                  setEditModule(cached)
+                                } else {
+                                  fetchModule(a.materialId)
+                                    .then((mod) => setEditModule(mod))
+                                    .catch(() => setEditModule(null))
+                                }
+                              }
+                            }}
+                            style={{ fontSize: 12 }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type='button'
+                            className='btn-secondary btn-small'
+                            onClick={() => handleDeleteAssignment(a.id)}
+                            style={{ fontSize: 12 }}
+                          >
+                            Hapus
+                          </button>
+                        </div>
                       </div>
 
                       {/* Questions & Reply Section */}
@@ -1684,6 +1748,161 @@ export default function ParentDashboard() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Edit Assignment Modal */}
+        {editingAssignment && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 2000,
+            }}
+            onClick={() => setEditingAssignment(null)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'var(--bg-card)',
+                borderRadius: 'var(--radius-lg)',
+                padding: 24,
+                width: '90%',
+                maxWidth: 520,
+                maxHeight: '80vh',
+                overflowY: 'auto',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 16,
+                }}
+              >
+                <h3
+                  style={{
+                    margin: 0,
+                    fontFamily: 'var(--font-display)',
+                  }}
+                >
+                  ✏️ Edit Tugas
+                </h3>
+                <button
+                  type='button'
+                  onClick={() => setEditingAssignment(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: 20,
+                    cursor: 'pointer',
+                    padding: 4,
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Title (read-only) */}
+              <div style={{ marginBottom: 12 }}>
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
+                  Judul
+                </p>
+                <p style={{ fontSize: 14, fontWeight: 600, margin: '4px 0 0' }}>
+                  {editingAssignment.title}
+                </p>
+              </div>
+
+              {/* For (read-only) */}
+              <div style={{ marginBottom: 12 }}>
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
+                  Untuk
+                </p>
+                <p style={{ fontSize: 14, fontWeight: 600, margin: '4px 0 0' }}>
+                  {getChildName(editingAssignment.childId)}
+                </p>
+              </div>
+
+              {/* Deadline */}
+              <label className='auth-field' style={{ marginBottom: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>📅 Deadline</span>
+                <input
+                  type='date'
+                  value={editDueDate}
+                  onChange={(e) => setEditDueDate(e.target.value)}
+                />
+              </label>
+
+              {/* Selected Frames (read-only view, show what's selected) */}
+              {editModule && editSelectedFrames.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 8px' }}>
+                    Bahasan yang ditugaskan
+                  </p>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4,
+                      padding: 10,
+                      background: 'var(--gray-50)',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border)',
+                    }}>
+                    {editModule.frames
+                      .filter((f) => editSelectedFrames.includes(f.id))
+                      .map((frame) => (
+                        <div
+                          key={frame.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '4px 8px',
+                            fontSize: 13,
+                          }}
+                        >
+                          <span>{KIND_ICON[frame.kind] ?? '📄'}</span>
+                          <span>{frame.title}</span>
+                        </div>
+                      ))}
+                  </div>
+                  <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                    {editSelectedFrames.length} bahasan dipilih
+                  </p>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
+                <button
+                  type='button'
+                  className='btn-secondary'
+                  onClick={() => setEditingAssignment(null)}
+                  style={{ fontSize: 13 }}
+                >
+                  Batal
+                </button>
+                <button
+                  type='button'
+                  className='btn-primary'
+                  onClick={handleSaveEdit}
+                  disabled={editSaving}
+                  style={{ fontSize: 13 }}
+                >
+                  {editSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
