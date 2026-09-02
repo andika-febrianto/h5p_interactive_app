@@ -1200,11 +1200,39 @@ export default function ParentDashboard() {
               >
                 {assignments.map((a) => {
                   const completion = getAssignmentCompletion(a)
+
+                  // Deadline-based card color
+                  const now = new Date()
+                  const isCompleted = a.status === 'completed'
+                  let cardBg = ''
+                  let cardBorder = ''
+                  if (isCompleted) {
+                    // Completed = white/default
+                  } else if (a.status === 'overdue') {
+                    // Overdue
+                    cardBg = 'rgba(239, 68, 68, 0.06)'
+                    cardBorder = '1.5px solid #ef4444'
+                  } else if (a.dueDate) {
+                    const due = new Date(a.dueDate)
+                    const hoursLeft = (due.getTime() - now.getTime()) / (1000 * 60 * 60)
+                    if (hoursLeft < 0) {
+                      cardBg = 'rgba(239, 68, 68, 0.06)'
+                      cardBorder = '1.5px solid #ef4444'
+                    } else if (hoursLeft <= 24) {
+                      cardBg = 'rgba(245, 158, 11, 0.06)'
+                      cardBorder = '1.5px solid #f59e0b'
+                    }
+                  }
+
                   return (
                     <div
                       key={a.id}
                       className='subject-card'
-                      style={{ cursor: 'default' }}
+                      style={{
+                        cursor: 'default',
+                        ...(cardBg ? { background: cardBg } : {}),
+                        ...(cardBorder ? { border: cardBorder } : {}),
+                      }}
                     >
                       <div
                         style={{

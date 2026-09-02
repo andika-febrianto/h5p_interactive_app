@@ -229,12 +229,33 @@ export default function ChildDashboard() {
               const isExpanded = expandedAssignment === a.id
               const assignmentQuestions = questions[a.id] ?? []
 
+              // Deadline-based card color
+              const now = new Date()
+              const isCompleted = progress.total > 0 && progress.completed === progress.total
+              let cardBg = 'var(--bg-card)'
+              let cardBorder = '1px solid var(--border)'
+              if (isCompleted) {
+                // Completed = white/default
+              } else if (a.dueDate) {
+                const due = new Date(a.dueDate)
+                const hoursLeft = (due.getTime() - now.getTime()) / (1000 * 60 * 60)
+                if (hoursLeft < 0) {
+                  // Overdue
+                  cardBg = 'rgba(239, 68, 68, 0.06)'
+                  cardBorder = '1.5px solid #ef4444'
+                } else if (hoursLeft <= 24) {
+                  // Approaching deadline
+                  cardBg = 'rgba(245, 158, 11, 0.06)'
+                  cardBorder = '1.5px solid #f59e0b'
+                }
+              }
+
               return (
                 <div
                   key={a.id}
                   style={{
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border)',
+                    background: cardBg,
+                    border: cardBorder,
                     borderRadius: 'var(--radius-lg)',
                     padding: 20,
                   }}
