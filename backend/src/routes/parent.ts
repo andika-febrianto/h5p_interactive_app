@@ -656,7 +656,7 @@ parentRouter.post('/assignments/:assignmentId/complete', async (req, res, next) 
       data: { status: 'completed' },
     });
 
-    // 4. child_completed notification
+    // 4. child_completed notification to parent
     const existing = await prisma.notification.findFirst({
       where: { userId: assignment.parentId, type: 'child_completed', assignmentId },
     });
@@ -669,6 +669,22 @@ parentRouter.post('/assignments/:assignmentId/complete', async (req, res, next) 
           type: 'child_completed',
           title: '✅ Tugas Selesai',
           message: `${child?.name ?? 'Anak'} telah menyelesaikan modul "${assignment.title}".`,
+          assignmentId,
+        },
+      });
+    }
+
+    // 5. assignment_completed_child - student notification
+    const studentExisting = await prisma.notification.findFirst({
+      where: { userId: authUserId, type: 'assignment_completed_child', assignmentId },
+    });
+    if (!studentExisting) {
+      await prisma.notification.create({
+        data: {
+          userId: authUserId,
+          type: 'assignment_completed_child',
+          title: '🎉 Hebat!',
+          message: `Kamu telah menyelesaikan modul "${assignment.title}".`,
           assignmentId,
         },
       });
@@ -1214,6 +1230,343 @@ parentRouter.get('/reports/monthly', requireRole('PARENT'), async (req, res, nex
             },
           });
         }
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Student Notifications ----------
+
+// POST /api/parent/notify/student-score - Student quiz score notification (perfect/badge)
+const studentScoreSchema = z.object({
+  moduleId: z.string().min(1),
+  frameTitle: z.string().min(1),
+  score: z.number().int().min(0).max(100),
+});
+
+parentRouter.post('/notify/student-score', async (req, res, next) => {
+  try {
+    const studentId = req.auth!.userId;
+    const role = req.auth!.role;
+    if (role !== 'STUDENT') {
+      res.status(403).json({ error: 'Hanya siswa yang bisa menggunakan endpoint ini.' });
+      return;
+    }
+    const parsed = studentScoreSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Data tidak valid' });
+      return;
+    }
+    const { moduleId, frameTitle, score } = parsed.data;
+
+    // 6. perfect_score - 🏆
+    if (score === 100) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const existing = await prisma.notification.findFirst({
+        where: {
+          userId: studentId,
+          type: 'perfect_score',
+          message: { contains: frameTitle },
+          createdAt: { gte: todayStart },
+        },
+      });
+      if (!existing) {
+        await prisma.notification.create({
+          data: {
+            userId: studentId,
+            type: 'perfect_score',
+            title: '🏆 Nilai Sempurna',
+            message: `Selamat! Kamu mendapatkan nilai 100% pada "${frameTitle}".`,
+          },
+        });
+      }
+    }
+
+    // 7. badge_earned - 🥇 (score >= 90)
+    if (score >= 90) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const existing = await prisma.notification.findFirst({
+        where: {
+          userId: studentId,
+          type: 'badge_earned',
+          message: { contains: frameTitle },
+          createdAt: { gte: todayStart },
+        },
+      });
+      if (!existing) {
+        await prisma.notification.create({
+          data: {
+            userId: studentId,
+            type: 'badge_earned',
+            title: '🥇 Lencana Baru',
+            message: `Kamu mendapatkan lencana "Juara" untuk skor ${score}% pada "${frameTitle}".`,
+          },
+        });
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/parent/student/check - Generate student notifications on dashboard load
+// Checks: continue_learning, assignment_almost_due, encouragement, daily_reminder, streak, achievements
+parentRouter.get('/student/check', async (req, res, next) => {
+  try {
+    const studentId = req.auth!.userId;
+    const role = req.auth!.role;
+    if (role !== 'STUDENT') {
+      res.status(403).json({ error: 'Hanya siswa.' });
+      return;
+    }
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // Get student's assignments
+    const assignments = await prisma.parentAssignment.findMany({
+      where: { childId: studentId },
+    });
+
+    const clientId = `user:${studentId}`;
+
+    // 3. continue_learning - count incomplete frames across all assignments
+    const incompleteAssignments = assignments.filter(
+      (a) => a.status !== 'completed' && a.materialId && a.selectedFrames,
+    );
+    let totalIncomplete = 0;
+    for (const a of incompleteAssignments) {
+      const frames = (a.selectedFrames as string[]) ?? [];
+      for (const frameId of frames) {
+        const record = await prisma.progressRecord.findUnique({
+          where: { clientId_moduleId_frameSlug: { clientId, moduleId: a.materialId!, frameSlug: frameId } },
+        });
+        if (!record?.completed) totalIncomplete++;
+      }
+    }
+    if (totalIncomplete > 0) {
+      const existing = await prisma.notification.findFirst({
+        where: { userId: studentId, type: 'continue_learning', createdAt: { gte: todayStart } },
+      });
+      if (!existing) {
+        await prisma.notification.create({
+          data: {
+            userId: studentId,
+            type: 'continue_learning',
+            title: '📖 Lanjutkan Belajar',
+            message: `Kamu masih memiliki ${totalIncomplete} bahasan yang belum selesai.`,
+          },
+        });
+      }
+    }
+
+    // 4. assignment_almost_due - deadline within 24h
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const almostDue = assignments.filter(
+      (a) => a.dueDate && a.dueDate >= now && a.dueDate <= tomorrow && a.status !== 'completed',
+    );
+    for (const a of almostDue) {
+      const existing = await prisma.notification.findFirst({
+        where: { userId: studentId, type: 'assignment_almost_due', assignmentId: a.id, createdAt: { gte: todayStart } },
+      });
+      if (!existing) {
+        await prisma.notification.create({
+          data: {
+            userId: studentId,
+            type: 'assignment_almost_due',
+            title: '⏰ Deadline Sebentar Lagi',
+            message: `Tugas "${a.title}" berakhir ${a.dueDate!.toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}.`,
+            assignmentId: a.id,
+          },
+        });
+      }
+    }
+
+    // 11. encouragement - count remaining frames for in-progress assignments
+    const inProgress = assignments.filter(
+      (a) => a.status === 'in_progress' && a.materialId && a.selectedFrames,
+    );
+    for (const a of inProgress) {
+      const frames = (a.selectedFrames as string[]) ?? [];
+      let remaining = 0;
+      for (const frameId of frames) {
+        const record = await prisma.progressRecord.findUnique({
+          where: { clientId_moduleId_frameSlug: { clientId, moduleId: a.materialId!, frameSlug: frameId } },
+        });
+        if (!record?.completed) remaining++;
+      }
+      if (remaining > 0 && remaining <= 3) {
+        const existing = await prisma.notification.findFirst({
+          where: { userId: studentId, type: 'encouragement', assignmentId: a.id, createdAt: { gte: todayStart } },
+        });
+        if (!existing) {
+          await prisma.notification.create({
+            data: {
+              userId: studentId,
+              type: 'encouragement',
+              title: '💪 Semangat Belajar',
+              message: `Tinggal ${remaining} bahasan lagi untuk menyelesaikan modul "${a.title}".`,
+              assignmentId: a.id,
+            },
+          });
+        }
+      }
+    }
+
+    // 8. study_streak - count consecutive days of activity
+    let streak = 0;
+    for (let d = 0; d < 30; d++) {
+      const dayStart = new Date(now.getTime() - d * 24 * 60 * 60 * 1000);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+      const hasActivity = await prisma.progressRecord.findFirst({
+        where: {
+          clientId,
+          completed: true,
+          updatedAt: { gte: dayStart, lt: dayEnd },
+        },
+      });
+      if (hasActivity) {
+        streak++;
+      } else if (d > 0) {
+        break; // streak broken
+      }
+    }
+
+    if (streak >= 3) {
+      const existing = await prisma.notification.findFirst({
+        where: { userId: studentId, type: 'study_streak', createdAt: { gte: todayStart } },
+      });
+      if (!existing) {
+        await prisma.notification.create({
+          data: {
+            userId: studentId,
+            type: 'study_streak',
+            title: '🔥 Belajar Beruntun',
+            message: `Kamu sudah belajar selama ${streak} hari berturut-turut. Keren!`,
+          },
+        });
+      }
+    }
+
+    // 9. streak_lost - yesterday had no activity but day before did
+    if (streak === 0) {
+      const yesterdayStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      yesterdayStart.setHours(0, 0, 0, 0);
+      const yesterdayEnd = new Date(yesterdayStart.getTime() + 24 * 60 * 60 * 1000);
+      const dayBeforeStart = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+      dayBeforeStart.setHours(0, 0, 0, 0);
+      const dayBeforeEnd = new Date(dayBeforeStart.getTime() + 24 * 60 * 60 * 1000);
+      const hadYesterday = await prisma.progressRecord.findFirst({
+        where: { clientId, completed: true, updatedAt: { gte: yesterdayStart, lt: yesterdayEnd } },
+      });
+      const hadDayBefore = await prisma.progressRecord.findFirst({
+        where: { clientId, completed: true, updatedAt: { gte: dayBeforeStart, lt: dayBeforeEnd } },
+      });
+      if (hadDayBefore && !hadYesterday) {
+        const existing = await prisma.notification.findFirst({
+          where: { userId: studentId, type: 'streak_lost', createdAt: { gte: todayStart } },
+        });
+        if (!existing) {
+          await prisma.notification.create({
+            data: {
+              userId: studentId,
+              type: 'streak_lost',
+              title: '💤 Jangan Menyerah',
+              message: 'Streak belajarmu terhenti. Yuk mulai lagi hari ini!',
+            },
+          });
+        }
+      }
+    }
+
+    // 10. achievement_unlocked - count unique completed modules
+    const uniqueModules = await prisma.progressRecord.findMany({
+      where: { clientId, completed: true },
+      distinct: ['moduleId'],
+      select: { moduleId: true },
+    });
+    const totalModules = uniqueModules.length;
+
+    const milestones = [5, 10, 25, 50];
+    for (const milestone of milestones) {
+      if (totalModules >= milestone) {
+        const existing = await prisma.notification.findFirst({
+          where: {
+            userId: studentId,
+            type: 'achievement_unlocked',
+            message: { contains: `${milestone} modul` },
+          },
+        });
+        if (!existing) {
+          await prisma.notification.create({
+            data: {
+              userId: studentId,
+              type: 'achievement_unlocked',
+              title: '⭐ Pencapaian Baru',
+              message: `Kamu telah menyelesaikan ${totalModules} modul pertama!`,
+            },
+          });
+        }
+      }
+    }
+
+    // 2. new_module_available - modules created in the last 24h matching student grade/semester
+    const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const student = await prisma.user.findUnique({ where: { id: studentId }, select: { grade: true, semester: true } });
+    if (student?.grade && student?.semester) {
+      const newModules = await prisma.module.findMany({
+        where: {
+          grade: student.grade,
+          semester: student.semester,
+          createdAt: { gte: dayAgo },
+        },
+        select: { id: true, title: true },
+      });
+      for (const mod of newModules) {
+        const existing = await prisma.notification.findFirst({
+          where: {
+            userId: studentId,
+            type: 'new_module_available',
+            message: { contains: mod.title },
+            createdAt: { gte: todayStart },
+          },
+        });
+        if (!existing) {
+          await prisma.notification.create({
+            data: {
+              userId: studentId,
+              type: 'new_module_available',
+              title: '✨ Materi Baru',
+              message: `Materi "${mod.title}" sekarang tersedia.`,
+            },
+          });
+        }
+      }
+    }
+
+    // 12. daily_reminder - once per day (only if student has assignments)
+    if (assignments.length > 0) {
+      const existing = await prisma.notification.findFirst({
+        where: { userId: studentId, type: 'daily_reminder', createdAt: { gte: todayStart } },
+      });
+      if (!existing) {
+        await prisma.notification.create({
+          data: {
+            userId: studentId,
+            type: 'daily_reminder',
+            title: '📅 Waktunya Belajar',
+            message: 'Jangan lupa belajar hari ini ya!',
+          },
+        });
       }
     }
 

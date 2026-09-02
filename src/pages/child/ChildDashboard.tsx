@@ -13,6 +13,7 @@ import {
   fetchAssignmentQuestions,
   askQuestion,
   markAssignmentStarted,
+  checkStudentNotifications,
   type ParentAssignment,
   type Module,
   type FrameProgress,
@@ -102,6 +103,8 @@ export default function ChildDashboard() {
   useEffect(() => {
     loadNotifications()
     const interval = setInterval(loadNotifications, 30000) // Poll every 30s
+    // Trigger student notification checks on load
+    checkStudentNotifications().catch(() => {})
     return () => clearInterval(interval)
   }, [loadNotifications])
 
@@ -326,7 +329,20 @@ export default function ChildDashboard() {
                       <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
                         {(() => {
                           const icons: Record<string, string> = {
+                            // Student notifications (12)
                             new_assignment: '📚',
+                            new_module_available: '✨',
+                            continue_learning: '📖',
+                            assignment_almost_due: '⏰',
+                            assignment_completed_child: '🎉',
+                            perfect_score: '🏆',
+                            badge_earned: '🥇',
+                            study_streak: '🔥',
+                            streak_lost: '💤',
+                            achievement_unlocked: '⭐',
+                            encouragement: '💪',
+                            daily_reminder: '📅',
+                            // Parent-originated
                             parent_reply: '💬',
                             assignment_created: '📚',
                             child_started: '📝',

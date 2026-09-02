@@ -809,3 +809,20 @@ export function generateWeeklyReport(): Promise<void> {
 export function generateMonthlyReport(): Promise<void> {
   return request('/parent/reports/monthly')
 }
+
+// ---------- Student Notifications ----------
+
+export function notifyStudentScore(body: {
+  moduleId: string
+  frameTitle: string
+  score: number
+}): Promise<void> {
+  return request('/parent/notify/student-score', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+export function checkStudentNotifications(): Promise<void> {
+  return request('/parent/student/check')
+}
