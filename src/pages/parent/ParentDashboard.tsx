@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TopBar from '../../components/TopBar'
 import { useAuth } from '../../context/AuthContext'
@@ -63,6 +63,7 @@ export default function ParentDashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [showNotifications, setShowNotifications] = useState(false)
+  const notifRef = useRef<HTMLDivElement>(null)
 
   // Questions
   const [questions, setQuestions] = useState<Record<string, Question[]>>({})
@@ -84,18 +85,14 @@ export default function ParentDashboard() {
   const [childSubmitting, setChildSubmitting] = useState(false)
 
   // Progress state
-  const [selectedChild, setSelectedChild] = useState<ChildInfo | null>(
-    null,
-  )
+  const [selectedChild, setSelectedChild] = useState<ChildInfo | null>(null)
   const [progressLoading, setProgressLoading] = useState(false)
 
   // Per-assignment progress
   const [assignmentProgress, setAssignmentProgress] = useState<
     Record<string, Record<string, FrameProgress>>
   >({})
-  const [moduleCache, setModuleCache] = useState<
-    Record<string, Module>
-  >({})
+  const [moduleCache, setModuleCache] = useState<Record<string, Module>>({})
 
   // Assignment state
   const [assignments, setAssignments] = useState<ParentAssignment[]>([])
@@ -104,18 +101,13 @@ export default function ParentDashboard() {
   const [selectedChildId, setSelectedChildId] = useState('')
   const [selectedSubjectId, setSelectedSubjectId] = useState('')
   const [selectedModuleId, setSelectedModuleId] = useState('')
-  const [availableModules, setAvailableModules] = useState<
-    ModuleSummary[]
-  >([])
-  const [selectedModule, setSelectedModule] =
-    useState<Module | null>(null)
+  const [availableModules, setAvailableModules] = useState<ModuleSummary[]>([])
+  const [selectedModule, setSelectedModule] = useState<Module | null>(null)
   const [selectedFrames, setSelectedFrames] = useState<string[]>([])
   const [dueDate, setDueDate] = useState('')
   const [assigning, setAssigning] = useState(false)
   const [assignError, setAssignError] = useState<string | null>(null)
-  const [assignSuccess, setAssignSuccess] = useState<string | null>(
-    null,
-  )
+  const [assignSuccess, setAssignSuccess] = useState<string | null>(null)
 
   // Load children
   useEffect(() => {
@@ -260,6 +252,23 @@ export default function ParentDashboard() {
     setAssignSuccess(null)
   }, [selectedChildId, selectedSubjectId])
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        notifRef.current &&
+        !notifRef.current.contains(event.target as Node)
+      ) {
+        setShowNotifications(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   // Create child account handler
   const handleCreateChild = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -284,9 +293,7 @@ export default function ParentDashboard() {
       setShowCreateChild(false)
     } catch (err) {
       setChildError(
-        err instanceof ApiError
-          ? err.message
-          : 'Gagal membuat akun anak.',
+        err instanceof ApiError ? err.message : 'Gagal membuat akun anak.',
       )
     } finally {
       setChildSubmitting(false)
@@ -295,8 +302,7 @@ export default function ParentDashboard() {
 
   // Remove child handler
   const handleRemoveChild = async (childId: string) => {
-    if (!confirm('Yakin ingin menghapus anak ini dari daftar?'))
-      return
+    if (!confirm('Yakin ingin menghapus anak ini dari daftar?')) return
     try {
       await unlinkChild(childId)
       setChildren((prev) => prev.filter((c) => c.id !== childId))
@@ -312,20 +318,14 @@ export default function ParentDashboard() {
         setSelectedFrames([])
       }
     } catch (err) {
-      alert(
-        err instanceof ApiError
-          ? err.message
-          : 'Gagal menghapus anak.',
-      )
+      alert(err instanceof ApiError ? err.message : 'Gagal menghapus anak.')
     }
   }
 
   // Toggle frame selection
   const toggleFrame = (id: string) => {
     setSelectedFrames((prev) =>
-      prev.includes(id)
-        ? prev.filter((s) => s !== id)
-        : [...prev, id],
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
     )
   }
 
@@ -347,9 +347,7 @@ export default function ParentDashboard() {
     setAssignSuccess(null)
     setAssigning(true)
     try {
-      const selectedChildInfo = children.find(
-        (c) => c.id === selectedChildId,
-      )
+      const selectedChildInfo = children.find((c) => c.id === selectedChildId)
       await createAssignment({
         childId: selectedChildId,
         title: selectedModule.title,
@@ -368,9 +366,7 @@ export default function ParentDashboard() {
       setDueDate('')
     } catch (err) {
       setAssignError(
-        err instanceof ApiError
-          ? err.message
-          : 'Gagal menugaskan modul.',
+        err instanceof ApiError ? err.message : 'Gagal menugaskan modul.',
       )
     } finally {
       setAssigning(false)
@@ -384,11 +380,7 @@ export default function ParentDashboard() {
       await deleteAssignment(id)
       setAssignments((prev) => prev.filter((a) => a.id !== id))
     } catch (err) {
-      alert(
-        err instanceof ApiError
-          ? err.message
-          : 'Gagal menghapus tugas.',
-      )
+      alert(err instanceof ApiError ? err.message : 'Gagal menghapus tugas.')
     }
   }
 
@@ -413,21 +405,24 @@ export default function ParentDashboard() {
   }
 
   // Load questions for a child's assignments
-  const loadChildQuestions = useCallback(async (childId: string) => {
-    const childAssignments = assignments.filter((a) => a.childId === childId)
-    const allQuestions: Record<string, Question[]> = {}
-    await Promise.all(
-      childAssignments.map(async (a) => {
-        try {
-          const qs = await fetchAssignmentQuestions(a.id)
-          allQuestions[a.id] = qs
-        } catch {
-          allQuestions[a.id] = []
-        }
-      })
-    )
-    setQuestions(allQuestions)
-  }, [assignments])
+  const loadChildQuestions = useCallback(
+    async (childId: string) => {
+      const childAssignments = assignments.filter((a) => a.childId === childId)
+      const allQuestions: Record<string, Question[]> = {}
+      await Promise.all(
+        childAssignments.map(async (a) => {
+          try {
+            const qs = await fetchAssignmentQuestions(a.id)
+            allQuestions[a.id] = qs
+          } catch {
+            allQuestions[a.id] = []
+          }
+        }),
+      )
+      setQuestions(allQuestions)
+    },
+    [assignments],
+  )
 
   // Load questions when child is selected for progress
   useEffect(() => {
@@ -473,10 +468,7 @@ export default function ParentDashboard() {
     const total = assignment.selectedFrames.length
     let completed = 0
     assignment.selectedFrames.forEach((frameId) => {
-      const fp = getFrameProgressForAssignment(
-        assignment.materialId,
-        frameId,
-      )
+      const fp = getFrameProgressForAssignment(assignment.materialId, frameId)
       if (fp?.completed) completed++
     })
     return {
@@ -487,15 +479,19 @@ export default function ParentDashboard() {
   }
 
   // Get selected child info
-  const selectedChildInfo = children.find(
-    (c) => c.id === selectedChildId,
-  )
+  const selectedChildInfo = children.find((c) => c.id === selectedChildId)
 
   return (
     <div className='home-page'>
       <div className='home-inner'>
         <TopBar />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
           <div>
             <button
               type='button'
@@ -512,6 +508,7 @@ export default function ParentDashboard() {
           <div style={{ position: 'relative' }}>
             <button
               type='button'
+              ref={notifRef}
               onClick={() => setShowNotifications(!showNotifications)}
               style={{
                 background: 'none',
@@ -573,7 +570,9 @@ export default function ParentDashboard() {
                     borderBottom: '1px solid var(--border)',
                   }}
                 >
-                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>Notifikasi</h4>
+                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>
+                    Notifikasi
+                  </h4>
                   {unreadCount > 0 && (
                     <button
                       type='button'
@@ -592,7 +591,14 @@ export default function ParentDashboard() {
                   )}
                 </div>
                 {notifications.length === 0 ? (
-                  <p style={{ padding: 16, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+                  <p
+                    style={{
+                      padding: 16,
+                      textAlign: 'center',
+                      color: 'var(--text-secondary)',
+                      fontSize: 13,
+                    }}
+                  >
                     Belum ada notifikasi
                   </p>
                 ) : (
@@ -622,18 +628,46 @@ export default function ParentDashboard() {
                           padding: '10px 16px',
                           borderBottom: '1px solid var(--border)',
                           cursor: 'pointer',
-                          background: notif.read ? 'transparent' : 'rgba(59, 130, 246, 0.05)',
-                          borderLeft: notif.read ? '3px solid transparent' : '3px solid var(--primary)',
+                          background: notif.read
+                            ? 'transparent'
+                            : 'rgba(59, 130, 246, 0.05)',
+                          borderLeft: notif.read
+                            ? '3px solid transparent'
+                            : '3px solid var(--primary)',
                         }}
                       >
-                        <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: 'var(--text-primary)',
+                          }}
+                        >
                           {typeIcon[notif.type] ?? '📢'} {notif.title}
                         </p>
-                        <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-secondary)' }}>
+                        <p
+                          style={{
+                            margin: '4px 0 0',
+                            fontSize: 11,
+                            color: 'var(--text-secondary)',
+                          }}
+                        >
                           {notif.message}
                         </p>
-                        <p style={{ margin: '4px 0 0', fontSize: 10, color: 'var(--text-tertiary)' }}>
-                          {new Date(notif.createdAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        <p
+                          style={{
+                            margin: '4px 0 0',
+                            fontSize: 10,
+                            color: 'var(--text-tertiary)',
+                          }}
+                        >
+                          {new Date(notif.createdAt).toLocaleString('id-ID', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
                         </p>
                       </div>
                     )
@@ -644,20 +678,15 @@ export default function ParentDashboard() {
           </div>
         </div>
         <p className='home-lede'>
-          Buat akun anak, tugaskan materi belajar, dan pantau
-          progresnya.
+          Buat akun anak, tugaskan materi belajar, dan pantau progresnya.
         </p>
 
         {/* Tab Navigation */}
-        <div
-          style={{ display: 'flex', gap: 8, marginBottom: 24 }}
-        >
+        <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
           <button
             type='button'
             className={
-              activeTab === 'children'
-                ? 'btn-primary'
-                : 'btn-secondary'
+              activeTab === 'children' ? 'btn-primary' : 'btn-secondary'
             }
             onClick={() => setActiveTab('children')}
           >
@@ -666,9 +695,7 @@ export default function ParentDashboard() {
           <button
             type='button'
             className={
-              activeTab === 'assignments'
-                ? 'btn-primary'
-                : 'btn-secondary'
+              activeTab === 'assignments' ? 'btn-primary' : 'btn-secondary'
             }
             onClick={() => setActiveTab('assignments')}
           >
@@ -684,13 +711,9 @@ export default function ParentDashboard() {
               <button
                 type='button'
                 className='btn-primary'
-                onClick={() =>
-                  setShowCreateChild(!showCreateChild)
-                }
+                onClick={() => setShowCreateChild(!showCreateChild)}
               >
-                {showCreateChild
-                  ? 'Batal'
-                  : '+ Buat Akun Anak Baru'}
+                {showCreateChild ? 'Batal' : '+ Buat Akun Anak Baru'}
               </button>
             </div>
 
@@ -760,13 +783,8 @@ export default function ParentDashboard() {
                       placeholder='Minimal 6 karakter'
                     />
                   </label>
-                  <div
-                    style={{ display: 'flex', gap: 12 }}
-                  >
-                    <label
-                      className='auth-field'
-                      style={{ flex: 1 }}
-                    >
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <label className='auth-field' style={{ flex: 1 }}>
                       <span>Kelas</span>
                       <select
                         value={childForm.grade}
@@ -779,56 +797,39 @@ export default function ParentDashboard() {
                         required
                       >
                         {grades.map((g) => (
-                          <option
-                            key={g.level}
-                            value={g.level}
-                          >
+                          <option key={g.level} value={g.level}>
                             {g.label}
                           </option>
                         ))}
                       </select>
                     </label>
-                    <label
-                      className='auth-field'
-                      style={{ flex: 1 }}
-                    >
+                    <label className='auth-field' style={{ flex: 1 }}>
                       <span>Semester</span>
                       <select
                         value={childForm.semester}
                         onChange={(e) =>
                           setChildForm((prev) => ({
                             ...prev,
-                            semester: Number(
-                              e.target.value,
-                            ),
+                            semester: Number(e.target.value),
                           }))
                         }
                         required
                       >
                         {semesters.map((s) => (
-                          <option
-                            key={s.value}
-                            value={s.value}
-                          >
+                          <option key={s.value} value={s.value}>
                             {s.label}
                           </option>
                         ))}
                       </select>
                     </label>
                   </div>
-                  {childError && (
-                    <p className='auth-error'>
-                      {childError}
-                    </p>
-                  )}
+                  {childError && <p className='auth-error'>{childError}</p>}
                   <button
                     type='submit'
                     className='btn-primary'
                     disabled={childSubmitting}
                   >
-                    {childSubmitting
-                      ? 'Membuat...'
-                      : 'Buat Akun Anak'}
+                    {childSubmitting ? 'Membuat...' : 'Buat Akun Anak'}
                   </button>
                 </form>
               </div>
@@ -836,13 +837,10 @@ export default function ParentDashboard() {
 
             {/* Children List */}
             {childrenLoading ? (
-              <p className='home-empty'>
-                Memuat data anak...
-              </p>
+              <p className='home-empty'>Memuat data anak...</p>
             ) : children.length === 0 ? (
               <p className='home-empty'>
-                Belum ada akun anak. Klik "Buat Akun Anak
-                Baru" untuk memulai.
+                Belum ada akun anak. Klik "Buat Akun Anak Baru" untuk memulai.
               </p>
             ) : (
               <div
@@ -865,9 +863,7 @@ export default function ParentDashboard() {
                     }}
                     onClick={() =>
                       setSelectedChild(
-                        selectedChild?.id === child.id
-                          ? null
-                          : child,
+                        selectedChild?.id === child.id ? null : child,
                       )
                     }
                   >
@@ -879,15 +875,11 @@ export default function ParentDashboard() {
                       }}
                     >
                       <div>
-                        <h3 className='module-card-title'>
-                          {child.name}
-                        </h3>
+                        <h3 className='module-card-title'>{child.name}</h3>
                         <p className='module-card-summary'>
                           {child.email}
-                          {child.grade &&
-                            ` · Kelas ${child.grade}`}
-                          {child.semester &&
-                            ` · Semester ${child.semester}`}
+                          {child.grade && ` · Kelas ${child.grade}`}
+                          {child.semester && ` · Semester ${child.semester}`}
                         </p>
                       </div>
                       <button
@@ -919,267 +911,237 @@ export default function ParentDashboard() {
                   📊 Progres Belajar: {selectedChild.name}
                 </h3>
                 {progressLoading ? (
-                  <p className='home-empty'>
-                    Memuat progres...
-                  </p>
-                ) : (() => {
-                  const childAssignments = assignments.filter(
-                    (a) => a.childId === selectedChild.id,
-                  )
-                  if (childAssignments.length === 0) {
-                    return (
-                      <p className='home-empty'>
-                        Belum ada tugas untuk anak ini.
-                      </p>
+                  <p className='home-empty'>Memuat progres...</p>
+                ) : (
+                  (() => {
+                    const childAssignments = assignments.filter(
+                      (a) => a.childId === selectedChild.id,
                     )
-                  }
-                  return (
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 16,
-                      }}
-                    >
-                      {childAssignments.map((a) => {
-                        const mod = a.materialId
-                          ? moduleCache[a.materialId]
-                          : null
-                        const completion =
-                          getAssignmentCompletion(a)
-                        const selectedFrameIds =
-                          a.selectedFrames ?? []
-                        const frames =
-                          mod?.frames?.filter((f) =>
-                            selectedFrameIds.includes(f.id),
-                          ) ?? []
+                    if (childAssignments.length === 0) {
+                      return (
+                        <p className='home-empty'>
+                          Belum ada tugas untuk anak ini.
+                        </p>
+                      )
+                    }
+                    return (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 16,
+                        }}
+                      >
+                        {childAssignments.map((a) => {
+                          const mod = a.materialId
+                            ? moduleCache[a.materialId]
+                            : null
+                          const completion = getAssignmentCompletion(a)
+                          const selectedFrameIds = a.selectedFrames ?? []
+                          const frames =
+                            mod?.frames?.filter((f) =>
+                              selectedFrameIds.includes(f.id),
+                            ) ?? []
 
-                        return (
-                          <div
-                            key={a.id}
-                            className='subject-card'
-                            style={{ cursor: 'default' }}
-                          >
-                            {/* Assignment header */}
+                          return (
                             <div
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'flex-start',
-                                marginBottom: 8,
-                              }}
+                              key={a.id}
+                              className='subject-card'
+                              style={{ cursor: 'default' }}
                             >
-                              <div>
-                                <h4
-                                  className='module-card-title'
-                                  style={{
-                                    fontSize: 15,
-                                    margin: 0,
-                                  }}
-                                >
-                                  📖 {a.title}
-                                </h4>
-                                <p
-                                  className='module-card-summary'
-                                  style={{
-                                    fontSize: 12,
-                                    marginTop: 4,
-                                  }}
-                                >
-                                  {completion.completed}/
-                                  {completion.total}{' '}
-                                  bahasan selesai
-                                </p>
-                              </div>
-                              <span
-                                style={{
-                                  fontSize: 13,
-                                  fontWeight: 700,
-                                  color:
-                                    completion.pct === 100
-                                      ? 'var(--success)'
-                                      : 'var(--primary)',
-                                }}
-                              >
-                                {completion.pct}%
-                              </span>
-                            </div>
-
-                            {/* Overall progress bar */}
-                            <div
-                              style={{
-                                height: 8,
-                                borderRadius: 999,
-                                background: 'var(--gray-200)',
-                                overflow: 'hidden',
-                                marginBottom: 14,
-                              }}
-                            >
-                              <div
-                                style={{
-                                  height: '100%',
-                                  width: `${completion.pct}%`,
-                                  background:
-                                    completion.pct === 100
-                                      ? 'var(--success)'
-                                      : 'var(--primary)',
-                                  borderRadius: 999,
-                                  transition:
-                                    'width 0.4s ease',
-                                }}
-                              />
-                            </div>
-
-                            {/* Per-frame progress */}
-                            {frames.length > 0 && (
+                              {/* Assignment header */}
                               <div
                                 style={{
                                   display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: 6,
-                                  borderTop:
-                                    '1px solid var(--border)',
-                                  paddingTop: 10,
+                                  justifyContent: 'space-between',
+                                  alignItems: 'flex-start',
+                                  marginBottom: 8,
                                 }}
                               >
-                                {frames.map((frame) => {
-                                  const fp =
-                                    getFrameProgressForAssignment(
+                                <div>
+                                  <h4
+                                    className='module-card-title'
+                                    style={{
+                                      fontSize: 15,
+                                      margin: 0,
+                                    }}
+                                  >
+                                    📖 {a.title}
+                                  </h4>
+                                  <p
+                                    className='module-card-summary'
+                                    style={{
+                                      fontSize: 12,
+                                      marginTop: 4,
+                                    }}
+                                  >
+                                    {completion.completed}/{completion.total}{' '}
+                                    bahasan selesai
+                                  </p>
+                                </div>
+                                <span
+                                  style={{
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                    color:
+                                      completion.pct === 100
+                                        ? 'var(--success)'
+                                        : 'var(--primary)',
+                                  }}
+                                >
+                                  {completion.pct}%
+                                </span>
+                              </div>
+
+                              {/* Overall progress bar */}
+                              <div
+                                style={{
+                                  height: 8,
+                                  borderRadius: 999,
+                                  background: 'var(--gray-200)',
+                                  overflow: 'hidden',
+                                  marginBottom: 14,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    height: '100%',
+                                    width: `${completion.pct}%`,
+                                    background:
+                                      completion.pct === 100
+                                        ? 'var(--success)'
+                                        : 'var(--primary)',
+                                    borderRadius: 999,
+                                    transition: 'width 0.4s ease',
+                                  }}
+                                />
+                              </div>
+
+                              {/* Per-frame progress */}
+                              {frames.length > 0 && (
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 6,
+                                    borderTop: '1px solid var(--border)',
+                                    paddingTop: 10,
+                                  }}
+                                >
+                                  {frames.map((frame) => {
+                                    const fp = getFrameProgressForAssignment(
                                       a.materialId,
                                       frame.id,
                                     )
-                                  const isCompleted =
-                                    fp?.completed ?? false
-                                  const accuracy =
-                                    fp?.accuracy ?? 0
-                                  const framePct =
-                                    isCompleted
+                                    const isCompleted = fp?.completed ?? false
+                                    const accuracy = fp?.accuracy ?? 0
+                                    const framePct = isCompleted
                                       ? 100
                                       : fp
                                         ? fp.total > 0
                                           ? Math.round(
-                                              (fp.correct /
-                                                fp.total) *
-                                                100,
+                                              (fp.correct / fp.total) * 100,
                                             )
                                           : 0
                                         : 0
 
-                                  return (
-                                    <div
-                                      key={frame.id}
-                                      style={{
-                                        display: 'flex',
-                                        alignItems:
-                                          'center',
-                                        gap: 10,
-                                        padding:
-                                          '6px 0',
-                                      }}
-                                    >
-                                      {/* Icon */}
-                                      <span
-                                        style={{
-                                          fontSize: 14,
-                                          width: 20,
-                                          textAlign:
-                                            'center',
-                                        }}
-                                      >
-                                        {isCompleted
-                                          ? '✅'
-                                          : KIND_ICON[
-                                                frame
-                                                  .kind
-                                              ] ??
-                                            '📄'}
-                                      </span>
-
-                                      {/* Title + bar */}
+                                    return (
                                       <div
+                                        key={frame.id}
                                         style={{
-                                          flex: 1,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 10,
+                                          padding: '6px 0',
                                         }}
                                       >
-                                        <div
+                                        {/* Icon */}
+                                        <span
                                           style={{
-                                            display:
-                                              'flex',
-                                            justifyContent:
-                                              'space-between',
-                                            marginBottom:
-                                              3,
+                                            fontSize: 14,
+                                            width: 20,
+                                            textAlign: 'center',
                                           }}
                                         >
-                                          <span
-                                            style={{
-                                              fontSize: 13,
-                                              fontWeight: 500,
-                                              color:
-                                                'var(--text-primary)',
-                                            }}
-                                          >
-                                            {
-                                              frame.title
-                                            }
-                                          </span>
-                                          <span
-                                            style={{
-                                              fontSize: 11,
-                                              fontWeight: 600,
-                                              color: isCompleted
-                                                ? 'var(--success)'
-                                                : 'var(--text-secondary)',
-                                            }}
-                                          >
-                                            {isCompleted
-                                              ? accuracy >
-                                                  0
-                                                ? `${accuracy}%`
-                                                : '✓ Selesai'
-                                              : framePct >
-                                                  0
-                                                ? `${framePct}%`
-                                                : '—'}
-                                          </span>
-                                        </div>
-                                        {/* Mini progress bar */}
+                                          {isCompleted
+                                            ? '✅'
+                                            : (KIND_ICON[frame.kind] ?? '📄')}
+                                        </span>
+
+                                        {/* Title + bar */}
                                         <div
                                           style={{
-                                            height: 4,
-                                            borderRadius: 999,
-                                            background:
-                                              'var(--gray-200)',
-                                            overflow:
-                                              'hidden',
+                                            flex: 1,
                                           }}
                                         >
                                           <div
                                             style={{
-                                              height: '100%',
-                                              width: `${framePct}%`,
-                                              background:
-                                                isCompleted
+                                              display: 'flex',
+                                              justifyContent: 'space-between',
+                                              marginBottom: 3,
+                                            }}
+                                          >
+                                            <span
+                                              style={{
+                                                fontSize: 13,
+                                                fontWeight: 500,
+                                                color: 'var(--text-primary)',
+                                              }}
+                                            >
+                                              {frame.title}
+                                            </span>
+                                            <span
+                                              style={{
+                                                fontSize: 11,
+                                                fontWeight: 600,
+                                                color: isCompleted
+                                                  ? 'var(--success)'
+                                                  : 'var(--text-secondary)',
+                                              }}
+                                            >
+                                              {isCompleted
+                                                ? accuracy > 0
+                                                  ? `${accuracy}%`
+                                                  : '✓ Selesai'
+                                                : framePct > 0
+                                                  ? `${framePct}%`
+                                                  : '—'}
+                                            </span>
+                                          </div>
+                                          {/* Mini progress bar */}
+                                          <div
+                                            style={{
+                                              height: 4,
+                                              borderRadius: 999,
+                                              background: 'var(--gray-200)',
+                                              overflow: 'hidden',
+                                            }}
+                                          >
+                                            <div
+                                              style={{
+                                                height: '100%',
+                                                width: `${framePct}%`,
+                                                background: isCompleted
                                                   ? 'var(--success)'
                                                   : 'var(--primary)',
-                                              borderRadius: 999,
-                                              transition:
-                                                'width 0.3s ease',
-                                            }}
-                                          />
+                                                borderRadius: 999,
+                                                transition: 'width 0.3s ease',
+                                              }}
+                                            />
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )
-                })()}
+                                    )
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  })()
+                )}
               </div>
             )}
           </div>
@@ -1212,15 +1174,12 @@ export default function ParentDashboard() {
                 <span>Anak</span>
                 <select
                   value={selectedChildId}
-                  onChange={(e) =>
-                    setSelectedChildId(e.target.value)
-                  }
+                  onChange={(e) => setSelectedChildId(e.target.value)}
                 >
                   <option value=''>-- Pilih Anak --</option>
                   {children.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} (Kelas {c.grade} / Semester{' '}
-                      {c.semester})
+                      {c.name} (Kelas {c.grade} / Semester {c.semester})
                     </option>
                   ))}
                 </select>
@@ -1232,13 +1191,9 @@ export default function ParentDashboard() {
                   <span>Mata Pelajaran</span>
                   <select
                     value={selectedSubjectId}
-                    onChange={(e) =>
-                      setSelectedSubjectId(e.target.value)
-                    }
+                    onChange={(e) => setSelectedSubjectId(e.target.value)}
                   >
-                    <option value=''>
-                      -- Pilih Mata Pelajaran --
-                    </option>
+                    <option value=''>-- Pilih Mata Pelajaran --</option>
                     {subjects.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.icon} {s.shortName}
@@ -1254,9 +1209,7 @@ export default function ParentDashboard() {
                   <span>Topik</span>
                   <select
                     value={selectedModuleId}
-                    onChange={(e) =>
-                      setSelectedModuleId(e.target.value)
-                    }
+                    onChange={(e) => setSelectedModuleId(e.target.value)}
                   >
                     <option value=''>-- Pilih Topik --</option>
                     {availableModules.map((m) => (
@@ -1299,8 +1252,7 @@ export default function ParentDashboard() {
                         fontWeight: 600,
                       }}
                     >
-                      {selectedFrames.length ===
-                      selectedModule.frames.length
+                      {selectedFrames.length === selectedModule.frames.length
                         ? 'Batalkan Semua'
                         : 'Pilih Semua'}
                     </button>
@@ -1325,23 +1277,16 @@ export default function ParentDashboard() {
                           gap: 10,
                           padding: '6px 8px',
                           cursor: 'pointer',
-                          borderRadius:
-                            'var(--radius-sm)',
-                          background: selectedFrames.includes(
-                            frame.id,
-                          )
+                          borderRadius: 'var(--radius-sm)',
+                          background: selectedFrames.includes(frame.id)
                             ? 'var(--primary-bg)'
                             : 'transparent',
                         }}
                       >
                         <input
                           type='checkbox'
-                          checked={selectedFrames.includes(
-                            frame.id,
-                          )}
-                          onChange={() =>
-                            toggleFrame(frame.id)
-                          }
+                          checked={selectedFrames.includes(frame.id)}
+                          onChange={() => toggleFrame(frame.id)}
                           style={{
                             width: 16,
                             height: 16,
@@ -1361,14 +1306,10 @@ export default function ParentDashboard() {
                         <span
                           style={{
                             fontSize: 11,
-                            color:
-                              'var(--text-secondary)',
+                            color: 'var(--text-secondary)',
                           }}
                         >
-                          (
-                          {KIND_LABEL[frame.kind] ??
-                            frame.kind}
-                          )
+                          ({KIND_LABEL[frame.kind] ?? frame.kind})
                         </span>
                       </label>
                     ))}
@@ -1380,34 +1321,26 @@ export default function ParentDashboard() {
                       marginTop: 6,
                     }}
                   >
-                    {selectedFrames.length} dari{' '}
-                    {selectedModule.frames.length} panel
-                    dipilih
+                    {selectedFrames.length} dari {selectedModule.frames.length}{' '}
+                    panel dipilih
                   </p>
                 </div>
               )}
 
               {/* Step 5: Deadline */}
               {selectedModule && (
-                <label
-                  className='auth-field'
-                  style={{ marginTop: 12 }}
-                >
+                <label className='auth-field' style={{ marginTop: 12 }}>
                   <span>Deadline</span>
                   <input
                     type='datetime-local'
                     value={dueDate}
-                    onChange={(e) =>
-                      setDueDate(e.target.value)
-                    }
+                    onChange={(e) => setDueDate(e.target.value)}
                   />
                 </label>
               )}
 
               {/* Error/Success messages */}
-              {assignError && (
-                <p className='auth-error'>{assignError}</p>
-              )}
+              {assignError && <p className='auth-error'>{assignError}</p>}
               {assignSuccess && (
                 <p
                   style={{
@@ -1422,20 +1355,19 @@ export default function ParentDashboard() {
               )}
 
               {/* Assign button */}
-              {selectedModule &&
-                selectedFrames.length > 0 && (
-                  <button
-                    type='button'
-                    className='btn-primary'
-                    disabled={assigning}
-                    onClick={handleAssign}
-                    style={{ marginTop: 12 }}
-                  >
-                    {assigning
-                      ? 'Menugaskan...'
-                      : `Tugaskan ke ${selectedChildInfo?.name ?? 'Anak'}`}
-                  </button>
-                )}
+              {selectedModule && selectedFrames.length > 0 && (
+                <button
+                  type='button'
+                  className='btn-primary'
+                  disabled={assigning}
+                  onClick={handleAssign}
+                  style={{ marginTop: 12 }}
+                >
+                  {assigning
+                    ? 'Menugaskan...'
+                    : `Tugaskan ke ${selectedChildInfo?.name ?? 'Anak'}`}
+                </button>
+              )}
             </div>
 
             {/* Existing Assignments List */}
@@ -1450,9 +1382,7 @@ export default function ParentDashboard() {
             {assignmentsLoading ? (
               <p className='home-empty'>Memuat tugas...</p>
             ) : assignments.length === 0 ? (
-              <p className='home-empty'>
-                Belum ada tugas yang dibuat.
-              </p>
+              <p className='home-empty'>Belum ada tugas yang dibuat.</p>
             ) : (
               <div
                 style={{
@@ -1462,8 +1392,7 @@ export default function ParentDashboard() {
                 }}
               >
                 {assignments.map((a) => {
-                  const completion =
-                    getAssignmentCompletion(a)
+                  const completion = getAssignmentCompletion(a)
                   return (
                     <div
                       key={a.id}
@@ -1488,15 +1417,9 @@ export default function ParentDashboard() {
                             className='module-card-summary'
                             style={{ fontSize: 12 }}
                           >
-                            Untuk:{' '}
-                            {getChildName(a.childId)}
+                            Untuk: {getChildName(a.childId)}
                             {a.selectedFrames && (
-                              <>
-                                {' '}
-                                ·{' '}
-                                {a.selectedFrames.length}{' '}
-                                panel
-                              </>
+                              <> · {a.selectedFrames.length} panel</>
                             )}
                           </p>
                           <p
@@ -1512,8 +1435,7 @@ export default function ParentDashboard() {
                                 color:
                                   a.status === 'completed'
                                     ? 'var(--success)'
-                                    : a.status ===
-                                        'overdue'
+                                    : a.status === 'overdue'
                                       ? 'var(--error)'
                                       : 'var(--text-secondary)',
                                 fontWeight: 600,
@@ -1521,11 +1443,9 @@ export default function ParentDashboard() {
                             >
                               {a.status === 'pending'
                                 ? '⏳ Menunggu'
-                                : a.status ===
-                                    'in_progress'
+                                : a.status === 'in_progress'
                                   ? '📝 Dikerjakan'
-                                  : a.status ===
-                                      'completed'
+                                  : a.status === 'completed'
                                     ? '✅ Selesai'
                                     : '⚠️ Terlambat'}
                             </span>
@@ -1534,8 +1454,16 @@ export default function ParentDashboard() {
                               const unreplied = aq.filter((q) => !q.reply)
                               if (unreplied.length > 0) {
                                 return (
-                                  <span style={{ marginLeft: 8, fontSize: 11, color: '#f59e0b', fontWeight: 600 }}>
-                                    ❓ {unreplied.length} pertanyaan belum dibalas
+                                  <span
+                                    style={{
+                                      marginLeft: 8,
+                                      fontSize: 11,
+                                      color: '#f59e0b',
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    ❓ {unreplied.length} pertanyaan belum
+                                    dibalas
                                   </span>
                                 )
                               }
@@ -1544,9 +1472,7 @@ export default function ParentDashboard() {
                             {a.dueDate && (
                               <>
                                 {' · Deadline: '}
-                                {new Date(
-                                  a.dueDate,
-                                ).toLocaleDateString(
+                                {new Date(a.dueDate).toLocaleDateString(
                                   'id-ID',
                                   {
                                     day: 'numeric',
@@ -1573,8 +1499,7 @@ export default function ParentDashboard() {
                                   flex: 1,
                                   height: 6,
                                   borderRadius: 999,
-                                  background:
-                                    'var(--gray-200)',
+                                  background: 'var(--gray-200)',
                                   overflow: 'hidden',
                                   maxWidth: 120,
                                 }}
@@ -1584,8 +1509,7 @@ export default function ParentDashboard() {
                                     height: '100%',
                                     width: `${completion.pct}%`,
                                     background:
-                                      completion.pct ===
-                                      100
+                                      completion.pct === 100
                                         ? 'var(--success)'
                                         : 'var(--primary)',
                                     borderRadius: 999,
@@ -1602,8 +1526,7 @@ export default function ParentDashboard() {
                                       : 'var(--text-secondary)',
                                 }}
                               >
-                                {completion.completed}/
-                                {completion.total}
+                                {completion.completed}/{completion.total}
                               </span>
                             </div>
                           )}
@@ -1611,9 +1534,7 @@ export default function ParentDashboard() {
                         <button
                           type='button'
                           className='btn-secondary btn-small'
-                          onClick={() =>
-                            handleDeleteAssignment(a.id)
-                          }
+                          onClick={() => handleDeleteAssignment(a.id)}
                           style={{ fontSize: 12 }}
                         >
                           Hapus
@@ -1629,7 +1550,13 @@ export default function ParentDashboard() {
                             borderTop: '1px solid var(--border)',
                           }}
                         >
-                          <p style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+                          <p
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 600,
+                              marginBottom: 8,
+                            }}
+                          >
                             💬 Pertanyaan dari {getChildName(a.childId)}:
                           </p>
                           {questions[a.id].map((q) => (
@@ -1642,31 +1569,94 @@ export default function ParentDashboard() {
                                 marginBottom: 8,
                               }}
                             >
-                              <p style={{ margin: 0, fontSize: 12, fontWeight: 500 }}>
+                              <p
+                                style={{
+                                  margin: 0,
+                                  fontSize: 12,
+                                  fontWeight: 500,
+                                }}
+                              >
                                 ❓ {q.question}
                               </p>
-                              <p style={{ margin: '4px 0 0', fontSize: 10, color: 'var(--text-tertiary)' }}>
-                                {new Date(q.createdAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              <p
+                                style={{
+                                  margin: '4px 0 0',
+                                  fontSize: 10,
+                                  color: 'var(--text-tertiary)',
+                                }}
+                              >
+                                {new Date(q.createdAt).toLocaleString('id-ID', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
                               </p>
                               {q.reply ? (
-                                <div style={{ marginTop: 6, paddingLeft: 12, borderLeft: '2px solid var(--success)' }}>
-                                  <p style={{ margin: 0, fontSize: 12, color: 'var(--success)' }}>
+                                <div
+                                  style={{
+                                    marginTop: 6,
+                                    paddingLeft: 12,
+                                    borderLeft: '2px solid var(--success)',
+                                  }}
+                                >
+                                  <p
+                                    style={{
+                                      margin: 0,
+                                      fontSize: 12,
+                                      color: 'var(--success)',
+                                    }}
+                                  >
                                     💬 {q.reply}
                                   </p>
-                                  <p style={{ margin: '2px 0 0', fontSize: 10, color: 'var(--text-tertiary)' }}>
-                                    {new Date(q.repliedAt!).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                  <p
+                                    style={{
+                                      margin: '2px 0 0',
+                                      fontSize: 10,
+                                      color: 'var(--text-tertiary)',
+                                    }}
+                                  >
+                                    {new Date(q.repliedAt!).toLocaleString(
+                                      'id-ID',
+                                      {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      },
+                                    )}
                                   </p>
                                 </div>
                               ) : (
-                                <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+                                <div
+                                  style={{
+                                    marginTop: 6,
+                                    display: 'flex',
+                                    gap: 8,
+                                  }}
+                                >
                                   <input
                                     type='text'
                                     value={replyText[q.id] ?? ''}
-                                    onChange={(e) => setReplyText((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                                    onChange={(e) =>
+                                      setReplyText((prev) => ({
+                                        ...prev,
+                                        [q.id]: e.target.value,
+                                      }))
+                                    }
                                     placeholder='Balas pertanyaan...'
-                                    style={{ flex: 1, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontSize: 12 }}
+                                    style={{
+                                      flex: 1,
+                                      padding: '6px 10px',
+                                      border: '1px solid var(--border)',
+                                      borderRadius: 'var(--radius-sm)',
+                                      fontSize: 12,
+                                    }}
                                     onKeyDown={(e) => {
-                                      if (e.key === 'Enter' && sendingReply !== q.id) {
+                                      if (
+                                        e.key === 'Enter' &&
+                                        sendingReply !== q.id
+                                      ) {
                                         handleReply(q.id)
                                       }
                                     }}
@@ -1675,7 +1665,10 @@ export default function ParentDashboard() {
                                     type='button'
                                     className='btn-primary btn-small'
                                     onClick={() => handleReply(q.id)}
-                                    disabled={sendingReply === q.id || !replyText[q.id]?.trim()}
+                                    disabled={
+                                      sendingReply === q.id ||
+                                      !replyText[q.id]?.trim()
+                                    }
                                     style={{ fontSize: 11 }}
                                   >
                                     {sendingReply === q.id ? '...' : 'Balas'}

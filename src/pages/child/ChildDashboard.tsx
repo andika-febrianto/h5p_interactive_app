@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TopBar from '../../components/TopBar'
 import { useAuth } from '../../context/AuthContext'
@@ -46,9 +46,12 @@ export default function ChildDashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [showNotifications, setShowNotifications] = useState(false)
+  const notifRef = useRef(null)
 
   // Questions
-  const [expandedAssignment, setExpandedAssignment] = useState<string | null>(null)
+  const [expandedAssignment, setExpandedAssignment] = useState<string | null>(
+    null,
+  )
   const [questions, setQuestions] = useState<Record<string, Question[]>>({})
   const [newQuestion, setNewQuestion] = useState('')
   const [sendingQuestion, setSendingQuestion] = useState(false)
@@ -124,6 +127,23 @@ export default function ChildDashboard() {
     }
   }, [expandedAssignment, loadQuestions])
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        notifRef.current &&
+        !notifRef.current.contains(event.target as Node)
+      ) {
+        setShowNotifications(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   // Handle notification click
   const handleNotificationClick = async (notif: Notification) => {
     await markNotificationRead(notif.id)
@@ -135,7 +155,9 @@ export default function ChildDashboard() {
       // Navigate to the assignment's module if it has a materialId
       const assignment = assignments.find((a) => a.id === notif.assignmentId)
       if (assignment?.materialId) {
-        navigate(`/modul/${assignment.materialId}?assignment=${notif.assignmentId}`)
+        navigate(
+          `/modul/${assignment.materialId}?assignment=${notif.assignmentId}`,
+        )
       }
     }
   }
@@ -175,15 +197,10 @@ export default function ChildDashboard() {
       ? moduleCache[assignment.materialId]
       : null
     if (!mod) return []
-    if (
-      !assignment.selectedFrames ||
-      assignment.selectedFrames.length === 0
-    ) {
+    if (!assignment.selectedFrames || assignment.selectedFrames.length === 0) {
       return mod.frames
     }
-    return mod.frames.filter((f) =>
-      assignment.selectedFrames!.includes(f.id),
-    )
+    return mod.frames.filter((f) => assignment.selectedFrames!.includes(f.id))
   }
 
   const getFrameProgress = (
@@ -220,7 +237,14 @@ export default function ChildDashboard() {
       <div className='home-inner'>
         <TopBar />
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 8,
+          }}
+        >
           <div>
             <p className='home-eyebrow'>Halo, {user?.name}! 👋</p>
             <h1 className='home-title'>Tugas Saya</h1>
@@ -230,6 +254,7 @@ export default function ChildDashboard() {
           <div style={{ position: 'relative' }}>
             <button
               type='button'
+              ref={notifRef}
               onClick={() => setShowNotifications(!showNotifications)}
               style={{
                 background: 'none',
@@ -291,7 +316,9 @@ export default function ChildDashboard() {
                     borderBottom: '1px solid var(--border)',
                   }}
                 >
-                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>Notifikasi</h4>
+                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>
+                    Notifikasi
+                  </h4>
                   {unreadCount > 0 && (
                     <button
                       type='button'
@@ -310,7 +337,14 @@ export default function ChildDashboard() {
                   )}
                 </div>
                 {notifications.length === 0 ? (
-                  <p style={{ padding: 16, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+                  <p
+                    style={{
+                      padding: 16,
+                      textAlign: 'center',
+                      color: 'var(--text-secondary)',
+                      fontSize: 13,
+                    }}
+                  >
                     Belum ada notifikasi
                   </p>
                 ) : (
@@ -322,11 +356,22 @@ export default function ChildDashboard() {
                         padding: '10px 16px',
                         borderBottom: '1px solid var(--border)',
                         cursor: 'pointer',
-                        background: notif.read ? 'transparent' : 'rgba(59, 130, 246, 0.05)',
-                        borderLeft: notif.read ? '3px solid transparent' : '3px solid var(--primary)',
+                        background: notif.read
+                          ? 'transparent'
+                          : 'rgba(59, 130, 246, 0.05)',
+                        borderLeft: notif.read
+                          ? '3px solid transparent'
+                          : '3px solid var(--primary)',
                       }}
                     >
-                      <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: 'var(--text-primary)',
+                        }}
+                      >
                         {(() => {
                           const icons: Record<string, string> = {
                             // Student notifications (12)
@@ -362,11 +407,28 @@ export default function ChildDashboard() {
                         })()}{' '}
                         {notif.title}
                       </p>
-                      <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-secondary)' }}>
+                      <p
+                        style={{
+                          margin: '4px 0 0',
+                          fontSize: 11,
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
                         {notif.message}
                       </p>
-                      <p style={{ margin: '4px 0 0', fontSize: 10, color: 'var(--text-tertiary)' }}>
-                        {new Date(notif.createdAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      <p
+                        style={{
+                          margin: '4px 0 0',
+                          fontSize: 10,
+                          color: 'var(--text-tertiary)',
+                        }}
+                      >
+                        {new Date(notif.createdAt).toLocaleString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </p>
                     </div>
                   ))
@@ -389,9 +451,7 @@ export default function ChildDashboard() {
               className='btn-primary'
               onClick={() => {
                 if (user?.grade && user?.semester) {
-                  navigate(
-                    `/kelas/${user.grade}/semester/${user.semester}`,
-                  )
+                  navigate(`/kelas/${user.grade}/semester/${user.semester}`)
                 } else {
                   navigate('/kelas')
                 }
@@ -410,9 +470,7 @@ export default function ChildDashboard() {
           >
             {assignments.map((a) => {
               const filteredFrames = getFilteredFrames(a)
-              const mod = a.materialId
-                ? moduleCache[a.materialId]
-                : null
+              const mod = a.materialId ? moduleCache[a.materialId] : null
               const subjectName = getSubjectName(mod?.subjectId)
               const topicName = mod?.title || a.title
               const progress = getAssignmentProgress(a)
@@ -479,21 +537,15 @@ export default function ChildDashboard() {
                   >
                     <span>
                       👤 Dari:{' '}
-                      <strong
-                        style={{ color: 'var(--text-primary)' }}
-                      >
+                      <strong style={{ color: 'var(--text-primary)' }}>
                         {a.parentId ? 'Orang Tua' : 'Sistem'}
                       </strong>
                     </span>
                     {a.dueDate && (
                       <span>
                         📅 Deadline:{' '}
-                        <strong
-                          style={{ color: 'var(--text-primary)' }}
-                        >
-                          {new Date(
-                            a.dueDate,
-                          ).toLocaleDateString('id-ID', {
+                        <strong style={{ color: 'var(--text-primary)' }}>
+                          {new Date(a.dueDate).toLocaleDateString('id-ID', {
                             day: 'numeric',
                             month: 'long',
                             year: 'numeric',
@@ -502,8 +554,7 @@ export default function ChildDashboard() {
                       </span>
                     )}
                     <span>
-                      {progress.completed}/{progress.total}{' '}
-                      bahasan selesai
+                      {progress.completed}/{progress.total} bahasan selesai
                     </span>
                   </div>
 
@@ -577,10 +628,7 @@ export default function ChildDashboard() {
                       }}
                     >
                       {filteredFrames.map((frame, idx) => {
-                        const fp = getFrameProgress(
-                          a.materialId,
-                          frame.id,
-                        )
+                        const fp = getFrameProgress(a.materialId, frame.id)
                         const isCompleted = fp?.completed ?? false
                         const accuracy = fp?.accuracy ?? 0
 
@@ -749,13 +797,26 @@ export default function ChildDashboard() {
                         border: '1px solid var(--border)',
                       }}
                     >
-                      <h4 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700 }}>
+                      <h4
+                        style={{
+                          margin: '0 0 12px',
+                          fontSize: 14,
+                          fontWeight: 700,
+                        }}
+                      >
                         💬 Pertanyaan ke Orang Tua
                       </h4>
 
                       {/* Existing questions */}
                       {assignmentQuestions.length > 0 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 10,
+                            marginBottom: 14,
+                          }}
+                        >
                           {assignmentQuestions.map((q) => (
                             <div
                               key={q.id}
@@ -766,23 +827,70 @@ export default function ChildDashboard() {
                                 border: '1px solid var(--border)',
                               }}
                             >
-                              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                              <p
+                                style={{
+                                  margin: 0,
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                  color: 'var(--text-primary)',
+                                }}
+                              >
                                 ❓ {q.question}
                               </p>
                               {q.reply ? (
-                                <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--success)', paddingLeft: 16, borderLeft: '2px solid var(--success)' }}>
+                                <p
+                                  style={{
+                                    margin: '8px 0 0',
+                                    fontSize: 12,
+                                    color: 'var(--success)',
+                                    paddingLeft: 16,
+                                    borderLeft: '2px solid var(--success)',
+                                  }}
+                                >
                                   💬 {q.reply}
-                                  <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 8 }}>
-                                    {new Date(q.repliedAt!).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                  <span
+                                    style={{
+                                      fontSize: 10,
+                                      color: 'var(--text-tertiary)',
+                                      marginLeft: 8,
+                                    }}
+                                  >
+                                    {new Date(q.repliedAt!).toLocaleString(
+                                      'id-ID',
+                                      {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      },
+                                    )}
                                   </span>
                                 </p>
                               ) : (
-                                <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                                <p
+                                  style={{
+                                    margin: '8px 0 0',
+                                    fontSize: 11,
+                                    color: 'var(--text-secondary)',
+                                    fontStyle: 'italic',
+                                  }}
+                                >
                                   Menunggu balasan...
                                 </p>
                               )}
-                              <p style={{ margin: '4px 0 0', fontSize: 10, color: 'var(--text-tertiary)' }}>
-                                {new Date(q.createdAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              <p
+                                style={{
+                                  margin: '4px 0 0',
+                                  fontSize: 10,
+                                  color: 'var(--text-tertiary)',
+                                }}
+                              >
+                                {new Date(q.createdAt).toLocaleString('id-ID', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
                               </p>
                             </div>
                           ))}

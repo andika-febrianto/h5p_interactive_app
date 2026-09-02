@@ -62,3 +62,28 @@ export type Subscription = Prisma.SubscriptionModel
  * 
  */
 export type Payment = Prisma.PaymentModel
+/**
+ * Model ParentChild
+ * 
+ */
+export type ParentChild = Prisma.ParentChildModel
+/**
+ * Model ReadingProgress
+ * 
+ */
+export type ReadingProgress = Prisma.ReadingProgressModel
+/**
+ * Model ParentAssignment
+ * 
+ */
+export type ParentAssignment = Prisma.ParentAssignmentModel
+/**
+ * Model Notification
+ * 
+ */
+export type Notification = Prisma.NotificationModel
+/**
+ * Model Question
+ * 
+ */
+export type Question = Prisma.QuestionModel

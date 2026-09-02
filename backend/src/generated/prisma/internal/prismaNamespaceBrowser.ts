@@ -59,7 +59,12 @@ export const ModelName = {
   ProgressRecord: 'ProgressRecord',
   Plan: 'Plan',
   Subscription: 'Subscription',
-  Payment: 'Payment'
+  Payment: 'Payment',
+  ParentChild: 'ParentChild',
+  ReadingProgress: 'ReadingProgress',
+  ParentAssignment: 'ParentAssignment',
+  Notification: 'Notification',
+  Question: 'Question'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -86,6 +91,8 @@ export const UserScalarFieldEnum = {
   role: 'role',
   grade: 'grade',
   semester: 'semester',
+  birthDate: 'birthDate',
+  gender: 'gender',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -206,6 +213,79 @@ export const PaymentScalarFieldEnum = {
 export type PaymentScalarFieldEnum = (typeof PaymentScalarFieldEnum)[keyof typeof PaymentScalarFieldEnum]
 
 
+export const ParentChildScalarFieldEnum = {
+  id: 'id',
+  parentId: 'parentId',
+  childId: 'childId',
+  createdAt: 'createdAt'
+} as const
+
+export type ParentChildScalarFieldEnum = (typeof ParentChildScalarFieldEnum)[keyof typeof ParentChildScalarFieldEnum]
+
+
+export const ReadingProgressScalarFieldEnum = {
+  id: 'id',
+  childId: 'childId',
+  materialId: 'materialId',
+  materialType: 'materialType',
+  title: 'title',
+  totalPages: 'totalPages',
+  currentPage: 'currentPage',
+  status: 'status',
+  lastReadAt: 'lastReadAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ReadingProgressScalarFieldEnum = (typeof ReadingProgressScalarFieldEnum)[keyof typeof ReadingProgressScalarFieldEnum]
+
+
+export const ParentAssignmentScalarFieldEnum = {
+  id: 'id',
+  parentId: 'parentId',
+  childId: 'childId',
+  title: 'title',
+  description: 'description',
+  materialId: 'materialId',
+  selectedFrames: 'selectedFrames',
+  dueDate: 'dueDate',
+  status: 'status',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ParentAssignmentScalarFieldEnum = (typeof ParentAssignmentScalarFieldEnum)[keyof typeof ParentAssignmentScalarFieldEnum]
+
+
+export const NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  title: 'title',
+  message: 'message',
+  assignmentId: 'assignmentId',
+  read: 'read',
+  createdAt: 'createdAt'
+} as const
+
+export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
+export const QuestionScalarFieldEnum = {
+  id: 'id',
+  assignmentId: 'assignmentId',
+  childId: 'childId',
+  parentId: 'parentId',
+  question: 'question',
+  reply: 'reply',
+  createdAt: 'createdAt',
+  repliedAt: 'repliedAt'
+} as const
+
+export type QuestionScalarFieldEnum = (typeof QuestionScalarFieldEnum)[keyof typeof QuestionScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -219,6 +299,14 @@ export const JsonNullValueInput = {
 } as const
 
 export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const QueryMode = {

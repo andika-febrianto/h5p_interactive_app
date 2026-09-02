@@ -24,6 +24,7 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.0",
     "multer": "^2.2.0",
+    "vercel": "^59.10.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

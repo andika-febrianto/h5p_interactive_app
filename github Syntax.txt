@@ -21,3 +21,6 @@ git push
 ##kalau di vscode di ubah dan di github di ubah, tapi vs code mau ngikuti github
 ##maka akan error ga sync
 git stash
+
+##switch dari main ke master
+git checkout master
