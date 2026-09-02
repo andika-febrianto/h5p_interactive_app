@@ -34,6 +34,10 @@ export default function ChildDashboard() {
   const [assignments, setAssignments] = useState<ParentAssignment[]>([])
   const [assignmentsLoading, setAssignmentsLoading] = useState(true)
   const [moduleCache, setModuleCache] = useState<Record<string, Module>>({})
+
+  // Search & Sort
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'deadline' | 'status'>('newest')
   const [progressCache, setProgressCache] = useState<
     Record<string, Record<string, FrameProgress>>
   >({})
@@ -213,16 +217,112 @@ export default function ChildDashboard() {
             </button>
           </div>
         ) : (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 16,
-            }}
-          >
-            {assignments.map((a) => {
-              const filteredFrames = getFilteredFrames(a)
-              const mod = a.materialId ? moduleCache[a.materialId] : null
+          <>
+            {/* Search & Sort */}
+            <div
+              style={{
+                display: 'flex',
+                gap: 10,
+                marginBottom: 16,
+                flexWrap: 'wrap',
+              }}
+            >
+              <input
+                type='text'
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder='🔍 Cari tugas...'
+                style={{
+                  flex: 1,
+                  minWidth: 180,
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 14,
+                  padding: '10px 14px',
+                  border: '2px solid var(--gray-200)',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--white)',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  transition: 'border-color 0.2s, box-shadow 0.2s',
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--primary)'
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 107, 255, 0.12)'
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--gray-200)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              />
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 14,
+                  padding: '10px 14px',
+                  border: '2px solid var(--gray-200)',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--white)',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  transition: 'border-color 0.2s, box-shadow 0.2s',
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--primary)'
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 107, 255, 0.12)'
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--gray-200)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              >
+                <option value='newest'>Terbaru</option>
+                <option value='oldest'>Terlama</option>
+                <option value='deadline'>Deadline</option>
+                <option value='status'>Status</option>
+              </select>
+            </div>
+
+            {/* Filtered & Sorted assignments */}
+            {(() => {
+              let filtered = assignments
+              if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase()
+                filtered = filtered.filter((a) => {
+                  const mod = a.materialId ? moduleCache[a.materialId] : null
+                  const topicName = (mod?.title || a.title || '').toLowerCase()
+                  const subjectName = getSubjectName(mod?.subjectId).toLowerCase()
+                  return topicName.includes(q) || subjectName.includes(q)
+                })
+              }
+              filtered = [...filtered].sort((a, b) => {
+                if (sortOrder === 'newest') return (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
+                if (sortOrder === 'oldest') return (a.createdAt ?? '').localeCompare(b.createdAt ?? '')
+                if (sortOrder === 'deadline') return (a.dueDate ?? 'z').localeCompare(b.dueDate ?? 'z')
+                // status: overdue first, then in_progress, pending, completed
+                const statusOrder: Record<string, number> = { overdue: 0, in_progress: 1, pending: 2, completed: 3 }
+                return (statusOrder[a.status] ?? 4) - (statusOrder[b.status] ?? 4)
+              })
+              if (filtered.length === 0 && searchQuery.trim()) {
+                return (
+                  <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '20px 0', fontSize: 14 }}>
+                    Tidak ada tugas yang cocok dengan pencarian.
+                  </p>
+                )
+              }
+              return (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 16,
+                  }}
+                >
+                  {filtered.map((a) => {
+                    const filteredFrames = getFilteredFrames(a)
+                    const mod = a.materialId ? moduleCache[a.materialId] : null
               const subjectName = getSubjectName(mod?.subjectId)
               const topicName = mod?.title || a.title
               const progress = getAssignmentProgress(a)
@@ -705,7 +805,9 @@ export default function ChildDashboard() {
                 </div>
               )
             })}
-          </div>
+            </div>
+          )})}
+          </>
         )}
       </div>
     </div>

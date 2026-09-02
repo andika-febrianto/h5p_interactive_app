@@ -94,6 +94,10 @@ export default function ParentDashboard() {
   const [selectedChildId, setSelectedChildId] = useState('')
   const [selectedSubjectId, setSelectedSubjectId] = useState('')
   const [selectedModuleId, setSelectedModuleId] = useState('')
+
+  // Search & Sort for assignments
+  const [taskSearchQuery, setTaskSearchQuery] = useState('')
+  const [taskSortOrder, setTaskSortOrder] = useState<'newest' | 'oldest' | 'deadline' | 'status' | 'child'>('newest')
   const [availableModules, setAvailableModules] = useState<ModuleSummary[]>([])
   const [selectedModule, setSelectedModule] = useState<Module | null>(null)
   const [selectedFrames, setSelectedFrames] = useState<string[]>([])
@@ -1191,15 +1195,111 @@ export default function ParentDashboard() {
             ) : assignments.length === 0 ? (
               <p className='home-empty'>Belum ada tugas yang dibuat.</p>
             ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                }}
-              >
-                {assignments.map((a) => {
-                  const completion = getAssignmentCompletion(a)
+              <>
+                {/* Search & Sort */}
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 10,
+                    marginBottom: 16,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <input
+                    type='text'
+                    value={taskSearchQuery}
+                    onChange={(e) => setTaskSearchQuery(e.target.value)}
+                    placeholder='🔍 Cari tugas...'
+                    style={{
+                      flex: 1,
+                      minWidth: 180,
+                      fontFamily: 'var(--font-body)',
+                      fontSize: 14,
+                      padding: '10px 14px',
+                      border: '2px solid var(--gray-200)',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--white)',
+                      color: 'var(--text-primary)',
+                      outline: 'none',
+                      transition: 'border-color 0.2s, box-shadow 0.2s',
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--primary)'
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 107, 255, 0.12)'
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--gray-200)'
+                      e.currentTarget.style.boxShadow = 'none'
+                    }}
+                  />
+                  <select
+                    value={taskSortOrder}
+                    onChange={(e) => setTaskSortOrder(e.target.value as typeof taskSortOrder)}
+                    style={{
+                      fontFamily: 'var(--font-body)',
+                      fontSize: 14,
+                      padding: '10px 14px',
+                      border: '2px solid var(--gray-200)',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--white)',
+                      color: 'var(--text-primary)',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      transition: 'border-color 0.2s, box-shadow 0.2s',
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--primary)'
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 107, 255, 0.12)'
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--gray-200)'
+                      e.currentTarget.style.boxShadow = 'none'
+                    }}
+                  >
+                    <option value='newest'>Terbaru</option>
+                    <option value='oldest'>Terlama</option>
+                    <option value='deadline'>Deadline</option>
+                    <option value='status'>Status</option>
+                    <option value='child'>Anak</option>
+                  </select>
+                </div>
+
+                {/* Filtered & Sorted */}
+                {(() => {
+                  let filtered = assignments
+                  if (taskSearchQuery.trim()) {
+                    const q = taskSearchQuery.toLowerCase()
+                    filtered = filtered.filter((a) => {
+                      const childName = getChildName(a.childId).toLowerCase()
+                      const title = (a.title || '').toLowerCase()
+                      return title.includes(q) || childName.includes(q)
+                    })
+                  }
+                  filtered = [...filtered].sort((a, b) => {
+                    if (taskSortOrder === 'newest') return (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
+                    if (taskSortOrder === 'oldest') return (a.createdAt ?? '').localeCompare(b.createdAt ?? '')
+                    if (taskSortOrder === 'deadline') return (a.dueDate ?? 'z').localeCompare(b.dueDate ?? 'z')
+                    if (taskSortOrder === 'child') return getChildName(a.childId).localeCompare(getChildName(b.childId))
+                    const statusOrder: Record<string, number> = { overdue: 0, in_progress: 1, pending: 2, completed: 3 }
+                    return (statusOrder[a.status] ?? 4) - (statusOrder[b.status] ?? 4)
+                  })
+                  if (filtered.length === 0 && taskSearchQuery.trim()) {
+                    return (
+                      <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '20px 0', fontSize: 14 }}>
+                        Tidak ada tugas yang cocok dengan pencarian.
+                      </p>
+                    )
+                  }
+                  return (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12,
+                      }}
+                    >
+                      {filtered.map((a) => {
+                        const completion = getAssignmentCompletion(a)
 
                   // Deadline-based card color
                   const now = new Date()
@@ -1549,6 +1649,8 @@ export default function ParentDashboard() {
                   )
                 })}
               </div>
+              )})}
+              </>
             )}
           </div>
         )}
