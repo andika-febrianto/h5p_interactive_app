@@ -1244,13 +1244,13 @@ export default function ParentDashboard() {
                         <div style={{ flex: 1 }}>
                           <h4
                             className='module-card-title'
-                            style={{ fontSize: 14 }}
+                            style={{ fontSize: 16 }}
                           >
                             📖 {a.title}
                           </h4>
                           <p
                             className='module-card-summary'
-                            style={{ fontSize: 12 }}
+                            style={{ fontSize: 14 }}
                           >
                             Untuk: {getChildName(a.childId)}
                             {a.selectedFrames && (
@@ -1260,7 +1260,7 @@ export default function ParentDashboard() {
                           <p
                             className='module-card-summary'
                             style={{
-                              fontSize: 11,
+                              fontSize: 13,
                               marginTop: 4,
                             }}
                           >
@@ -1292,7 +1292,7 @@ export default function ParentDashboard() {
                                   <span
                                     style={{
                                       marginLeft: 8,
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       color: '#f59e0b',
                                       fontWeight: 600,
                                     }}
@@ -1353,7 +1353,7 @@ export default function ParentDashboard() {
                               </div>
                               <span
                                 style={{
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   fontWeight: 600,
                                   color:
                                     completion.pct === 100

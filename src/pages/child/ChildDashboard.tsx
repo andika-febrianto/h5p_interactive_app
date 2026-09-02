@@ -273,7 +273,7 @@ export default function ChildDashboard() {
                       {subjectName && (
                         <p
                           style={{
-                            fontSize: 12,
+                            fontSize: 14,
                             fontWeight: 600,
                             color: 'var(--primary)',
                             textTransform: 'uppercase',
@@ -286,7 +286,7 @@ export default function ChildDashboard() {
                       )}
                       <h3
                         style={{
-                          fontSize: 17,
+                          fontSize: 19,
                           fontWeight: 700,
                           color: 'var(--text-primary)',
                           margin: 0,
@@ -303,7 +303,7 @@ export default function ChildDashboard() {
                       display: 'flex',
                       gap: 16,
                       marginTop: 10,
-                      fontSize: 13,
+                      fontSize: 14,
                       color: 'var(--text-secondary)',
                       flexWrap: 'wrap',
                     }}
@@ -344,7 +344,7 @@ export default function ChildDashboard() {
                       >
                         <span
                           style={{
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: 600,
                             color: 'var(--text-secondary)',
                           }}
@@ -353,7 +353,7 @@ export default function ChildDashboard() {
                         </span>
                         <span
                           style={{
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: 700,
                             color:
                               progress.pct === 100
@@ -430,7 +430,7 @@ export default function ChildDashboard() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: 11,
+                                fontSize: 12,
                                 fontWeight: 700,
                                 background: isCompleted
                                   ? 'var(--success)'
@@ -465,10 +465,9 @@ export default function ChildDashboard() {
 
                             {isCompleted && accuracy > 0 && (
                               <span
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: 600,
-                                  color:
+                                style={{                                fontSize: 12,
+                                fontWeight: 600,
+                                color:
                                     accuracy >= 80
                                       ? 'var(--success)'
                                       : accuracy >= 60
@@ -530,7 +529,7 @@ export default function ChildDashboard() {
                         onClick={() =>
                           setExpandedAssignment(isExpanded ? null : a.id)
                         }
-                        style={{ fontSize: 12 }}
+                        style={{ fontSize: 13 }}
                       >
                         💬 Tanya Orang Tua ({assignmentQuestions.length})
                       </button>
