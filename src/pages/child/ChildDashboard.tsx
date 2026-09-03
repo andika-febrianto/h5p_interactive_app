@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../../context/AuthContext'
@@ -9,11 +9,6 @@ import {
   fetchChildModuleProgress,
   fetchAssignmentQuestions,
   askQuestion,
-  fetchUnreadCount,
-  fetchNotifications,
-  markNotificationRead,
-  markAllNotificationsRead,
-  type Notification as NotifType,
   markAssignmentStarted,
   checkStudentNotifications,
   type ParentAssignment,
@@ -23,7 +18,7 @@ import {
 } from '../../lib/api'
 import { getSubjectById } from '../../data/subjects'
 
-type SideTab = 'home' | 'missions' | 'trophies' | 'profile'
+type SideTab = 'home' | 'missions' | 'trophies' | 'profile' | 'modules' | 'reports'
 
 export default function ChildDashboard() {
   const { user } = useAuth()
@@ -49,66 +44,12 @@ export default function ChildDashboard() {
   const [newQuestion, setNewQuestion] = useState('')
   const [sendingQuestion, setSendingQuestion] = useState(false)
 
-  // Notification state
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [notifications, setNotifications] = useState<NotifType[]>([])
-  const [showNotifPanel, setShowNotifPanel] = useState(false)
-  const notifPanelRef = useRef<HTMLDivElement>(null)
+  // Notification state (bell handled by TopBar for child)
 
-  const loadUnreadCount = useCallback(async () => {
-    try {
-      const res = await fetchUnreadCount()
-      setUnreadCount(res.count)
-    } catch {}
-  }, [])
+  // Subject filter for tasks
+  const [subjectFilter, setSubjectFilter] = useState('all')
 
-  const loadNotifications = useCallback(async () => {
-    try {
-      const notifs = await fetchNotifications()
-      setNotifications(notifs.slice(0, 20))
-    } catch {}
-  }, [])
 
-  useEffect(() => {
-    if (!user) return
-    loadUnreadCount()
-    loadNotifications()
-    const interval = setInterval(loadUnreadCount, 30000)
-    return () => clearInterval(interval)
-  }, [user, loadUnreadCount, loadNotifications])
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        notifPanelRef.current &&
-        !notifPanelRef.current.contains(e.target as Node)
-      ) {
-        setShowNotifPanel(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  const handleNotifClick = async (notif: NotifType) => {
-    if (!notif.read) {
-      try {
-        await markNotificationRead(notif.id)
-        setUnreadCount((c) => Math.max(0, c - 1))
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n)),
-        )
-      } catch {}
-    }
-  }
-
-  const handleMarkAllRead = async () => {
-    try {
-      await markAllNotificationsRead()
-      setUnreadCount(0)
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
-    } catch {}
-  }
 
   // ── Data Loading ──
 
@@ -250,10 +191,7 @@ export default function ChildDashboard() {
     return result
   }, [assignments, searchQuery, sortOrder, moduleCache])
 
-  const activeAssignment =
-    assignments.find((a) => a.status === 'in_progress') ||
-    assignments.find((a) => a.status === 'pending') ||
-    assignments.find((a) => a.status === 'overdue')
+  // activeAssignment is handled within task cards list
   const completedCount = assignments.filter((a) => {
     const p = getAssignmentProgress(a)
     return p.total > 0 && p.completed === p.total
@@ -261,18 +199,19 @@ export default function ChildDashboard() {
   const inProgressCount = assignments.filter(
     (a) => a.status === 'in_progress',
   ).length
+  const overdueCount = assignments.filter((a) => a.status === 'overdue').length
   const totalPoints = completedCount * 100 + inProgressCount * 20
 
-  // Get subject breakdown for weekly progress
+  // Subject breakdown for weekly progress
   const subjectBreakdown = useMemo(() => {
     const map: Record<string, { name: string; pct: number; color: string }> = {}
-    const colors = ['#6c5ce7', '#ff7675', '#fdcb6e', '#00b894']
+    const colors = ['#6366f1', '#f43f5e', '#f59e0b', '#10b981']
     let ci = 0
     assignments.forEach((a) => {
       const mod = a.materialId ? moduleCache[a.materialId] : null
       const subName = getSubjectName(mod?.subjectId) || 'Lainnya'
-      if (!map[a.materialId ?? '']) {
-        map[a.materialId ?? ''] = {
+      if (!map[subName]) {
+        map[subName] = {
           name: subName,
           pct: getAssignmentProgress(a).pct,
           color: colors[ci++ % colors.length],
@@ -282,7 +221,7 @@ export default function ChildDashboard() {
     return Object.values(map).slice(0, 4)
   }, [assignments, moduleCache])
 
-  // Calculate streak from completed assignments
+  // Streak calculation
   const streak = useMemo(() => {
     const completedDates = assignments
       .filter((a) => a.status === 'completed')
@@ -291,1288 +230,362 @@ export default function ChildDashboard() {
     return Math.min(uniqueDates.length, 30)
   }, [assignments])
 
-  // ── Styles ──
+  // Subject groups for filter tabs
+  const subjectGroups = useMemo(() => {
+    const groups: Record<string, number> = {}
+    assignments.forEach((a) => {
+      const mod = a.materialId ? moduleCache[a.materialId] : null
+      const subName = getSubjectName(mod?.subjectId) || 'Tugas'
+      groups[subName] = (groups[subName] || 0) + 1
+    })
+    return groups
+  }, [assignments, moduleCache])
 
-  const S = {
-    page: {
-      height: '100vh',
-      background: '#f4f5fa',
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden',
-    } as React.CSSProperties,
-    wrapper: {
-      display: 'flex',
-      flex: 1,
-      overflow: 'hidden',
-      marginTop: 48,
-    } as React.CSSProperties,
-    sidebar: {
-      width: 220,
-      background: '#fff',
-      borderRight: '1px solid #eee',
-      display: 'flex',
-      flexDirection: 'column',
-      padding: '24px 0',
-      flexShrink: 0,
-    } as React.CSSProperties,
-    sidebarLogo: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-      padding: '0 20px',
-      marginBottom: 28,
-    } as React.CSSProperties,
-    sidebarLogoIcon: {
-      width: 32,
-      height: 32,
-      borderRadius: 10,
-      background: '#6c5ce7',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: '#fff',
-      fontWeight: 700,
-      fontSize: 16,
-    } as React.CSSProperties,
-    sidebarTitle: {
-      fontFamily: 'var(--font-display)',
-      fontSize: 15,
-      fontWeight: 700,
-      color: '#1a1a2e',
-      lineHeight: 1.2,
-    } as React.CSSProperties,
-    sidebarSubtitle: { fontSize: 10, color: '#999' } as React.CSSProperties,
-    sideItem: (active: boolean) =>
-      ({
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '10px 20px',
-        margin: '2px 10px',
-        borderRadius: 12,
-        border: 'none',
-        background: active ? '#6c5ce7' : 'transparent',
-        color: active ? '#fff' : '#666',
-        fontWeight: 600,
-        fontSize: 13,
-        cursor: 'pointer',
-        transition: 'all 0.2s',
-        width: 'calc(100% - 20px)',
-        textAlign: 'left' as const,
-      }) as React.CSSProperties,
-    parentModeBtn: {
-      marginTop: 'auto',
-      margin: '0 20px',
-      padding: '12px 16px',
-      border: '2px dashed #e0e0f0',
-      borderRadius: 12,
-      background: '#f8f7ff',
-      cursor: 'pointer',
-      textAlign: 'center' as const,
-    } as React.CSSProperties,
-    main: {
-      flex: 1,
-      padding: '24px 32px 64px',
-      overflowY: 'auto',
-      maxWidth: 900,
-    } as React.CSSProperties,
-    header: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: 20,
-    } as React.CSSProperties,
-    headerRight: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 16,
-    } as React.CSSProperties,
-    streakBadge: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6,
-      background: '#fff3e0',
-      padding: '6px 14px',
-      borderRadius: 10,
-      fontSize: 13,
-      fontWeight: 600,
-    } as React.CSSProperties,
-    pointsBadge: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6,
-      background: '#f0eeff',
-      padding: '6px 14px',
-      borderRadius: 10,
-      fontSize: 13,
-      fontWeight: 600,
-      color: '#6c5ce7',
-    } as React.CSSProperties,
-    avatar: {
-      width: 40,
-      height: 40,
-      borderRadius: '50%',
-      background: '#6c5ce7',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: '#fff',
-      fontWeight: 700,
-      fontSize: 16,
-    } as React.CSSProperties,
-    statRow: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr 1fr',
-      gap: 12,
-      marginBottom: 20,
-    } as React.CSSProperties,
-    statCard: (_icon: string, _color: string) =>
-      ({
-        background: '#fff',
-        borderRadius: 14,
-        padding: '14px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-      }) as React.CSSProperties,
-    statIcon: (bg: string) =>
-      ({
-        width: 40,
-        height: 40,
-        borderRadius: 10,
-        background: bg,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 18,
-        flexShrink: 0,
-      }) as React.CSSProperties,
-    missionCard: {
-      background: '#fff',
-      borderRadius: 18,
-      padding: 24,
-      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-      marginBottom: 20,
-      position: 'relative' as const,
-      overflow: 'hidden',
-    } as React.CSSProperties,
-    progressBadge: {
-      position: 'absolute' as const,
-      top: 16,
-      right: 20,
-      fontSize: 13,
-      fontWeight: 600,
-      color: '#999',
-    } as React.CSSProperties,
-    progressBar: {
-      height: 8,
-      borderRadius: 999,
-      background: '#f0f0f5',
-      overflow: 'hidden',
-      margin: '14px 0 4px',
-    } as React.CSSProperties,
-    missionActions: {
-      display: 'flex',
-      gap: 10,
-      marginTop: 14,
-    } as React.CSSProperties,
-    missionBtn: (primary: boolean) =>
-      ({
-        padding: '10px 20px',
-        borderRadius: 10,
-        border: 'none',
-        fontSize: 13,
-        fontWeight: 700,
-        cursor: 'pointer',
-        background: primary ? '#6c5ce7' : '#f0f0f5',
-        color: primary ? '#fff' : '#333',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6,
-      }) as React.CSSProperties,
-    stepsCard: {
-      background: '#fff',
-      borderRadius: 18,
-      padding: 24,
-      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-      marginBottom: 20,
-    } as React.CSSProperties,
-    sectionTitle: {
-      fontSize: 16,
-      fontWeight: 700,
-      margin: '0 0 16px',
-      color: '#1a1a2e',
-    } as React.CSSProperties,
-    sectionSub: {
-      fontSize: 11,
-      color: '#999',
-      marginBottom: 12,
-    } as React.CSSProperties,
-    stepItem: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      padding: '10px 0',
-      borderBottom: '1px solid #f3f3f7',
-    } as React.CSSProperties,
-    stepIcon: (done: boolean) =>
-      ({
-        width: 28,
-        height: 28,
-        borderRadius: '50%',
-        background: done ? '#d5f5ec' : '#f0f0f5',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 12,
-        fontWeight: 700,
-        color: done ? '#00b894' : '#999',
-      }) as React.CSSProperties,
-    stepBadge: (_text: string, bg: string, color: string) =>
-      ({
-        fontSize: 11,
-        fontWeight: 600,
-        color,
-        background: bg,
-        padding: '4px 12px',
-        borderRadius: 8,
-      }) as React.CSSProperties,
-    questTable: {
-      width: '100%',
-      borderCollapse: 'collapse' as const,
-      fontSize: 13,
-    } as React.CSSProperties,
-    rewardCard: {
-      background: 'linear-gradient(135deg, #ff9a3c, #ff6b35)',
-      borderRadius: 18,
-      padding: 24,
-      color: '#fff',
-      position: 'relative' as const,
-      overflow: 'hidden',
-      marginBottom: 20,
-    } as React.CSSProperties,
-    rewardBtn: {
-      background: '#fff',
-      color: '#ff6b35',
-      border: 'none',
-      borderRadius: 10,
-      padding: '10px 20px',
-      fontWeight: 700,
-      fontSize: 13,
-      cursor: 'pointer',
-      marginTop: 12,
-    } as React.CSSProperties,
-    rightPanel: {
-      display: 'flex',
-      flexDirection: 'column' as const,
-      gap: 20,
-    } as React.CSSProperties,
-    rankItem: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      padding: '8px 0',
-      borderBottom: '1px solid #f3f3f7',
-    } as React.CSSProperties,
-    rankNum: (top: boolean) =>
-      ({
-        width: 24,
-        height: 24,
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 12,
-        fontWeight: 700,
-        background: top ? '#6c5ce7' : '#f0f0f5',
-        color: top ? '#fff' : '#999',
-      }) as React.CSSProperties,
-    barChart: {
-      display: 'flex',
-      alignItems: 'flex-end',
-      gap: 12,
-      height: 120,
-      padding: '0 8px',
-    } as React.CSSProperties,
-    barItem: (_h: number, _color: string) =>
-      ({
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 4,
-      }) as React.CSSProperties,
-    input: {
-      width: '100%',
-      padding: '10px 14px',
-      border: '1.5px solid #e0e0e0',
-      borderRadius: 10,
-      fontSize: 13,
-      fontFamily: 'var(--font-body)',
-      outline: 'none',
-      background: '#fff',
-      boxSizing: 'border-box' as const,
-    } as React.CSSProperties,
-    select: {
-      padding: '10px 14px',
-      border: '1.5px solid #e0e0e0',
-      borderRadius: 10,
-      fontSize: 13,
-      fontFamily: 'var(--font-body)',
-      outline: 'none',
-      background: '#fff',
-      cursor: 'pointer',
-    } as React.CSSProperties,
+  // ── Sidebar Items ──
+  const sideItems: { key: SideTab; label: string; icon: string; badge?: number }[] = [
+    { key: 'home', label: 'Beranda', icon: '🏠' },
+    { key: 'missions', label: 'Misi Belajar', icon: '🚀', badge: assignments.filter(a => a.status !== 'completed').length || undefined },
+    { key: 'modules', label: 'Modul Pelajaran', icon: '📚' },
+    { key: 'trophies', label: 'Trofi & Prestasi', icon: '🏆' },
+    { key: 'reports', label: 'Rapor Belajar', icon: '📊' },
+    { key: 'profile', label: 'Profil Saya', icon: '👤' },
+  ]
+
+  // ── Helpers ──
+  const getTaskStatusColor = (a: ParentAssignment) => {
+    const progress = getAssignmentProgress(a)
+    const isCompleted = progress.total > 0 && progress.completed === progress.total
+    if (isCompleted) return { bg: 'bg-slate-50/70', border: 'border-slate-100', text: 'text-emerald-600', badge: 'bg-emerald-100', icon: '📖', iconBg: 'bg-rose-100 text-rose-600' }
+    if (a.status === 'overdue') return { bg: 'bg-red-50/30', border: 'border-red-200', text: 'text-red-600', badge: 'bg-red-100', icon: '⚠️', iconBg: 'bg-amber-100 text-amber-600' }
+    if (progress.pct > 0) return { bg: 'bg-indigo-50/30', border: 'border-indigo-200', text: 'text-indigo-700', badge: 'bg-indigo-100', icon: '📐', iconBg: 'bg-indigo-600 text-white' }
+    return { bg: 'bg-white', border: 'border-slate-200', text: 'text-emerald-600', badge: 'bg-emerald-100', icon: '🌿', iconBg: 'bg-emerald-100 text-emerald-700' }
   }
 
-  const sideItems: { key: SideTab; label: string; icon: string }[] = [
-    { key: 'home', label: 'Home', icon: '🏠' },
-    { key: 'missions', label: 'Missions', icon: '🚀' },
-    { key: 'trophies', label: 'Trophies', icon: '🏆' },
-    { key: 'profile', label: 'Profile', icon: '👤' },
-  ]
+  const getTaskStatusLabel = (a: ParentAssignment) => {
+    const progress = getAssignmentProgress(a)
+    const isCompleted = progress.total > 0 && progress.completed === progress.total
+    if (isCompleted) return { label: 'Selesai 100%', color: 'text-emerald-600 font-bold' }
+    if (a.status === 'overdue') return { label: 'Terlambat', color: 'text-red-600 font-bold' }
+    if (progress.pct > 0) return { label: `${progress.pct}%`, color: 'text-indigo-600 font-bold' }
+    return { label: 'Siap Mulai', color: 'text-emerald-600 font-bold' }
+  }
 
   // ── Render ──
 
   return (
-    <div style={S.page}>
+    <div style={{ minHeight: '100vh', background: '#F6F8FD', fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif', color: '#1e293b', display: 'flex', flexDirection: 'column' }} className='antialiased'>
       <TopBar />
-      <div style={S.wrapper}>
-        {/* Sidebar */}
-        <nav style={S.sidebar}>
-          <div style={S.sidebarLogo}>
-            <div style={S.sidebarLogoIcon}>📖</div>
-            <div style={{ flex: 1 }}>
-              <p style={S.sidebarTitle}>
-                Perpustakaan
-                <br />
-                Belajar
-              </p>
-              <p style={S.sidebarSubtitle}>Petualangan belajarmu 🚀</p>
+
+      {/* Main Dashboard Container */}
+      <div style={{ flex: 1, maxWidth: 1600, width: '100%', margin: '0 auto', padding: '24px 16px', display: 'flex', gap: 24 }}>
+        {/* ── Left Sidebar ── */}
+        <aside style={{ width: 256, flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} className='hidden md:flex'>
+          <div>
+            {/* Primary Nav */}
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {sideItems.map((item) => {
+                const isActive = sideTab === item.key
+                return (
+                  <button
+                    key={item.key}
+                    type='button'
+                    onClick={() => setSideTab(item.key)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 16,
+                      border: isActive ? 'none' : '1px solid transparent',
+                      background: isActive ? '#5850EC' : 'transparent',
+                      color: isActive ? '#fff' : '#64748b',
+                      fontWeight: isActive ? 700 : 600,
+                      fontSize: 13, cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' as const,
+                    }}
+                    className={isActive ? 'shadow-lg' : 'hover:bg-white hover:text-[#5850EC] hover:border-slate-100'}
+                  >
+                    <span style={{ fontSize: 18, transition: 'transform 0.2s' }}>{item.icon}</span>
+                    <span>{item.label}</span>
+                    {item.badge && !isActive && (
+                      <span style={{ marginLeft: 'auto', fontSize: 11, background: '#E0E7FF', color: '#4F46E5', fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>
+                        {item.badge} Aktif
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </nav>
+
+            {/* Subscription Card */}
+            <div style={{ marginTop: 24, background: 'linear-gradient(135deg, #EEF2FF, #F5F3FF)', borderRadius: 16, padding: 16, border: '1px solid rgba(224,231,255,0.7)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#4F46E5', fontWeight: 700, fontSize: 12, marginBottom: 4 }}>
+                <span style={{ fontSize: 14 }}>✨</span>
+                <span>Paket Belajar Aktif</span>
+              </div>
+              <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 12px' }}>Paket Pro 14 Hari berakhir dalam 9 hari lagi.</p>
+              <button type='button' style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#5850EC', background: '#fff', padding: '8px 12px', borderRadius: 12, border: '1px solid rgba(224,231,255,0.6)', cursor: 'pointer', width: '100%', transition: 'all 0.2s' }} className='hover:shadow'>
+                Kelola Langganan →
+              </button>
             </div>
           </div>
-          {sideItems.map((item) => (
-            <button
-              key={item.key}
-              type='button'
-              style={S.sideItem(sideTab === item.key)}
-              onClick={() => setSideTab(item.key)}
-            >
-              <span>{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-          <button
-            type='button'
-            style={S.parentModeBtn}
-            onClick={() => navigate('/orangtua')}
-          >
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#6c5ce7' }}>
-              Mode Orang Tua
+
+          {/* Parent Mode Card */}
+          <div style={{ marginTop: 24, background: '#fff', border: '2px dashed #C7D2FE', borderRadius: 16, padding: 16, textAlign: 'center', cursor: 'pointer', transition: 'border-color 0.2s' }} className='hover:border-[#6366F1]'>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#EEF2FF', color: '#5850EC', margin: '0 auto 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🔒</div>
+            <h2 style={{ fontSize: 12, fontWeight: 800, color: '#1e293b', margin: 0 }}>Mode Orang Tua</h2>
+            <p style={{ fontSize: 11, color: '#94a3b8', margin: '2px 0 8px' }}>Pantau waktu layar & limit nilai</p>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '4px 12px', fontSize: 11, fontWeight: 700, color: '#4F46E5', background: '#EEF2FF', borderRadius: 8 }}>
+              Aktifkan PIN 🔑
             </span>
-            <br />
-            <span style={{ fontSize: 11, color: '#999' }}>Aktifkan 🔒</span>
-          </button>
-        </nav>
+          </div>
+        </aside>
 
-        {/* Main Content */}
-        <main style={S.main}>
+        {/* ── Main Content ── */}
+        <main style={{ flex: 1, minWidth: 0 }}>
+          {/* ═══ HOME TAB ═══ */}
           {sideTab === 'home' && (
-            <>
-              {/* Header */}
-              <div style={S.header}>
-                <div>
-                  <h1
-                    style={{
-                      fontSize: 28,
-                      fontWeight: 700,
-                      margin: 0,
-                      fontFamily: 'var(--font-display)',
-                    }}
-                  >
-                    Halo, {user?.name?.split(' ')[0] ?? 'Teman'}! 👋
-                  </h1>
-                  <p style={{ fontSize: 13, color: '#999', margin: '2px 0 0' }}>
-                    {new Date().toLocaleDateString('id-ID', {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long',
-                    })}{' '}
-                    · Kelas {user?.grade ?? '?'} SD
-                  </p>
-                </div>
-                <div style={S.headerRight}>
-                  <div style={S.streakBadge}>🔥 {streak} Hari Streak</div>
-                  <div style={S.pointsBadge}>⭐ {totalPoints} Poin</div>
-                  {/* Notification bell */}
-                  <div ref={notifPanelRef} style={{ position: 'relative' }}>
-                    <button
-                      type='button'
-                      onClick={() => setShowNotifPanel((p) => !p)}
-                      style={{
-                        cursor: 'pointer',
-                        border: 'none',
-                        background: 'none',
-                        fontSize: 18,
-                        position: 'relative',
-                        padding: 4,
-                      }}
-                      title='Notifikasi'
-                    >
-                      🔔
-                      {unreadCount > 0 && (
-                        <span
-                          style={{
-                            position: 'absolute',
-                            top: -2,
-                            right: -4,
-                            background: '#ef4444',
-                            color: '#fff',
-                            fontSize: 9,
-                            fontWeight: 700,
-                            minWidth: 14,
-                            height: 14,
-                            borderRadius: 7,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '0 3px',
-                            lineHeight: 1,
-                          }}
-                        >
-                          {unreadCount > 99 ? '99+' : unreadCount}
-                        </span>
-                      )}
-                    </button>
-                    {showNotifPanel && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          width: 300,
-                          maxHeight: 400,
-                          overflowY: 'auto',
-                          background: '#fff',
-                          borderRadius: 12,
-                          boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                          border: '1px solid #e5e7eb',
-                          zIndex: 1000,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '12px 16px',
-                            borderBottom: '1px solid #f3f4f6',
-                          }}
-                        >
-                          <span style={{ fontWeight: 700, fontSize: 14 }}>
-                            Notifikasi
-                          </span>
-                          {unreadCount > 0 && (
-                            <button
-                              type='button'
-                              onClick={handleMarkAllRead}
-                              style={{
-                                fontSize: 11,
-                                color: '#6366f1',
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontWeight: 600,
-                              }}
-                            >
-                              Tandai semua dibaca
-                            </button>
-                          )}
-                        </div>
-                        {notifications.length === 0 ? (
-                          <p
-                            style={{
-                              textAlign: 'center',
-                              color: '#9ca3af',
-                              padding: 20,
-                              fontSize: 12,
-                            }}
-                          >
-                            Belum ada notifikasi
-                          </p>
-                        ) : (
-                          notifications.map((n) => (
-                            <div
-                              key={n.id}
-                              onClick={() => handleNotifClick(n)}
-                              style={{
-                                padding: '10px 14px',
-                                borderBottom: '1px solid #f9fafb',
-                                cursor: 'pointer',
-                                background: n.read ? '#fff' : '#f0f0ff',
-                                display: 'flex',
-                                gap: 8,
-                                alignItems: 'flex-start',
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = '#f5f5ff'
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = n.read
-                                  ? '#fff'
-                                  : '#f0f0ff'
-                              }}
-                            >
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <p
-                                  style={{
-                                    fontWeight: n.read ? 500 : 700,
-                                    fontSize: 12,
-                                    margin: 0,
-                                    color: '#1f2937',
-                                  }}
-                                >
-                                  {n.title}
-                                </p>
-                                <p
-                                  style={{
-                                    fontSize: 11,
-                                    color: '#6b7280',
-                                    margin: '2px 0 0',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                >
-                                  {n.message}
-                                </p>
-                              </div>
-                              {!n.read && (
-                                <span
-                                  style={{
-                                    width: 6,
-                                    height: 6,
-                                    borderRadius: '50%',
-                                    background: '#6366f1',
-                                    flexShrink: 0,
-                                    marginTop: 4,
-                                  }}
-                                />
-                              )}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div style={S.avatar}>
-                    {user?.name?.charAt(0).toUpperCase() ?? '?'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Stat Cards */}
-              <div style={S.statRow}>
-                <div style={S.statCard('🔥', '#fff3e0')}>
-                  <div style={S.statIcon('#fff3e0')}>🔥</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              {/* Welcome Banner */}
+              <section style={{ background: '#fff', borderRadius: 24, padding: '24px 28px', border: '1px solid #f1f5f9', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
                   <div>
-                    <p style={{ fontSize: 11, color: '#999', margin: 0 }}>
-                      Streak
-                    </p>
-                    <p style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
-                      {streak} Hari 🔥
-                    </p>
-                  </div>
-                </div>
-                <div style={S.statCard('✅', '#e8f8f5')}>
-                  <div style={S.statIcon('#e8f8f5')}>✅</div>
-                  <div>
-                    <p style={{ fontSize: 11, color: '#999', margin: 0 }}>
-                      Selesai Hari Ini
-                    </p>
-                    <p style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
-                      {completedCount} / {assignments.length || 0}
-                    </p>
-                  </div>
-                </div>
-                <div style={S.statCard('⚡', '#f0eeff')}>
-                  <div style={S.statIcon('#f0eeff')}>⚡</div>
-                  <div>
-                    <p style={{ fontSize: 11, color: '#999', margin: 0 }}>
-                      XP Hari Ini
-                    </p>
-                    <p
-                      style={{
-                        fontSize: 16,
-                        fontWeight: 700,
-                        margin: 0,
-                        color: '#6c5ce7',
-                      }}
-                    >
-                      +{completedCount * 60}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Active Mission */}
-              {activeAssignment && (
-                <div style={S.missionCard}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: '#ff6b35',
-                        background: '#fff3e0',
-                        padding: '3px 10px',
-                        borderRadius: 6,
-                        textTransform: 'uppercase',
-                        letterSpacing: 0.5,
-                      }}
-                    >
-                      🔴 Sedang Berjalan
-                    </span>
-                    <span style={S.progressBadge}>
-                      {(() => {
-                        const p = getAssignmentProgress(activeAssignment)
-                        return `${p.completed} of ${p.total} Done!`
-                      })()}
-                    </span>
-                  </div>
-                  <h2
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 700,
-                      margin: '0 0 4px',
-                      fontFamily: 'var(--font-display)',
-                    }}
-                  >
-                    {activeAssignment.title}
-                  </h2>
-                  <p style={{ fontSize: 13, color: '#999', margin: '0 0 4px' }}>
-                    {getSubjectName(
-                      activeAssignment.materialId
-                        ? moduleCache[activeAssignment.materialId]?.subjectId
-                        : null,
-                    )}{' '}
-                    · Bab{' '}
-                    {Math.ceil((assignments.indexOf(activeAssignment) + 1) / 2)}{' '}
-                    dari {assignments.length}
-                  </p>
-                  {(() => {
-                    const p = getAssignmentProgress(activeAssignment)
-                    return (
-                      <>
-                        <div style={S.progressBar}>
-                          <div
-                            style={{
-                              height: '100%',
-                              width: `${p.pct}%`,
-                              background:
-                                'linear-gradient(90deg, #ff7675, #fd79a8)',
-                              borderRadius: 999,
-                              transition: 'width 0.4s',
-                            }}
-                          />
-                        </div>
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            fontSize: 12,
-                            color: '#999',
-                          }}
-                        >
-                          <span>Mulai</span>
-                          <span>{p.pct}% Selesai</span>
-                          <span>Selesai</span>
-                        </div>
-                      </>
-                    )
-                  })()}
-                  <div style={S.missionActions}>
-                    <button
-                      type='button'
-                      style={S.missionBtn(true)}
-                      onClick={() => handleStartAssignment(activeAssignment)}
-                    >
-                      ▶ Lanjutkan Misi
-                    </button>
-                    <button
-                      type='button'
-                      style={S.missionBtn(false)}
-                      onClick={() =>
-                        activeAssignment.materialId &&
-                        navigate(`/modul/${activeAssignment.materialId}`)
-                      }
-                    >
-                      📚 Lihat Materi
-                    </button>
-                    <button
-                      type='button'
-                      style={{ ...S.missionBtn(false), padding: '10px 14px' }}
-                    >
-                      •••
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Mission Steps */}
-              {activeAssignment &&
-                (() => {
-                  const frames = getFilteredFrames(activeAssignment)
-                  if (frames.length === 0) return null
-                  return (
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: 20,
-                        marginBottom: 20,
-                      }}
-                    >
-                      <div style={S.stepsCard}>
-                        <h3 style={S.sectionTitle}>Langkah Misi</h3>
-                        {frames.map((frame, idx) => {
-                          const fp = getFrameProgress(
-                            activeAssignment.materialId,
-                            frame.id,
-                          )
-                          const isDone = fp?.completed ?? false
-                          return (
-                            <div key={frame.id} style={S.stepItem}>
-                              <div style={S.stepIcon(isDone)}>
-                                {isDone ? '✓' : idx + 1}
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <p
-                                  style={{
-                                    fontSize: 14,
-                                    fontWeight: 600,
-                                    margin: 0,
-                                  }}
-                                >
-                                  {frame.title}
-                                </p>
-                                <p
-                                  style={{
-                                    fontSize: 12,
-                                    color: '#999',
-                                    margin: '2px 0 0',
-                                  }}
-                                >
-                                  {isDone
-                                    ? 'Selesai'
-                                    : idx ===
-                                        frames.findIndex(
-                                          (f) =>
-                                            !getFrameProgress(
-                                              activeAssignment.materialId,
-                                              f.id,
-                                            )?.completed,
-                                        )
-                                      ? 'Terkunci · selesaikan dulu'
-                                      : 'Terkunci'}
-                                </p>
-                              </div>
-                              {isDone ? (
-                                <span
-                                  style={{
-                                    fontSize: 12,
-                                    fontWeight: 600,
-                                    color: '#00b894',
-                                  }}
-                                >
-                                  +{frame.kind === 'quiz' ? 50 : 40} XP
-                                </span>
-                              ) : (
-                                <button
-                                  type='button'
-                                  style={{
-                                    fontSize: 12,
-                                    padding: '6px 14px',
-                                    borderRadius: 8,
-                                    border: 'none',
-                                    background: '#6c5ce7',
-                                    color: '#fff',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                  }}
-                                  onClick={() =>
-                                    handleStartAssignment(activeAssignment)
-                                  }
-                                >
-                                  Mulai
-                                </button>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-
-                      {/* Quest History */}
-                      <div style={S.stepsCard}>
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: 12,
-                          }}
-                        >
-                          <h3 style={{ ...S.sectionTitle, margin: 0 }}>
-                            Riwayat Quest
-                          </h3>
-                          <span
-                            style={{
-                              fontSize: 12,
-                              color: '#6c5ce7',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            Lihat Semua
-                          </span>
-                        </div>
-                        <table style={S.questTable}>
-                          <thead>
-                            <tr style={{ borderBottom: '2px solid #f0f0f5' }}>
-                              <th
-                                style={{
-                                  textAlign: 'left',
-                                  padding: '8px 4px',
-                                  fontSize: 11,
-                                  color: '#999',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                QUEST NAME
-                              </th>
-                              <th
-                                style={{
-                                  textAlign: 'left',
-                                  padding: '8px 4px',
-                                  fontSize: 11,
-                                  color: '#999',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                SUBJECT
-                              </th>
-                              <th
-                                style={{
-                                  textAlign: 'left',
-                                  padding: '8px 4px',
-                                  fontSize: 11,
-                                  color: '#999',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                EXP EARNED
-                              </th>
-                              <th
-                                style={{
-                                  textAlign: 'left',
-                                  padding: '8px 4px',
-                                  fontSize: 11,
-                                  color: '#999',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                STATUS
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {frames.map((frame) => {
-                              const fp = getFrameProgress(
-                                activeAssignment.materialId,
-                                frame.id,
-                              )
-                              const isDone = fp?.completed ?? false
-                              const subName =
-                                getSubjectName(
-                                  activeAssignment.materialId
-                                    ? moduleCache[activeAssignment.materialId]
-                                        ?.subjectId
-                                    : null,
-                                ) || 'Math'
-                              return (
-                                <tr
-                                  key={frame.id}
-                                  style={{ borderBottom: '1px solid #f3f3f7' }}
-                                >
-                                  <td
-                                    style={{
-                                      padding: '8px 4px',
-                                      fontWeight: 500,
-                                    }}
-                                  >
-                                    {frame.title}
-                                  </td>
-                                  <td
-                                    style={{
-                                      padding: '8px 4px',
-                                      color: '#999',
-                                    }}
-                                  >
-                                    {subName}
-                                  </td>
-                                  <td
-                                    style={{
-                                      padding: '8px 4px',
-                                      color: '#999',
-                                    }}
-                                  >
-                                    {isDone
-                                      ? `${frame.kind === 'quiz' ? 50 : 40} XP`
-                                      : '—'}
-                                  </td>
-                                  <td style={{ padding: '8px 4px' }}>
-                                    <span
-                                      style={{
-                                        fontSize: 11,
-                                        fontWeight: 600,
-                                        padding: '3px 10px',
-                                        borderRadius: 6,
-                                        background: isDone
-                                          ? '#d5f5ec'
-                                          : '#f0eeff',
-                                        color: isDone ? '#00b894' : '#6c5ce7',
-                                      }}
-                                    >
-                                      {isDone ? 'Selesai' : 'Mulai'}
-                                    </span>
-                                  </td>
-                                </tr>
-                              )
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', margin: 0 }}>Halo, {user?.name?.split(' ')[0] ?? 'Teman'}!</h1>
+                      <span style={{ fontSize: 28 }}>👋</span>
                     </div>
-                  )
-                })()}
-
-              {/* Empty state */}
-              {!activeAssignment && !assignmentsLoading && (
-                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                  <p style={{ fontSize: 48, marginBottom: 12 }}>📝</p>
-                  <p style={{ color: '#999', fontSize: 14, marginBottom: 16 }}>
-                    Semua tugas sudah selesai! 🎉
-                  </p>
+                    <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 0' }}>
+                      {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })} · <span style={{ color: '#5850EC', fontWeight: 600 }}>Kelas {user?.grade ?? '?'} SD</span> · Siap menaklukkan misi belajarmu hari ini?
+                    </p>
+                  </div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'linear-gradient(90deg, rgba(245,158,11,0.1), rgba(99,102,241,0.1))', border: '1px solid rgba(199,210,254,0.5)', padding: '8px 16px', borderRadius: 16, flexShrink: 0 }}>
+                    <span style={{ fontSize: 18 }}>🎯</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>Target Hari Ini: <strong>{assignments.filter(a => a.status !== 'completed').length} Misi Lagi</strong></span>
+                  </div>
                 </div>
-              )}
+                {/* Decorative blob */}
+                <div style={{ position: 'absolute', right: -32, bottom: -32, width: 176, height: 176, borderRadius: '50%', background: 'rgba(238,242,255,0.8)', filter: 'blur(40px)', pointerEvents: 'none' }} />
+              </section>
 
-              {assignmentsLoading && (
-                <p
-                  style={{
-                    color: '#999',
-                    fontSize: 13,
-                    textAlign: 'center',
-                    padding: 20,
-                  }}
-                >
-                  Memuat tugas...
-                </p>
-              )}
-            </>
+              {/* KPI Metric Cards */}
+              <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+                {[
+                  { icon: '🔥', label: 'Streak Belajar', value: `${streak} Hari`, sub: '/ 7 target', badge: '+1 Hari', badgeBg: '#FEF3C7', badgeColor: '#92400e', hoverBorder: '#FCD34D' },
+                  { icon: '✅', label: 'Selesai Hari Ini', value: `${completedCount}`, sub: `/ ${assignments.length || 0} Misi`, badge: `${assignments.length > 0 ? Math.round((completedCount / assignments.length) * 100) : 0}%`, badgeBg: '#ECFDF5', badgeColor: '#065F46', hoverBorder: '#6EE7B7' },
+                  { icon: '⚡', label: 'XP Hari Ini', value: `+${totalPoints}`, sub: 'XP', badge: totalPoints > 0 ? 'Naik Level!' : 'Mulai!', badgeBg: '#EEF2FF', badgeColor: '#4338CA', hoverBorder: '#A5B4FC', valueColor: '#5850EC' },
+                  { icon: '⏱️', label: 'Waktu Belajar', value: `${inProgressCount * 15 + completedCount * 10}`, sub: 'Menit', badge: 'Fokus', badgeBg: '#F5F3FF', badgeColor: '#6D28D9', hoverBorder: '#C4B5FD' },
+                ].map((kpi, i) => (
+                  <div key={i} style={{ background: '#fff', borderRadius: 16, padding: '20px 16px', border: '1px solid #f1f5f9', transition: 'border-color 0.2s' }} className='hover:shadow-sm' /* @ts-ignore */ onMouseEnter={(e: any) => e.currentTarget.style.borderColor = kpi.hoverBorder} onMouseLeave={(e: any) => e.currentTarget.style.borderColor = '#f1f5f9'}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 16, background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{kpi.icon}</div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: kpi.badgeColor, background: kpi.badgeBg, padding: '2px 8px', borderRadius: 12 }}>{kpi.badge}</span>
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8' }}>{kpi.label}</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: kpi.valueColor || '#0f172a', marginTop: 2, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                      {kpi.value}
+                      <span style={{ fontSize: 12, fontWeight: 500, color: '#94a3b8' }}>{kpi.sub}</span>
+                    </div>
+                  </div>
+                ))}
+              </section>
+
+              {/* Active Tasks Section */}
+              <section style={{ background: '#fff', borderRadius: 24, padding: '24px 28px', border: '1px solid #f1f5f9' }}>
+                {/* Header & Filter */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>Misi Belajar Hari Ini</span>
+                      <span style={{ fontSize: 16 }}>🎯</span>
+                    </h2>
+                    <p style={{ fontSize: 12, color: '#94a3b8', margin: '2px 0 0' }}>Selesaikan tugas interaktif untuk raih koin bintang & trofi</p>
+                  </div>
+                  {/* Subject filter */}
+                  <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: 4, borderRadius: 12, fontSize: 12, fontWeight: 600 }}>
+                    <button type='button' onClick={() => setSubjectFilter('all')}
+                      style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: subjectFilter === 'all' ? '#fff' : 'transparent', color: subjectFilter === 'all' ? '#0f172a' : '#64748b', fontWeight: subjectFilter === 'all' ? 700 : 600, cursor: 'pointer', fontSize: 12, boxShadow: subjectFilter === 'all' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none', transition: 'all 0.2s' }}>
+                      Semua ({assignments.length})
+                    </button>
+                    {Object.entries(subjectGroups).slice(0, 3).map(([name, count]) => (
+                      <button key={name} type='button' onClick={() => setSubjectFilter(name)}
+                        style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: subjectFilter === name ? '#fff' : 'transparent', color: subjectFilter === name ? '#0f172a' : '#64748b', fontWeight: subjectFilter === name ? 700 : 600, cursor: 'pointer', fontSize: 12, boxShadow: subjectFilter === name ? '0 1px 3px rgba(0,0,0,0.08)' : 'none', transition: 'all 0.2s' }}>
+                        {name} ({count})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Task Cards */}
+                {assignmentsLoading ? (
+                  <p style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: 40 }}>Memuat tugas...</p>
+                ) : filteredAssignments.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '48px 20px' }}>
+                    <p style={{ fontSize: 48, marginBottom: 12 }}>📝</p>
+                    <p style={{ color: '#94a3b8', fontSize: 14 }}>Semua tugas sudah selesai! 🎉</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {filteredAssignments
+                      .filter(a => subjectFilter === 'all' || getSubjectName(a.materialId ? moduleCache[a.materialId]?.subjectId : null) === subjectFilter)
+                      .map((a) => {
+                        const mod = a.materialId ? moduleCache[a.materialId] : null
+                        const progress = getAssignmentProgress(a)
+                        const isCompleted = progress.total > 0 && progress.completed === progress.total
+                        const statusInfo = getTaskStatusColor(a)
+                        const statusLabel = getTaskStatusLabel(a)
+
+                        return (
+                          <div key={a.id}
+                            style={{
+                              border: isCompleted ? '1px solid #f1f5f9' : `1px solid ${a.status === 'overdue' ? '#FCA5A5' : progress.pct > 0 ? '#C7D2FE' : '#e2e8f0'}`,
+                              background: isCompleted ? 'rgba(248,250,252,0.7)' : a.status === 'overdue' ? 'rgba(254,242,242,0.3)' : progress.pct > 0 ? 'rgba(238,242,255,0.3)' : '#fff',
+                              borderRadius: 16, padding: '20px', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, transition: 'all 0.2s',
+                            }}
+                            className='group'
+                          >
+                            {/* Left: Icon + Info */}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                              <div style={{ width: 48, height: 48, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, ...(
+                                isCompleted ? { background: '#FEE2E2', color: '#E11D48' } :
+                                a.status === 'overdue' ? { background: '#FEF3C7', color: '#D97706' } :
+                                progress.pct > 0 ? { background: '#5850EC', color: '#fff', boxShadow: '0 4px 12px rgba(88,80,236,0.2)' } :
+                                { background: '#ECFDF5', color: '#059669' }
+                              ) }}>
+                                {statusInfo.icon}
+                              </div>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span style={{ fontSize: 11, fontWeight: 800, color: isCompleted ? '#BE185D' : a.status === 'overdue' ? '#B91C1C' : progress.pct > 0 ? '#4338CA' : '#065F46', background: isCompleted ? '#FCE7F3' : a.status === 'overdue' ? '#FEE2E2' : progress.pct > 0 ? '#E0E7FF' : '#ECFDF5', padding: '2px 8px', borderRadius: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                    {getSubjectName(mod?.subjectId) || 'Tugas'}
+                                  </span>
+                                  <span style={{ fontSize: 12, color: statusLabel.color }}>{statusLabel.label}</span>
+                                </div>
+                                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '4px 0', textDecoration: isCompleted ? 'line-through' : 'none', textDecorationColor: '#94a3b8' }}>{a.title}</h3>
+                                {progress.total > 0 && !isCompleted && (
+                                  <div style={{ width: 256, paddingTop: 4 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 4 }}>
+                                      <span>{progress.completed} dari {progress.total} Soal</span>
+                                      <span style={{ color: '#5850EC', fontWeight: 700 }}>{progress.pct}%</span>
+                                    </div>
+                                    <div style={{ width: '100%', height: 8, background: '#e2e8f0', borderRadius: 999, overflow: 'hidden' }}>
+                                      <div style={{ height: '100%', width: `${progress.pct}%`, background: '#5850EC', borderRadius: 999, transition: 'width 0.4s' }} />
+                                    </div>
+                                  </div>
+                                )}
+                                {isCompleted && (
+                                  <p style={{ fontSize: 12, color: '#94a3b8', margin: '2px 0 0' }}>Nilai: {Math.round(progress.pct * 1.05)}/100 · {progress.pct >= 80 ? 'Fantastis!' : 'Bagus!'}</p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Right: Points + Action */}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: isCompleted ? '#065F46' : '#92400e', background: isCompleted ? '#ECFDF5' : '#FEF3C7', padding: '4px 10px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                {isCompleted ? '✅' : '⭐'} {isCompleted ? `+${progress.total * 10} Poin Didapat` : `+${Math.round(progress.total * 10 * (1 - progress.pct/100))} Poin`}
+                              </span>
+                              {isCompleted ? (
+                                <button type='button' style={{ padding: '8px 16px', background: '#fff', color: '#64748b', fontSize: 12, fontWeight: 600, borderRadius: 12, border: '1px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.2s' }}
+                                  className='hover:bg-slate-50'>
+                                  Ulas Jawaban
+                                </button>
+                              ) : a.materialId ? (
+                                <button type='button' style={{ padding: '10px 20px', background: progress.pct > 0 ? '#5850EC' : '#059669', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', boxShadow: progress.pct > 0 ? '0 4px 12px rgba(88,80,236,0.2)' : '0 4px 12px rgba(5,150,105,0.2)' }}
+                                  onClick={() => handleStartAssignment(a)}>
+                                  <span>{progress.pct > 0 ? 'Lanjutkan' : 'Mulai Belajar'}</span>
+                                  <svg style={{ width: 14, height: 14 }} fill='none' stroke='currentColor' strokeWidth={2.5} viewBox='0 0 24 24'><path d='M9 5l7 7-7 7' strokeLinecap='round' strokeLinejoin='round' /></svg>
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        )
+                      })}
+                  </div>
+                )}
+              </section>
+
+              {/* Weekly Challenge Banner */}
+              <section style={{ borderRadius: 24, background: 'linear-gradient(135deg, #5850EC 0%, #7C3AED 100%)', padding: '24px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, boxShadow: '0 16px 40px -8px rgba(88,80,236,0.3)' }}>
+                <div>
+                  <span style={{ display: 'inline-block', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: '#fff' }}>
+                    ⚔️ Tantangan Mingguan
+                  </span>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: '#fff', margin: '8px 0 4px', letterSpacing: '-0.025em' }}>Cerdas Cermat Sains Antar Kelas</h2>
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', maxWidth: 600 }}>Ajak temanmu bersaing secara live setiap hari Jumat pukul 16.00 WIB. Dapatkan lencana langka & medali kehormatan!</p>
+                </div>
+                <button type='button' style={{ background: '#fff', color: '#4F46E5', fontWeight: 700, fontSize: 12, padding: '12px 20px', borderRadius: 16, border: 'none', cursor: 'pointer', boxShadow: '0 8px 20px rgba(0,0,0,0.1)', flexShrink: 0, transition: 'all 0.2s' }} className='hover:shadow-lg'>
+                  Daftar Tantangan 🔔
+                </button>
+              </section>
+            </div>
           )}
 
+          {/* ═══ MISSIONS TAB ═══ */}
           {sideTab === 'missions' && (
-            <>
-              <h1
-                style={{
-                  fontSize: 24,
-                  fontWeight: 700,
-                  margin: '0 0 4px',
-                  fontFamily: 'var(--font-display)',
-                }}
-              >
-                🚀 Missions
-              </h1>
-              <p style={{ fontSize: 13, color: '#999', marginBottom: 20 }}>
-                Semua tugas yang diberikan orang tua
-              </p>
+            <div>
+              <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 4px' }}>🚀 Misi Belajar</h1>
+              <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 20 }}>Semua tugas yang diberikan orang tua</p>
+
               {/* Search & Sort */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                <input
-                  type='text'
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder='🔍 Cari tugas...'
-                  style={{ ...S.input, flex: 1, maxWidth: 280 }}
-                />
-                <select
-                  value={sortOrder}
-                  onChange={(e) =>
-                    setSortOrder(e.target.value as typeof sortOrder)
-                  }
-                  style={S.select}
-                >
+                <input type='text' value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder='🔍 Cari tugas...' style={{ flex: 1, maxWidth: 280, padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 13, outline: 'none', background: '#fff' }} />
+                <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)} style={{ padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 13, outline: 'none', background: '#fff', cursor: 'pointer' }}>
                   <option value='newest'>Terbaru</option>
                   <option value='oldest'>Terlama</option>
                   <option value='deadline'>Deadline</option>
                   <option value='status'>Status</option>
                 </select>
               </div>
+
               {filteredAssignments.length === 0 ? (
-                <p
-                  style={{
-                    color: '#bbb',
-                    fontSize: 13,
-                    textAlign: 'center',
-                    padding: 20,
-                  }}
-                >
-                  Tidak ada tugas ditemukan.
-                </p>
+                <p style={{ color: '#cbd5e1', fontSize: 13, textAlign: 'center', padding: 40 }}>Tidak ada tugas ditemukan.</p>
               ) : (
-                <div
-                  style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
-                >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {filteredAssignments.map((a) => {
                     const mod = a.materialId ? moduleCache[a.materialId] : null
                     const progress = getAssignmentProgress(a)
-                    const isCompleted =
-                      progress.total > 0 &&
-                      progress.completed === progress.total
-                    let cardBg = '#fff'
-                    let cardBorder = '1px solid #eee'
-                    if (!isCompleted && a.dueDate) {
-                      const hoursLeft =
-                        (new Date(a.dueDate).getTime() - Date.now()) /
-                        (1000 * 60 * 60)
-                      if (hoursLeft < 0) {
-                        cardBg = 'rgba(239,68,68,0.04)'
-                        cardBorder = '1.5px solid #ef4444'
-                      } else if (hoursLeft <= 24) {
-                        cardBg = 'rgba(245,158,11,0.04)'
-                        cardBorder = '1.5px solid #f59e0b'
-                      }
-                    }
+                    const isCompleted = progress.total > 0 && progress.completed === progress.total
+
                     return (
-                      <div
-                        key={a.id}
-                        style={{
-                          background: cardBg,
-                          border: cardBorder,
-                          borderRadius: 14,
-                          padding: 18,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'flex-start',
-                            marginBottom: 8,
-                          }}
-                        >
+                      <div key={a.id} style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: 16, padding: 18 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                           <div>
-                            <p
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 600,
-                                color: '#6c5ce7',
-                                margin: '0 0 2px',
-                              }}
-                            >
-                              {getSubjectName(mod?.subjectId) || 'Tugas'}
-                            </p>
-                            <h3
-                              style={{
-                                fontSize: 16,
-                                fontWeight: 700,
-                                margin: 0,
-                              }}
-                            >
-                              {a.title}
-                            </h3>
-                            <p
-                              style={{
-                                fontSize: 12,
-                                color: '#999',
-                                margin: '4px 0 0',
-                              }}
-                            >
-                              {a.dueDate
-                                ? `📅 ${new Date(a.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}`
-                                : 'Tanpa deadline'}
+                            <p style={{ fontSize: 11, fontWeight: 700, color: '#5850EC', margin: '0 0 2px' }}>{getSubjectName(mod?.subjectId) || 'Tugas'}</p>
+                            <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#0f172a' }}>{a.title}</h3>
+                            <p style={{ fontSize: 12, color: '#94a3b8', margin: '4px 0 0' }}>
+                              {a.dueDate ? `📅 ${new Date(a.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}` : 'Tanpa deadline'}
                             </p>
                           </div>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 600,
-                              padding: '3px 10px',
-                              borderRadius: 6,
-                              background: isCompleted
-                                ? '#d5f5ec'
-                                : progress.pct > 0
-                                  ? '#f0eeff'
-                                  : '#f5f5f5',
-                              color: isCompleted
-                                ? '#00b894'
-                                : progress.pct > 0
-                                  ? '#6c5ce7'
-                                  : '#999',
-                            }}
-                          >
-                            {isCompleted
-                              ? '✅ Selesai'
-                              : progress.pct > 0
-                                ? `${progress.pct}%`
-                                : 'Menunggu'}
+                          <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 6, background: isCompleted ? '#ECFDF5' : progress.pct > 0 ? '#EEF2FF' : '#f8fafc', color: isCompleted ? '#059669' : progress.pct > 0 ? '#5850EC' : '#94a3b8' }}>
+                            {isCompleted ? '✅ Selesai' : progress.pct > 0 ? `${progress.pct}%` : 'Menunggu'}
                           </span>
                         </div>
-                        <div
-                          style={{
-                            height: 5,
-                            borderRadius: 999,
-                            background: '#f0f0f5',
-                            overflow: 'hidden',
-                            marginBottom: 8,
-                          }}
-                        >
-                          <div
-                            style={{
-                              height: '100%',
-                              width: `${progress.pct}%`,
-                              background: isCompleted ? '#00b894' : '#6c5ce7',
-                              borderRadius: 999,
-                            }}
-                          />
+                        <div style={{ height: 4, borderRadius: 999, background: '#f1f5f9', overflow: 'hidden', marginBottom: 8 }}>
+                          <div style={{ height: '100%', width: `${progress.pct}%`, background: isCompleted ? '#059669' : '#5850EC', borderRadius: 999 }} />
                         </div>
                         <div style={{ display: 'flex', gap: 8 }}>
                           {a.materialId && progress.pct < 100 && (
-                            <button
-                              type='button'
-                              style={{
-                                fontSize: 12,
-                                padding: '6px 14px',
-                                borderRadius: 8,
-                                border: 'none',
-                                background: '#6c5ce7',
-                                color: '#fff',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                              }}
-                              onClick={() => handleStartAssignment(a)}
-                            >
+                            <button type='button' style={{ fontSize: 12, padding: '6px 14px', borderRadius: 8, border: 'none', background: '#5850EC', color: '#fff', fontWeight: 600, cursor: 'pointer' }}
+                              onClick={() => handleStartAssignment(a)}>
                               {progress.pct > 0 ? 'Lanjutkan →' : 'Kerjakan →'}
                             </button>
                           )}
-                          <button
-                            type='button'
-                            style={{
-                              fontSize: 12,
-                              padding: '6px 14px',
-                              borderRadius: 8,
-                              border: '1px solid #ddd',
-                              background: '#fff',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                            }}
-                            onClick={() =>
-                              setExpandedAssignment(
-                                expandedAssignment === a.id ? null : a.id,
-                              )
-                            }
-                          >
+                          <button type='button' style={{ fontSize: 12, padding: '6px 14px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', fontWeight: 600, cursor: 'pointer', color: '#334155' }}
+                            onClick={() => setExpandedAssignment(expandedAssignment === a.id ? null : a.id)}>
                             💬 Tanya ({(questions[a.id] ?? []).length})
                           </button>
                         </div>
-                        {/* Questions inline */}
                         {expandedAssignment === a.id && (
-                          <div
-                            style={{
-                              marginTop: 12,
-                              padding: 12,
-                              background: '#f8f7ff',
-                              borderRadius: 10,
-                              border: '1px solid #eee',
-                            }}
-                          >
+                          <div style={{ marginTop: 12, padding: 12, background: '#f8fafc', borderRadius: 10, border: '1px solid #f1f5f9' }}>
                             {(questions[a.id] ?? []).map((q) => (
                               <div key={q.id} style={{ marginBottom: 8 }}>
-                                <p
-                                  style={{
-                                    fontSize: 12,
-                                    fontWeight: 600,
-                                    margin: 0,
-                                  }}
-                                >
-                                  ❓ {q.question}
-                                </p>
+                                <p style={{ fontSize: 12, fontWeight: 600, margin: 0 }}>❓ {q.question}</p>
                                 {q.reply ? (
-                                  <p
-                                    style={{
-                                      fontSize: 12,
-                                      color: '#00b894',
-                                      margin: '4px 0 0',
-                                      paddingLeft: 12,
-                                      borderLeft: '2px solid #00b894',
-                                    }}
-                                  >
-                                    💬 {q.reply}
-                                  </p>
+                                  <p style={{ fontSize: 12, color: '#059669', margin: '4px 0 0', paddingLeft: 12, borderLeft: '2px solid #059669' }}>💬 {q.reply}</p>
                                 ) : (
-                                  <p
-                                    style={{
-                                      fontSize: 11,
-                                      color: '#999',
-                                      margin: '4px 0 0',
-                                      fontStyle: 'italic',
-                                    }}
-                                  >
-                                    Menunggu balasan...
-                                  </p>
+                                  <p style={{ fontSize: 11, color: '#94a3b8', margin: '4px 0 0', fontStyle: 'italic' }}>Menunggu balasan...</p>
                                 )}
                               </div>
                             ))}
-                            <div
-                              style={{ display: 'flex', gap: 6, marginTop: 8 }}
-                            >
-                              <input
-                                type='text'
-                                value={newQuestion}
-                                onChange={(e) => setNewQuestion(e.target.value)}
-                                placeholder='Ketik pertanyaan...'
-                                style={{ ...S.input, flex: 1 }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && !sendingQuestion)
-                                    handleSendQuestion(a.id)
-                                }}
-                              />
-                              <button
-                                type='button'
-                                style={{
-                                  fontSize: 12,
-                                  padding: '6px 14px',
-                                  borderRadius: 8,
-                                  border: 'none',
-                                  background: '#6c5ce7',
-                                  color: '#fff',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                }}
-                                onClick={() => handleSendQuestion(a.id)}
-                                disabled={
-                                  sendingQuestion || !newQuestion.trim()
-                                }
-                              >
+                            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                              <input type='text' value={newQuestion} onChange={(e) => setNewQuestion(e.target.value)} placeholder='Ketik pertanyaan...' style={{ flex: 1, padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 13, outline: 'none' }}
+                                onKeyDown={(e) => { if (e.key === 'Enter' && !sendingQuestion) handleSendQuestion(a.id) }} />
+                              <button type='button' style={{ fontSize: 12, padding: '6px 14px', borderRadius: 8, border: 'none', background: '#5850EC', color: '#fff', fontWeight: 600, cursor: 'pointer' }}
+                                onClick={() => handleSendQuestion(a.id)} disabled={sendingQuestion || !newQuestion.trim()}>
                                 {sendingQuestion ? '...' : 'Kirim'}
                               </button>
                             </div>
@@ -1583,371 +596,220 @@ export default function ChildDashboard() {
                   })}
                 </div>
               )}
-            </>
+            </div>
           )}
 
+          {/* ═══ TROPHIES TAB ═══ */}
           {sideTab === 'trophies' && (
             <div style={{ textAlign: 'center', padding: '60px 20px' }}>
               <p style={{ fontSize: 64, marginBottom: 12 }}>🏆</p>
-              <h2 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 8px' }}>
-                Trophies
-              </h2>
-              <p style={{ color: '#999', fontSize: 14 }}>
-                Selesaikan misi untuk mengumpulkan piala!
-              </p>
-              <div
-                style={{
-                  display: 'flex',
-                  gap: 16,
-                  justifyContent: 'center',
-                  marginTop: 24,
-                  flexWrap: 'wrap',
-                }}
-              >
-                {completedCount >= 1 && (
-                  <div style={{ width: 80, textAlign: 'center' }}>
-                    <div style={{ fontSize: 40 }}>🥉</div>
-                    <p style={{ fontSize: 11, fontWeight: 600 }}>Pertama</p>
-                  </div>
-                )}
-                {completedCount >= 3 && (
-                  <div style={{ width: 80, textAlign: 'center' }}>
-                    <div style={{ fontSize: 40 }}>🥈</div>
-                    <p style={{ fontSize: 11, fontWeight: 600 }}>Rajin</p>
-                  </div>
-                )}
-                {completedCount >= 5 && (
-                  <div style={{ width: 80, textAlign: 'center' }}>
-                    <div style={{ fontSize: 40 }}>🥇</div>
-                    <p style={{ fontSize: 11, fontWeight: 600 }}>Ahli</p>
-                  </div>
-                )}
-                {completedCount < 1 && (
-                  <p style={{ color: '#ccc', fontSize: 13 }}>
-                    Selesaikan misi pertama untuk mendapatkan piala!
-                  </p>
-                )}
+              <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 8px' }}>Trofi & Prestasi</h2>
+              <p style={{ color: '#94a3b8', fontSize: 14 }}>Selesaikan misi untuk mengumpulkan piala!</p>
+              <div style={{ display: 'flex', gap: 24, justifyContent: 'center', marginTop: 24, flexWrap: 'wrap' }}>
+                {completedCount >= 1 && <div style={{ width: 80, textAlign: 'center' }}><div style={{ fontSize: 40 }}>🥉</div><p style={{ fontSize: 11, fontWeight: 600 }}>Pertama</p></div>}
+                {completedCount >= 3 && <div style={{ width: 80, textAlign: 'center' }}><div style={{ fontSize: 40 }}>🥈</div><p style={{ fontSize: 11, fontWeight: 600 }}>Rajin</p></div>}
+                {completedCount >= 5 && <div style={{ width: 80, textAlign: 'center' }}><div style={{ fontSize: 40 }}>🥇</div><p style={{ fontSize: 11, fontWeight: 600 }}>Ahli</p></div>}
+                {completedCount < 1 && <p style={{ color: '#cbd5e1', fontSize: 13 }}>Selesaikan misi pertama untuk mendapatkan piala!</p>}
               </div>
             </div>
           )}
 
+          {/* ═══ MODULES TAB ═══ */}
+          {sideTab === 'modules' && (
+            <div>
+              <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 4px' }}>📚 Modul Pelajaran</h1>
+              <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 20 }}>Modul yang sudah ditugaskan oleh orang tua</p>
+              {assignments.filter(a => a.materialId).length === 0 ? (
+                <p style={{ color: '#cbd5e1', fontSize: 13, textAlign: 'center', padding: 40 }}>Belum ada modul pelajaran.</p>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+                  {assignments.filter(a => a.materialId).map((a) => {
+                    const mod = moduleCache[a.materialId!]
+                    if (!mod) return null
+                    return (
+                      <div key={a.id} style={{ background: '#fff', borderRadius: 16, padding: 20, border: '1px solid #f1f5f9', cursor: 'pointer', transition: 'all 0.2s' }}
+                        className='hover:shadow-md' onClick={() => navigate(`/modul/${a.materialId}`)}>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 4px', color: '#0f172a' }}>{mod.title}</h3>
+                        <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 8px' }}>{getSubjectName(mod.subjectId)}</p>
+                        <div style={{ height: 4, borderRadius: 999, background: '#f1f5f9', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${getAssignmentProgress(a).pct}%`, background: '#5850EC', borderRadius: 999 }} />
+                        </div>
+                        <p style={{ fontSize: 11, color: '#94a3b8', margin: '6px 0 0' }}>{mod.frames.length} frame</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ═══ REPORTS TAB ═══ */}
+          {sideTab === 'reports' && (
+            <div>
+              <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 4px' }}>📊 Rapor Belajar</h1>
+              <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 20 }}>Ringkasan perkembangan belajar</p>
+              <div style={{ background: '#fff', borderRadius: 16, padding: 24, border: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                  <div style={{ textAlign: 'center', padding: 20, background: '#f8fafc', borderRadius: 12 }}>
+                    <div style={{ fontSize: 32, fontWeight: 800, color: '#5850EC' }}>{completedCount}</div>
+                    <div style={{ fontSize: 12, color: '#94a3b8' }}>Misi Selesai</div>
+                  </div>
+                  <div style={{ textAlign: 'center', padding: 20, background: '#f8fafc', borderRadius: 12 }}>
+                    <div style={{ fontSize: 32, fontWeight: 800, color: '#f59e0b' }}>{totalPoints}</div>
+                    <div style={{ fontSize: 12, color: '#94a3b8' }}>Total Poin</div>
+                  </div>
+                  <div style={{ textAlign: 'center', padding: 20, background: '#f8fafc', borderRadius: 12 }}>
+                    <div style={{ fontSize: 32, fontWeight: 800, color: '#059669' }}>{streak}</div>
+                    <div style={{ fontSize: 12, color: '#94a3b8' }}>Hari Streak</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ═══ PROFILE TAB ═══ */}
           {sideTab === 'profile' && (
             <div>
-              <h1
-                style={{
-                  fontSize: 24,
-                  fontWeight: 700,
-                  margin: '0 0 20px',
-                  fontFamily: 'var(--font-display)',
-                }}
-              >
-                👤 Profil
-              </h1>
-              <div
-                style={{
-                  background: '#fff',
-                  borderRadius: 16,
-                  padding: 24,
-                  maxWidth: 400,
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 16,
-                    marginBottom: 20,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: '50%',
-                      background: '#6c5ce7',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#fff',
-                      fontWeight: 700,
-                      fontSize: 28,
-                    }}
-                  >
+              <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 20px' }}>👤 Profil Saya</h1>
+              <div style={{ background: '#fff', borderRadius: 16, padding: 24, maxWidth: 400, border: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+                  <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#5850EC', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 28, boxShadow: '0 4px 12px rgba(88,80,236,0.2)' }}>
                     {user?.name?.charAt(0).toUpperCase() ?? '?'}
                   </div>
                   <div>
-                    <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>
-                      {user?.name}
-                    </h2>
-                    <p
-                      style={{ fontSize: 13, color: '#999', margin: '2px 0 0' }}
-                    >
-                      {user?.email}
-                    </p>
+                    <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>{user?.name}</h2>
+                    <p style={{ fontSize: 13, color: '#94a3b8', margin: '2px 0 0' }}>{user?.email}</p>
                   </div>
                 </div>
-                <div
-                  style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      padding: '8px 0',
-                      borderBottom: '1px solid #f3f3f7',
-                    }}
-                  >
-                    <span style={{ color: '#999', fontSize: 13 }}>Kelas</span>
-                    <span style={{ fontWeight: 600, fontSize: 13 }}>
-                      {user?.grade ?? '?'} SD
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      padding: '8px 0',
-                      borderBottom: '1px solid #f3f3f7',
-                    }}
-                  >
-                    <span style={{ color: '#999', fontSize: 13 }}>
-                      Semester
-                    </span>
-                    <span style={{ fontWeight: 600, fontSize: 13 }}>
-                      {user?.semester ?? '?'}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      padding: '8px 0',
-                      borderBottom: '1px solid #f3f3f7',
-                    }}
-                  >
-                    <span style={{ color: '#999', fontSize: 13 }}>
-                      Misi Selesai
-                    </span>
-                    <span style={{ fontWeight: 600, fontSize: 13 }}>
-                      {completedCount}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      padding: '8px 0',
-                    }}
-                  >
-                    <span style={{ color: '#999', fontSize: 13 }}>
-                      Total Poin
-                    </span>
-                    <span
-                      style={{
-                        fontWeight: 700,
-                        fontSize: 14,
-                        color: '#6c5ce7',
-                      }}
-                    >
-                      ⭐ {totalPoints}
-                    </span>
-                  </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[
+                    { label: 'Kelas', value: `${user?.grade ?? '?'} SD` },
+                    { label: 'Semester', value: `${user?.semester ?? '?'}` },
+                    { label: 'Misi Selesai', value: `${completedCount}` },
+                    { label: 'Total Poin', value: `⭐ ${totalPoints}`, color: '#5850EC', fontWeight: 700 },
+                  ].map((item, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
+                      <span style={{ color: '#94a3b8', fontSize: 13 }}>{item.label}</span>
+                      <span style={{ fontWeight: (item as any).fontWeight || 600, fontSize: 13, color: (item as any).color || '#0f172a' }}>{item.value}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
           )}
         </main>
 
-        {/* Right Panel (Home only) */}
+        {/* ── Right Panel (Home only) ── */}
         {sideTab === 'home' && (
-          <aside
-            style={{
-              width: 300,
-              flexShrink: 0,
-              padding: '48px 20px 64px 0',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 20,
-            }}
-          >
-            {/* Daily Reward */}
-            <div style={S.rewardCard}>
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 16,
-                  right: 16,
-                  width: 60,
-                  height: 60,
-                  borderRadius: '50%',
-                  background: 'rgba(255,255,255,0.2)',
-                }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: 20,
-                  right: 30,
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  background: 'rgba(255,255,255,0.15)',
-                }}
-              />
-              <p
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  background: 'rgba(255,255,255,0.3)',
-                  display: 'inline-block',
-                  padding: '3px 10px',
-                  borderRadius: 6,
-                  marginBottom: 10,
-                }}
-              >
-                🎁 Reward
-              </p>
-              <h3 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 8px' }}>
-                Klaim Hadiah Harianmu! 🎁
-              </h3>
-              <p style={{ fontSize: 13, opacity: 0.9, margin: '0 0 12px' }}>
-                Kumpulkan bintang setiap hari untuk membuka skin spesial.
-              </p>
-              <button type='button' style={S.rewardBtn}>
-                🎁 Klaim Sekarang
+          <aside style={{ width: 320, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 24 }} className='hidden xl:flex'>
+            {/* Daily Reward Card */}
+            <div style={{ borderRadius: 24, background: 'linear-gradient(135deg, #FF6B4A 0%, #FFA14A 100%)', padding: 24, color: '#fff', position: 'relative', overflow: 'hidden', boxShadow: '0 12px 32px -8px rgba(255,107,74,0.3)' }}>
+              {/* Decorative circles */}
+              <div style={{ position: 'absolute', top: -24, right: -24, width: 96, height: 96, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', bottom: -24, right: -16, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', pointerEvents: 'none' }} />
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 800, marginBottom: 12 }}>
+                <span>🎁</span>
+                <span>Reward Harian</span>
+              </div>
+              <h2 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 8px', lineHeight: 1.3 }}>Klaim Hadiah Harianmu! 🎁</h2>
+              <p style={{ fontSize: 12, opacity: 0.9, margin: '0 0 16px', lineHeight: 1.5 }}>Kumpulkan bintang setiap hari untuk membuka skin avatar spesial dan bonus koin belajar.</p>
+              <button type='button' style={{ width: '100%', padding: '12px', background: '#fff', color: '#FF6B4A', fontWeight: 800, fontSize: 12, borderRadius: 16, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', transition: 'all 0.2s', transform: 'scale(1)' }} className='active:scale-95 hover:bg-orange-50'>
+                <span>🎁</span>
+                <span>Klaim Sekarang</span>
               </button>
+              <div style={{ marginTop: 12, textAlign: 'center', fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>
+                Reset dalam <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#fff' }}>04:32:10</span>
+              </div>
             </div>
 
-            {/* Weekly Progress */}
-            <div
-              style={{
-                background: '#fff',
-                borderRadius: 16,
-                padding: 20,
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 4,
-                }}
-              >
-                <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>
-                  Progress Mingguan
-                </h3>
-                <span style={{ fontSize: 11, color: '#999' }}>Minggu ini</span>
+            {/* Weekly Progress Card */}
+            <div style={{ background: '#fff', borderRadius: 24, padding: 24, border: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <h2 style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', margin: 0 }}>Progress Mingguan</h2>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#5850EC', background: '#EEF2FF', padding: '2px 8px', borderRadius: 20 }}>Minggu ini</span>
               </div>
-              <p style={{ fontSize: 11, color: '#bbb', margin: '0 0 12px' }}>
-                Penyelesaian per mata pelajaran
-              </p>
-              <div style={S.barChart}>
+              <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 16px' }}>Penyelesaian per mata pelajaran</p>
+
+              {/* Bar chart */}
+              <div style={{ paddingTop: 16, paddingBottom: 8, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', height: 176, borderBottom: '1px solid #f1f5f9' }}>
                 {(subjectBreakdown.length > 0
                   ? subjectBreakdown
-                  : [
-                      { name: 'Math', pct: 78, color: '#6c5ce7' },
-                      { name: 'Science', pct: 65, color: '#fd79a8' },
-                      { name: 'Indo', pct: 88, color: '#fdcb6e' },
-                    ]
+                  : [{ name: 'Math', pct: 78, color: '#6366f1' }, { name: 'Science', pct: 65, color: '#f43f5e' }, { name: 'Indo', pct: 88, color: '#f59e0b' }]
                 ).map((s, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 4,
-                    }}
-                  >
-                    <div
-                      style={{ fontSize: 11, fontWeight: 600, color: '#666' }}
-                    >
-                      {s.pct}%
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: s.color }}>{s.pct}%</span>
+                    <div style={{ width: 48, height: 110, background: `${s.color}15`, borderRadius: 12, overflow: 'hidden', display: 'flex', alignItems: 'flex-end' }}>
+                      <div style={{ width: '100%', height: `${s.pct}%`, background: s.color, borderRadius: 12, transition: 'height 0.5s' }} />
                     </div>
-                    <div
-                      style={{
-                        width: '100%',
-                        height: s.pct,
-                        background: s.color,
-                        borderRadius: 8,
-                        minHeight: 8,
-                        transition: 'height 0.4s',
-                      }}
-                    />
-                    <span style={{ fontSize: 10, color: '#999' }}>
-                      {s.name}
-                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>{s.name}</span>
                   </div>
                 ))}
               </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#94a3b8', paddingTop: 8 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#059669', fontWeight: 700 }}>
+                  <svg style={{ width: 14, height: 14 }} fill='none' stroke='currentColor' strokeWidth={2} viewBox='0 0 24 24'><path d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' strokeLinecap='round' strokeLinejoin='round' /></svg>
+                  +12% lebih giat
+                </span>
+                <button type='button' style={{ background: 'none', border: 'none', color: '#5850EC', fontWeight: 600, fontSize: 11, cursor: 'pointer', padding: 0 }}>Lihat Analitik →</button>
+              </div>
             </div>
 
-            {/* Points */}
-            <div
-              style={{
-                background: '#fff',
-                borderRadius: 16,
-                padding: 20,
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-              }}
-            >
-              <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px' }}>
-                ⭐ Poin Kamu
-              </h3>
-              <p style={{ fontSize: 11, color: '#999', margin: '0 0 12px' }}>
-                Total poin yang sudah kamu kumpulkan
-              </p>
-              <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                <div
-                  style={{ fontSize: 36, fontWeight: 700, color: '#6c5ce7' }}
-                >
-                  {totalPoints}
+            {/* Points & Ranking Card */}
+            <div style={{ background: '#fff', borderRadius: 24, padding: 24, border: '1px solid #f1f5f9' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800, color: '#0f172a' }}>
+                  <span style={{ color: '#f59e0b' }}>⭐</span>
+                  <h2 style={{ margin: 0 }}>Poin & Peringkat Kamu</h2>
                 </div>
-                <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
-                  XP
+                <p style={{ fontSize: 11, color: '#94a3b8', margin: '2px 0 0' }}>Total poin yang sudah kamu kumpulkan</p>
+              </div>
+
+              {/* Big score */}
+              <div style={{ background: '#f8fafc', borderRadius: 16, padding: 20, textAlign: 'center', border: '1px solid #f1f5f9', marginTop: 16 }}>
+                <div style={{ fontSize: 40, fontWeight: 800, color: '#5850EC', letterSpacing: '-0.025em' }}>{totalPoints.toLocaleString()}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Total Experience (XP)</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, padding: '4px 12px', background: '#FEF3C7', color: '#92400e', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
+                  <span>🏆</span>
+                  <span>Peringkat 4 di Kelas {user?.grade ?? '?'}-B</span>
                 </div>
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-around',
-                  borderTop: '1px solid #f3f3f7',
-                  paddingTop: 12,
-                  marginTop: 8,
-                }}
-              >
-                <div style={{ textAlign: 'center' }}>
-                  <div
-                    style={{ fontSize: 14, fontWeight: 600, color: '#00b894' }}
-                  >
-                    {completedCount}
-                  </div>
-                  <div style={{ fontSize: 10, color: '#999' }}>Selesai</div>
+
+              {/* 3 Mini counters */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 16, textAlign: 'center' }}>
+                <div style={{ padding: 10, background: '#f8fafc', borderRadius: 12 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#059669' }}>{completedCount}</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8' }}>Selesai</div>
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div
-                    style={{ fontSize: 14, fontWeight: 600, color: '#ff7675' }}
-                  >
-                    {assignments.filter((a) => a.status === 'overdue').length}
-                  </div>
-                  <div style={{ fontSize: 10, color: '#999' }}>Terlambat</div>
+                <div style={{ padding: 10, background: '#f8fafc', borderRadius: 12 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#f43f5e' }}>{overdueCount}</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8' }}>Terlambat</div>
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div
-                    style={{ fontSize: 14, fontWeight: 600, color: '#6c5ce7' }}
-                  >
-                    {inProgressCount}
-                  </div>
-                  <div style={{ fontSize: 10, color: '#999' }}>Berjalan</div>
+                <div style={{ padding: 10, background: '#f8fafc', borderRadius: 12 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#5850EC' }}>{inProgressCount}</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8' }}>Berjalan</div>
                 </div>
               </div>
+
+              <button type='button' style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: 12, background: '#fff', color: '#334155', fontWeight: 700, fontSize: 12, cursor: 'pointer', marginTop: 16, transition: 'all 0.2s' }} className='hover:bg-slate-50'>
+                Buka Papan Peringkat Lengkap 🏅
+              </button>
             </div>
           </aside>
         )}
       </div>
+
+      {/* ── Footer ── */}
+      <footer style={{ marginTop: 'auto', borderTop: '1px solid rgba(226,232,240,0.8)', background: '#fff', padding: '16px 24px' }}>
+        <div style={{ maxWidth: 1600, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, fontSize: 12, color: '#94a3b8' }}>
+          <p style={{ margin: 0 }}>© 2026 Perpustakaan Belajar. Platform Edukasi Interaktif Ramah Anak SD.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontWeight: 500 }}>
+            <button type='button' style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: 12, fontWeight: 500, cursor: 'pointer' }} className='hover:text-[#5850EC]'>Pusat Bantuan</button>
+            <button type='button' style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: 12, fontWeight: 500, cursor: 'pointer' }} className='hover:text-[#5850EC]'>Panduan Orang Tua</button>
+            <button type='button' style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: 12, fontWeight: 500, cursor: 'pointer' }} className='hover:text-[#5850EC]'>Kebijakan Privasi Anak</button>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
