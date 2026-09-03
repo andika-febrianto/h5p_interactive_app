@@ -85,33 +85,21 @@ export default function Landing() {
           >
             Harga
           </button>
-          {user ? (
-            <AuthBar />
-          ) : (
-            <>
-              <button
-                type='button'
-                className='landing-nav-link'
-                onClick={() => navigate('/masuk')}
-              >
-                Sudah punya akun
-              </button>
-              <button
-                type='button'
-                className='landing-nav-link'
-                onClick={() => navigate('/masuk')}
-              >
-                Masuk
-              </button>
-              <button
-                type='button'
-                className='btn-primary btn-small'
-                onClick={() => navigate('/daftar')}
-              >
-                Daftar
-              </button>
-            </>
-          )}
+
+          <button
+            type='button'
+            className='landing-nav-link'
+            onClick={() => navigate('/masuk')}
+          >
+            Masuk
+          </button>
+          <button
+            type='button'
+            className='btn-primary btn-small'
+            onClick={() => navigate('/daftar')}
+          >
+            Daftar
+          </button>
         </div>
       </nav>
 
@@ -142,33 +130,21 @@ export default function Landing() {
             </p>
 
             <div className='landing-cta-row'>
-              {user ? (
-                <button
-                  type='button'
-                  className='btn-primary landing-btn-lg'
-                  onClick={() => navigate('/kelas')}
-                >
-                  Mulai Belajar →
-                </button>
-              ) : (
-                <>
-                  <button
-                    type='button'
-                    className='btn-primary landing-btn-lg'
-                    onClick={() => navigate('/daftar')}
-                  >
-                    Mulai Belajar Gratis →
-                  </button>
+              <button
+                type='button'
+                className='btn-primary landing-btn-lg'
+                onClick={() => navigate('/daftar')}
+              >
+                Mulai Belajar Gratis →
+              </button>
 
-                  <button
-                    type='button'
-                    className='btn-secondary landing-btn-secondary landing-btn-lg'
-                    onClick={() => navigate('/masuk')}
-                  >
-                    Saya sudah punya akun
-                  </button>
-                </>
-              )}
+              <button
+                type='button'
+                className='btn-secondary landing-btn-secondary landing-btn-lg'
+                onClick={() => navigate('/masuk')}
+              >
+                Saya sudah punya akun
+              </button>
             </div>
 
             <dl className='landing-stats'>
