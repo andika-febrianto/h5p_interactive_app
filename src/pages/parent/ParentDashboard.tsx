@@ -1,11 +1,9 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import TopBar from '../../components/TopBar'
 import { useAuth } from '../../context/AuthContext'
 import {
   fetchChildren,
   addChild,
-  unlinkChild,
   fetchAssignments,
   createAssignment,
   updateAssignment,
@@ -14,7 +12,6 @@ import {
   fetchModule,
   fetchSubjects,
   fetchChildModuleProgress,
-
   fetchAssignmentQuestions,
   replyToQuestion,
   checkDeadlines,
@@ -30,8 +27,6 @@ import {
 } from '../../lib/api'
 import { ApiError } from '../../lib/api'
 import { grades, semesters } from '../../data/grades'
-
-type Tab = 'children' | 'assignments'
 
 const KIND_ICON: Record<string, string> = {
   text: '📄',
@@ -51,12 +46,11 @@ const KIND_LABEL: Record<string, string> = {
   shortanswer: 'Isian Singkat',
 }
 
+type ViewMode = 'overview' | 'modules' | 'reports'
+
 export default function ParentDashboard() {
   const { user } = useAuth()
-  const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<Tab>('children')
-
-
+  const [viewMode, setViewMode] = useState<ViewMode>('overview')
 
   // Questions
   const [questions, setQuestions] = useState<Record<string, Question[]>>({})
@@ -106,14 +100,16 @@ export default function ParentDashboard() {
   const [assignError, setAssignError] = useState<string | null>(null)
   const [assignSuccess, setAssignSuccess] = useState<string | null>(null)
 
-  // Edit assignment state
+  // Modals
+  const [showAssignModal, setShowAssignModal] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<ParentAssignment | null>(null)
   const [editDueDate, setEditDueDate] = useState('')
   const [editSelectedFrames, setEditSelectedFrames] = useState<string[]>([])
   const [editModule, setEditModule] = useState<Module | null>(null)
   const [editSaving, setEditSaving] = useState(false)
 
-  // Load children
+  // ── Data Loading ──
+
   useEffect(() => {
     fetchChildren()
       .then(setChildren)
@@ -121,14 +117,12 @@ export default function ParentDashboard() {
       .finally(() => setChildrenLoading(false))
   }, [])
 
-  // Trigger scheduled notification checks on load
   useEffect(() => {
     checkDeadlines().catch(() => {})
     generateWeeklyReport().catch(() => {})
     generateMonthlyReport().catch(() => {})
   }, [])
 
-  // Load assignments
   useEffect(() => {
     fetchAssignments()
       .then(setAssignments)
@@ -136,7 +130,6 @@ export default function ParentDashboard() {
       .finally(() => setAssignmentsLoading(false))
   }, [])
 
-  // Load subjects on mount
   useEffect(() => {
     fetchSubjects()
       .then(setSubjects)
@@ -150,45 +143,27 @@ export default function ParentDashboard() {
       return
     }
     setProgressLoading(true)
-
-    // Load assignment-level progress for this child
-    const childAssignments = assignments.filter(
-      (a) => a.childId === selectedChild.id,
-    )
-
+    const childAssignments = assignments.filter((a) => a.childId === selectedChild.id)
     if (childAssignments.length === 0) {
       setProgressLoading(false)
       return
     }
-
     const fetches: Promise<unknown>[] = []
     childAssignments.forEach((a) => {
       if (a.materialId) {
-        // Load module if not cached
         if (!moduleCache[a.materialId]) {
           fetches.push(
             fetchModule(a.materialId)
-              .then((mod) =>
-                setModuleCache((prev) => ({
-                  ...prev,
-                  [a.materialId!]: mod,
-                })),
-              )
+              .then((mod) => setModuleCache((prev) => ({ ...prev, [a.materialId!]: mod })))
               .catch(() => {}),
           )
         }
-        // Load frame progress
         fetches.push(
           fetchChildModuleProgress(selectedChild.id, a.materialId)
             .then((frames) => {
               const map: Record<string, FrameProgress> = {}
-              frames.forEach((f) => {
-                map[f.frameSlug] = f
-              })
-              setAssignmentProgress((prev) => ({
-                ...prev,
-                [a.materialId!]: map,
-              }))
+              frames.forEach((f) => { map[f.frameSlug] = f })
+              setAssignmentProgress((prev) => ({ ...prev, [a.materialId!]: map }))
             })
             .catch(() => {}),
         )
@@ -197,7 +172,7 @@ export default function ParentDashboard() {
     Promise.all(fetches).finally(() => setProgressLoading(false))
   }, [selectedChild, assignments])
 
-  // Load available modules when child and subject are selected
+  // Load available modules
   useEffect(() => {
     if (!selectedChildId || !selectedSubjectId) {
       setAvailableModules([])
@@ -205,17 +180,12 @@ export default function ParentDashboard() {
     }
     const child = children.find((c) => c.id === selectedChildId)
     if (child?.grade && child?.semester) {
-      fetchModules({
-        grade: child.grade,
-        semester: child.semester,
-        subjectId: selectedSubjectId,
-      })
+      fetchModules({ grade: child.grade, semester: child.semester, subjectId: selectedSubjectId })
         .then(setAvailableModules)
         .catch(() => setAvailableModules([]))
     }
   }, [selectedChildId, selectedSubjectId, children])
 
-  // Load module details when module is selected
   useEffect(() => {
     if (!selectedModuleId) {
       setSelectedModule(null)
@@ -233,7 +203,6 @@ export default function ParentDashboard() {
       })
   }, [selectedModuleId])
 
-  // Reset assignment form when child or subject changes
   useEffect(() => {
     setSelectedModuleId('')
     setSelectedModule(null)
@@ -243,7 +212,8 @@ export default function ParentDashboard() {
     setAssignSuccess(null)
   }, [selectedChildId, selectedSubjectId])
 
-  // Create child account handler
+  // ── Handlers ──
+
   const handleCreateChild = async (e: React.FormEvent) => {
     e.preventDefault()
     setChildError(null)
@@ -257,53 +227,21 @@ export default function ParentDashboard() {
         semester: childForm.semester,
       })
       setChildren((prev) => [...prev, newChild])
-      setChildForm({
-        name: '',
-        email: '',
-        password: '',
-        grade: 1,
-        semester: 1,
-      })
+      setChildForm({ name: '', email: '', password: '', grade: 1, semester: 1 })
       setShowCreateChild(false)
     } catch (err) {
-      setChildError(
-        err instanceof ApiError ? err.message : 'Gagal membuat akun anak.',
-      )
+      setChildError(err instanceof ApiError ? err.message : 'Gagal membuat akun anak.')
     } finally {
       setChildSubmitting(false)
     }
   }
 
-  // Remove child handler
-  const handleRemoveChild = async (childId: string) => {
-    if (!confirm('Yakin ingin menghapus anak ini dari daftar?')) return
-    try {
-      await unlinkChild(childId)
-      setChildren((prev) => prev.filter((c) => c.id !== childId))
-      if (selectedChild?.id === childId) {
-        setSelectedChild(null)
-        setAssignmentProgress({})
-      }
-      if (selectedChildId === childId) {
-        setSelectedChildId('')
-        setSelectedSubjectId('')
-        setSelectedModuleId('')
-        setSelectedModule(null)
-        setSelectedFrames([])
-      }
-    } catch (err) {
-      alert(err instanceof ApiError ? err.message : 'Gagal menghapus anak.')
-    }
-  }
 
-  // Toggle frame selection
+
   const toggleFrame = (id: string) => {
-    setSelectedFrames((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
-    )
+    setSelectedFrames((prev) => prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id])
   }
 
-  // Select all / deselect all frames
   const toggleAllFrames = () => {
     if (!selectedModule) return
     if (selectedFrames.length === selectedModule.frames.length) {
@@ -313,10 +251,8 @@ export default function ParentDashboard() {
     }
   }
 
-  // Assign module to child with selected frames
   const handleAssign = async () => {
-    if (!selectedChildId || !selectedModule || selectedFrames.length === 0)
-      return
+    if (!selectedChildId || !selectedModule || selectedFrames.length === 0) return
     setAssignError(null)
     setAssignSuccess(null)
     setAssigning(true)
@@ -329,25 +265,23 @@ export default function ParentDashboard() {
         selectedFrames,
         dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
       })
-      setAssignSuccess(
-        `✓ "${selectedModule.title}" (${selectedFrames.length} panel) berhasil ditugaskan ke ${selectedChildInfo?.name ?? 'anak'}!`,
-      )
+      setAssignSuccess(`✓ "${selectedModule.title}" (${selectedFrames.length} panel) berhasil ditugaskan ke ${selectedChildInfo?.name ?? 'anak'}!`)
       const updated = await fetchAssignments()
       setAssignments(updated)
       setSelectedModuleId('')
       setSelectedModule(null)
       setSelectedFrames([])
       setDueDate('')
+      setSelectedChildId('')
+      setSelectedSubjectId('')
+      setTimeout(() => { setShowAssignModal(false); setAssignSuccess(null) }, 1500)
     } catch (err) {
-      setAssignError(
-        err instanceof ApiError ? err.message : 'Gagal menugaskan modul.',
-      )
+      setAssignError(err instanceof ApiError ? err.message : 'Gagal menugaskan modul.')
     } finally {
       setAssigning(false)
     }
   }
 
-  // Delete assignment handler
   const handleDeleteAssignment = async (id: string) => {
     if (!confirm('Yakin ingin menghapus tugas ini?')) return
     try {
@@ -358,11 +292,9 @@ export default function ParentDashboard() {
     }
   }
 
-  // Find child name by id
   const getChildName = (childId: string) =>
     children.find((c) => c.id === childId)?.name ?? childId
 
-  // Load questions for a child's assignments
   const loadChildQuestions = useCallback(
     async (childId: string) => {
       const childAssignments = assignments.filter((a) => a.childId === childId)
@@ -372,9 +304,7 @@ export default function ParentDashboard() {
           try {
             const qs = await fetchAssignmentQuestions(a.id)
             allQuestions[a.id] = qs
-          } catch {
-            allQuestions[a.id] = []
-          }
+          } catch { allQuestions[a.id] = [] }
         }),
       )
       setQuestions(allQuestions)
@@ -382,14 +312,10 @@ export default function ParentDashboard() {
     [assignments],
   )
 
-  // Load questions when child is selected for progress
   useEffect(() => {
-    if (selectedChild) {
-      loadChildQuestions(selectedChild.id)
-    }
+    if (selectedChild) loadChildQuestions(selectedChild.id)
   }, [selectedChild, loadChildQuestions])
 
-  // Handle save edit assignment
   const handleSaveEdit = async () => {
     if (!editingAssignment) return
     setEditSaving(true)
@@ -398,7 +324,6 @@ export default function ParentDashboard() {
         dueDate: editDueDate || undefined,
         status: editingAssignment.status,
       })
-      // Update local state
       setAssignments((prev) =>
         prev.map((a) =>
           a.id === editingAssignment.id
@@ -407,14 +332,11 @@ export default function ParentDashboard() {
         ),
       )
       setEditingAssignment(null)
-    } catch {
-      // silently fail
-    } finally {
+    } catch { /* silently fail */ } finally {
       setEditSaving(false)
     }
   }
 
-  // Handle reply to question
   const handleReply = async (questionId: string) => {
     const text = replyText[questionId]
     if (!text?.trim()) return
@@ -422,1394 +344,950 @@ export default function ParentDashboard() {
     try {
       await replyToQuestion(questionId, text.trim())
       setReplyText((prev) => ({ ...prev, [questionId]: '' }))
-      // Reload questions
-      if (selectedChild) {
-        await loadChildQuestions(selectedChild.id)
-      }
-    } catch {
-      // Silently fail
-    } finally {
+      if (selectedChild) await loadChildQuestions(selectedChild.id)
+    } catch { /* silently fail */ } finally {
       setSendingReply(null)
     }
   }
 
-  // Get frame progress for a specific assignment
-  const getFrameProgressForAssignment = (
-    materialId: string | null,
-    frameSlug: string,
-  ): FrameProgress | null => {
+  const getFrameProgressForAssignment = (materialId: string | null, frameSlug: string): FrameProgress | null => {
     if (!materialId) return null
     return assignmentProgress[materialId]?.[frameSlug] ?? null
   }
 
-  // Get assignment completion percentage
-  const getAssignmentCompletion = (
-    assignment: ParentAssignment,
-  ): { completed: number; total: number; pct: number } => {
-    if (!assignment.selectedFrames || !assignment.materialId)
-      return { completed: 0, total: 0, pct: 0 }
+  const getAssignmentCompletion = (assignment: ParentAssignment): { completed: number; total: number; pct: number } => {
+    if (!assignment.selectedFrames || !assignment.materialId) return { completed: 0, total: 0, pct: 0 }
     const total = assignment.selectedFrames.length
     let completed = 0
     assignment.selectedFrames.forEach((frameId) => {
       const fp = getFrameProgressForAssignment(assignment.materialId, frameId)
       if (fp?.completed) completed++
     })
-    return {
-      completed,
-      total,
-      pct: total > 0 ? Math.round((completed / total) * 100) : 0,
-    }
+    return { completed, total, pct: total > 0 ? Math.round((completed / total) * 100) : 0 }
   }
 
-  // Get selected child info
-  const selectedChildInfo = children.find((c) => c.id === selectedChildId)
+  // ── Derived Data ──
 
+  const totalModulesCompleted = assignments.filter((a) => a.status === 'completed').length
+  const totalPoints = totalModulesCompleted * 10 + children.length * 20
+
+  const overallAvgScore = (() => {
+    const allPcts = assignments.map((a) => getAssignmentCompletion(a).pct).filter((p) => p > 0)
+    if (allPcts.length === 0) return 0
+    return Math.round(allPcts.reduce((s, p) => s + p, 0) / allPcts.length)
+  })()
+
+  const childCardProgress = (child: ChildInfo) => {
+    const childAssignments = assignments.filter((a) => a.childId === child.id)
+    if (childAssignments.length === 0) return { latest: null as ParentAssignment | null, pct: 0 }
+    const latest = childAssignments.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))[0]
+    const completion = getAssignmentCompletion(latest)
+    return { latest, pct: completion.pct }
+  }
+
+  const deadlineStatus = (a: ParentAssignment) => {
+    if (a.status === 'completed') return { label: 'Selesai', color: '#00b894', bg: '#d5f5ec' }
+    if (!a.dueDate) return { label: a.status === 'in_progress' ? 'Dikerjakan' : 'Menunggu', color: '#636e72', bg: '#f5f5f5' }
+    const now = new Date()
+    const due = new Date(a.dueDate)
+    const hoursLeft = (due.getTime() - now.getTime()) / (1000 * 60 * 60)
+    if (hoursLeft < 0) return { label: 'Terlambat', color: '#ff7675', bg: '#ffeaea' }
+    if (hoursLeft <= 24) return { label: 'Sebentar lagi', color: '#fdcb6e', bg: '#fff9e6' }
+    return { label: 'Tersisa ' + Math.ceil(hoursLeft / 24) + ' hari', color: '#636e72', bg: '#f5f5f5' }
+  }
+
+  // ── Styles ──
+
+  const S = {
+    page: { minHeight: '100vh', background: '#f4f5fa' } as React.CSSProperties,
+    container: { maxWidth: 1200, margin: '0 auto', padding: '24px 32px 64px' } as React.CSSProperties,
+    banner: {
+      background: 'linear-gradient(135deg, #e8e3ff 0%, #f5f3ff 50%, #ede6ff 100%)',
+      borderRadius: 20,
+      padding: '32px 40px',
+      marginBottom: 28,
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      position: 'relative',
+      overflow: 'hidden',
+    } as React.CSSProperties,
+    bannerText: { flex: 1 } as React.CSSProperties,
+    bannerTitle: {
+      fontFamily: 'var(--font-display)',
+      fontSize: 28,
+      fontWeight: 700,
+      color: '#1a1a2e',
+      margin: 0,
+    } as React.CSSProperties,
+    bannerSub: {
+      fontSize: 14,
+      color: '#636e72',
+      marginTop: 4,
+      maxWidth: 480,
+      lineHeight: 1.5,
+    } as React.CSSProperties,
+    bannerRight: { display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 } as React.CSSProperties,
+    avatarGroup: { display: 'flex' } as React.CSSProperties,
+    avatarCircle: (bg: string) => ({
+      width: 40,
+      height: 40,
+      borderRadius: '50%',
+      background: bg,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: '#fff',
+      fontWeight: 700,
+      fontSize: 16,
+      border: '3px solid #fff',
+      marginLeft: -8,
+    }) as React.CSSProperties,
+    pointsBadge: {
+      background: '#fff',
+      borderRadius: 12,
+      padding: '8px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+      fontSize: 14,
+      fontWeight: 700,
+      color: '#1a1a2e',
+    } as React.CSSProperties,
+    grid: { display: 'grid', gridTemplateColumns: '1fr 380px', gap: 24 } as React.CSSProperties,
+    leftCol: { display: 'flex', flexDirection: 'column', gap: 24 } as React.CSSProperties,
+    rightCol: { display: 'flex', flexDirection: 'column', gap: 24 } as React.CSSProperties,
+    sectionLabel: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.1em',
+      textTransform: 'uppercase' as const,
+      color: '#a0a0b0',
+      marginBottom: 12,
+    } as React.CSSProperties,
+    card: {
+      background: '#fff',
+      borderRadius: 16,
+      padding: 20,
+      boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+    } as React.CSSProperties,
+    childCard: {
+      background: '#fff',
+      borderRadius: 16,
+      padding: 20,
+      boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+      border: '1px solid #eee',
+    } as React.CSSProperties,
+    viewBtn: {
+      width: '100%',
+      padding: '10px 0',
+      border: '1.5px solid #e0e0e0',
+      borderRadius: 10,
+      background: '#fff',
+      color: '#6c5ce7',
+      fontWeight: 600,
+      fontSize: 13,
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      marginTop: 12,
+    } as React.CSSProperties,
+    circularProgress: (pct: number) => ({
+      width: 100,
+      height: 100,
+      borderRadius: '50%',
+      background: `conic-gradient(#6c5ce7 ${pct * 3.6}deg, #f0f0f0 ${pct * 3.6}deg)`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative' as const,
+      flexShrink: 0,
+    }) as React.CSSProperties,
+    circularInner: {
+      width: 76,
+      height: 76,
+      borderRadius: '50%',
+      background: '#fff',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'column' as const,
+    } as React.CSSProperties,
+    actItem: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      padding: '10px 0',
+      borderBottom: '1px solid #f3f3f7',
+    } as React.CSSProperties,
+    actIcon: (bg: string) => ({
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      background: bg,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 14,
+      flexShrink: 0,
+    }) as React.CSSProperties,
+    schedItem: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 14,
+      padding: '12px 0',
+      borderBottom: '1px solid #f3f3f7',
+    } as React.CSSProperties,
+    schedDate: {
+      width: 44,
+      height: 44,
+      borderRadius: 10,
+      background: '#f8f7ff',
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    } as React.CSSProperties,
+    statusBadge: (color: string, bg: string) => ({
+      fontSize: 11,
+      fontWeight: 600,
+      color,
+      background: bg,
+      padding: '3px 10px',
+      borderRadius: 6,
+      flexShrink: 0,
+    }) as React.CSSProperties,
+    quickActBtn: {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      padding: '20px 16px',
+      background: '#fff',
+      border: '1.5px solid #eee',
+      borderRadius: 14,
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      fontSize: 13,
+      fontWeight: 600,
+      color: '#333',
+    } as React.CSSProperties,
+    fab: {
+      position: 'fixed' as const,
+      bottom: 32,
+      right: 32,
+      background: '#6c5ce7',
+      color: '#fff',
+      border: 'none',
+      borderRadius: 14,
+      padding: '14px 24px',
+      fontSize: 15,
+      fontWeight: 700,
+      cursor: 'pointer',
+      boxShadow: '0 6px 20px rgba(108,92,231,0.35)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      zIndex: 100,
+      transition: 'transform 0.2s, box-shadow 0.2s',
+    } as React.CSSProperties,
+    modalOverlay: {
+      position: 'fixed' as const,
+      inset: 0,
+      background: 'rgba(0,0,0,0.4)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 2000,
+    } as React.CSSProperties,
+    modalBox: {
+      background: '#fff',
+      borderRadius: 20,
+      padding: 28,
+      width: '90%',
+      maxWidth: 560,
+      maxHeight: '85vh',
+      overflowY: 'auto',
+      boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+    } as React.CSSProperties,
+    navTab: (active: boolean) => ({
+      padding: '8px 18px',
+      borderRadius: 8,
+      border: 'none',
+      background: active ? '#6c5ce7' : 'transparent',
+      color: active ? '#fff' : '#636e72',
+      fontWeight: 600,
+      fontSize: 13,
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+    }) as React.CSSProperties,
+    input: {
+      width: '100%',
+      padding: '10px 14px',
+      border: '1.5px solid #e0e0e0',
+      borderRadius: 10,
+      fontSize: 13,
+      fontFamily: 'var(--font-body)',
+      outline: 'none',
+      background: '#fff',
+      boxSizing: 'border-box' as const,
+    } as React.CSSProperties,
+    select: {
+      width: '100%',
+      padding: '10px 14px',
+      border: '1.5px solid #e0e0e0',
+      borderRadius: 10,
+      fontSize: 13,
+      fontFamily: 'var(--font-body)',
+      outline: 'none',
+      background: '#fff',
+      cursor: 'pointer',
+      boxSizing: 'border-box' as const,
+    } as React.CSSProperties,
+  }
+
+  // ── Nav Tabs ──
+  const navItems: { key: ViewMode; label: string }[] = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'modules', label: 'Modules' },
+    { key: 'reports', label: 'Reports' },
+  ]
+
+  // ── Render ──
   return (
-    <div className='home-page'>
-      <div className='home-inner'>
-        <TopBar />
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div>
+    <div style={S.page}>
+      <TopBar />
+      <div style={S.container}>
+        {/* Nav Tabs */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 24 }}>
+          {navItems.map((item) => (
             <button
+              key={item.key}
               type='button'
-              className='home-back'
-              onClick={() => navigate('/kelas')}
+              style={S.navTab(viewMode === item.key)}
+              onClick={() => setViewMode(item.key)}
             >
-              ← Ke perpustakaan belajar
+              {item.label}
             </button>
-            <p className='home-eyebrow'>Orang Tua · {user?.name}</p>
-            <h1 className='home-title'>Dashboard Orang Tua</h1>
+          ))}
+        </div>
+
+        {/* Welcome Banner */}
+        <div style={S.banner}>
+          <div style={S.bannerText}>
+            <h1 style={S.bannerTitle}>Welcome back, {user?.name?.split(' ')[0] ?? 'Orang Tua'}</h1>
+            <p style={S.bannerSub}>
+              {children.length > 0
+                ? `Anak-anak Anda telah menyelesaikan ${totalModulesCompleted} modul. Pantau progres mereka di sini.`
+                : 'Mulai buat akun anak dan tugaskan materi belajar untuk memulai.'}
+            </p>
           </div>
-
-        </div>
-        <p className='home-lede'>
-          Buat akun anak, tugaskan materi belajar, dan pantau progresnya.
-        </p>
-
-        {/* Tab Navigation */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-          <button
-            type='button'
-            className={
-              activeTab === 'children' ? 'btn-primary' : 'btn-secondary'
-            }
-            onClick={() => setActiveTab('children')}
-          >
-            👨‍👩‍👧 Anak Saya
-          </button>
-          <button
-            type='button'
-            className={
-              activeTab === 'assignments' ? 'btn-primary' : 'btn-secondary'
-            }
-            onClick={() => setActiveTab('assignments')}
-          >
-            📋 Buat Tugas
-          </button>
-        </div>
-
-        {/* Children Tab */}
-        {activeTab === 'children' && (
-          <div>
-            {/* Create Child Account Button */}
-            <div style={{ marginBottom: 16 }}>
-              <button
-                type='button'
-                className='btn-primary'
-                onClick={() => setShowCreateChild(!showCreateChild)}
-              >
-                {showCreateChild ? 'Batal' : '+ Buat Akun Anak Baru'}
-              </button>
+          <div style={S.bannerRight}>
+            <div style={S.avatarGroup}>
+              {children.slice(0, 3).map((c, i) => (
+                <div key={c.id} style={S.avatarCircle(['#6c5ce7', '#00b894', '#fdcb6e'][i % 3])}>
+                  {c.name.charAt(0).toUpperCase()}
+                </div>
+              ))}
+              {children.length === 0 && (
+                <div style={S.avatarCircle('#ccc')}>?</div>
+              )}
             </div>
-
-            {/* Create Child Account Form */}
-            {showCreateChild && (
-              <div
-                className='auth-form'
-                style={{
-                  marginBottom: 24,
-                  padding: 16,
-                  background: 'var(--bg-card)',
-                  borderRadius: 'var(--radius-lg)',
-                }}
-              >
-                <h3
-                  style={{
-                    margin: '0 0 12px',
-                    fontFamily: 'var(--font-display)',
-                  }}
-                >
-                  Buat Akun Anak
-                </h3>
-                <form onSubmit={handleCreateChild}>
-                  <label className='auth-field'>
-                    <span>Nama Lengkap Anak</span>
-                    <input
-                      type='text'
-                      value={childForm.name}
-                      onChange={(e) =>
-                        setChildForm((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      required
-                      placeholder='Nama lengkap anak'
-                    />
-                  </label>
-                  <label className='auth-field'>
-                    <span>Email (untuk login anak)</span>
-                    <input
-                      type='email'
-                      value={childForm.email}
-                      onChange={(e) =>
-                        setChildForm((prev) => ({
-                          ...prev,
-                          email: e.target.value,
-                        }))
-                      }
-                      required
-                      placeholder='anak@sekolah.id'
-                    />
-                  </label>
-                  <label className='auth-field'>
-                    <span>Kata Sandi</span>
-                    <input
-                      type='password'
-                      value={childForm.password}
-                      onChange={(e) =>
-                        setChildForm((prev) => ({
-                          ...prev,
-                          password: e.target.value,
-                        }))
-                      }
-                      required
-                      minLength={6}
-                      placeholder='Minimal 6 karakter'
-                    />
-                  </label>
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    <label className='auth-field' style={{ flex: 1 }}>
-                      <span>Kelas</span>
-                      <select
-                        value={childForm.grade}
-                        onChange={(e) =>
-                          setChildForm((prev) => ({
-                            ...prev,
-                            grade: Number(e.target.value),
-                          }))
-                        }
-                        required
-                      >
-                        {grades.map((g) => (
-                          <option key={g.level} value={g.level}>
-                            {g.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className='auth-field' style={{ flex: 1 }}>
-                      <span>Semester</span>
-                      <select
-                        value={childForm.semester}
-                        onChange={(e) =>
-                          setChildForm((prev) => ({
-                            ...prev,
-                            semester: Number(e.target.value),
-                          }))
-                        }
-                        required
-                      >
-                        {semesters.map((s) => (
-                          <option key={s.value} value={s.value}>
-                            {s.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                  {childError && <p className='auth-error'>{childError}</p>}
-                  <button
-                    type='submit'
-                    className='btn-primary'
-                    disabled={childSubmitting}
-                  >
-                    {childSubmitting ? 'Membuat...' : 'Buat Akun Anak'}
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {/* Children List */}
-            {childrenLoading ? (
-              <p className='home-empty'>Memuat data anak...</p>
-            ) : children.length === 0 ? (
-              <p className='home-empty'>
-                Belum ada akun anak. Klik "Buat Akun Anak Baru" untuk memulai.
-              </p>
-            ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 16,
-                }}
-              >
-                {children.map((child) => (
-                  <div
-                    key={child.id}
-                    className='subject-card'
-                    style={{
-                      cursor: 'pointer',
-                      borderColor:
-                        selectedChild?.id === child.id
-                          ? 'var(--primary)'
-                          : 'var(--border)',
-                    }}
-                    onClick={() =>
-                      setSelectedChild(
-                        selectedChild?.id === child.id ? null : child,
-                      )
-                    }
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <div>
-                        <h3 className='module-card-title'>{child.name}</h3>
-                        <p className='module-card-summary'>
-                          {child.email}
-                          {child.grade && ` · Kelas ${child.grade}`}
-                          {child.semester && ` · Semester ${child.semester}`}
-                        </p>
-                      </div>
-                      <button
-                        type='button'
-                        className='btn-secondary btn-small'
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleRemoveChild(child.id)
-                        }}
-                        style={{ fontSize: 12 }}
-                      >
-                        Hapus
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Assignment Progress Section (when child is selected) */}
-            {selectedChild && (
-              <div style={{ marginTop: 24 }}>
-                <h3
-                  style={{
-                    margin: '0 0 12px',
-                    fontFamily: 'var(--font-display)',
-                  }}
-                >
-                  📊 Progres Belajar: {selectedChild.name}
-                </h3>
-                {progressLoading ? (
-                  <p className='home-empty'>Memuat progres...</p>
-                ) : (
-                  (() => {
-                    const childAssignments = assignments.filter(
-                      (a) => a.childId === selectedChild.id,
-                    )
-                    if (childAssignments.length === 0) {
-                      return (
-                        <p className='home-empty'>
-                          Belum ada tugas untuk anak ini.
-                        </p>
-                      )
-                    }
-                    return (
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 16,
-                        }}
-                      >
-                        {childAssignments.map((a) => {
-                          const mod = a.materialId
-                            ? moduleCache[a.materialId]
-                            : null
-                          const completion = getAssignmentCompletion(a)
-                          const selectedFrameIds = a.selectedFrames ?? []
-                          const frames =
-                            mod?.frames?.filter((f) =>
-                              selectedFrameIds.includes(f.id),
-                            ) ?? []
-
-                          return (
-                            <div
-                              key={a.id}
-                              className='subject-card'
-                              style={{ cursor: 'default' }}
-                            >
-                              {/* Assignment header */}
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'flex-start',
-                                  marginBottom: 8,
-                                }}
-                              >
-                                <div>
-                                  <h4
-                                    className='module-card-title'
-                                    style={{
-                                      fontSize: 15,
-                                      margin: 0,
-                                    }}
-                                  >
-                                    📖 {a.title}
-                                  </h4>
-                                  <p
-                                    className='module-card-summary'
-                                    style={{
-                                      fontSize: 12,
-                                      marginTop: 4,
-                                    }}
-                                  >
-                                    {completion.completed}/{completion.total}{' '}
-                                    bahasan selesai
-                                  </p>
-                                </div>
-                                <span
-                                  style={{
-                                    fontSize: 13,
-                                    fontWeight: 700,
-                                    color:
-                                      completion.pct === 100
-                                        ? 'var(--success)'
-                                        : 'var(--primary)',
-                                  }}
-                                >
-                                  {completion.pct}%
-                                </span>
-                              </div>
-
-                              {/* Overall progress bar */}
-                              <div
-                                style={{
-                                  height: 8,
-                                  borderRadius: 999,
-                                  background: 'var(--gray-200)',
-                                  overflow: 'hidden',
-                                  marginBottom: 14,
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    height: '100%',
-                                    width: `${completion.pct}%`,
-                                    background:
-                                      completion.pct === 100
-                                        ? 'var(--success)'
-                                        : 'var(--primary)',
-                                    borderRadius: 999,
-                                    transition: 'width 0.4s ease',
-                                  }}
-                                />
-                              </div>
-
-                              {/* Per-frame progress */}
-                              {frames.length > 0 && (
-                                <div
-                                  style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: 6,
-                                    borderTop: '1px solid var(--border)',
-                                    paddingTop: 10,
-                                  }}
-                                >
-                                  {frames.map((frame) => {
-                                    const fp = getFrameProgressForAssignment(
-                                      a.materialId,
-                                      frame.id,
-                                    )
-                                    const isCompleted = fp?.completed ?? false
-                                    const accuracy = fp?.accuracy ?? 0
-                                    const framePct = isCompleted
-                                      ? 100
-                                      : fp
-                                        ? fp.total > 0
-                                          ? Math.round(
-                                              (fp.correct / fp.total) * 100,
-                                            )
-                                          : 0
-                                        : 0
-
-                                    return (
-                                      <div
-                                        key={frame.id}
-                                        style={{
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: 10,
-                                          padding: '6px 0',
-                                        }}
-                                      >
-                                        {/* Icon */}
-                                        <span
-                                          style={{
-                                            fontSize: 14,
-                                            width: 20,
-                                            textAlign: 'center',
-                                          }}
-                                        >
-                                          {isCompleted
-                                            ? '✅'
-                                            : (KIND_ICON[frame.kind] ?? '📄')}
-                                        </span>
-
-                                        {/* Title + bar */}
-                                        <div
-                                          style={{
-                                            flex: 1,
-                                          }}
-                                        >
-                                          <div
-                                            style={{
-                                              display: 'flex',
-                                              justifyContent: 'space-between',
-                                              marginBottom: 3,
-                                            }}
-                                          >
-                                            <span
-                                              style={{
-                                                fontSize: 13,
-                                                fontWeight: 500,
-                                                color: 'var(--text-primary)',
-                                              }}
-                                            >
-                                              {frame.title}
-                                            </span>
-                                            <span
-                                              style={{
-                                                fontSize: 11,
-                                                fontWeight: 600,
-                                                color: isCompleted
-                                                  ? 'var(--success)'
-                                                  : 'var(--text-secondary)',
-                                              }}
-                                            >
-                                              {isCompleted
-                                                ? accuracy > 0
-                                                  ? `${accuracy}%`
-                                                  : '✓ Selesai'
-                                                : framePct > 0
-                                                  ? `${framePct}%`
-                                                  : '—'}
-                                            </span>
-                                          </div>
-                                          {/* Mini progress bar */}
-                                          <div
-                                            style={{
-                                              height: 4,
-                                              borderRadius: 999,
-                                              background: 'var(--gray-200)',
-                                              overflow: 'hidden',
-                                            }}
-                                          >
-                                            <div
-                                              style={{
-                                                height: '100%',
-                                                width: `${framePct}%`,
-                                                background: isCompleted
-                                                  ? 'var(--success)'
-                                                  : 'var(--primary)',
-                                                borderRadius: 999,
-                                                transition: 'width 0.3s ease',
-                                              }}
-                                            />
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )
-                  })()
-                )}
-              </div>
-            )}
+            <div style={S.pointsBadge}>
+              <span>⭐</span> {totalPoints} pts
+            </div>
           </div>
-        )}
+        </div>
 
-        {/* Assignments Tab */}
-        {activeTab === 'assignments' && (
-          <div>
-            {/* Assignment Form */}
-            <div
-              className='auth-form'
-              style={{
-                marginBottom: 24,
-                padding: 16,
-                background: 'var(--bg-card)',
-                borderRadius: 'var(--radius-lg)',
-              }}
-            >
-              <h3
-                style={{
-                  margin: '0 0 12px',
-                  fontFamily: 'var(--font-display)',
-                }}
-              >
-                📚 Buat Tugas
-              </h3>
+        {/* Main Grid */}
+        <div style={S.grid}>
+          {/* ─── Left Column ─── */}
+          <div style={S.leftCol}>
 
-              {/* Step 1: Select Child */}
-              <label className='auth-field'>
-                <span>Anak</span>
-                <select
-                  value={selectedChildId}
-                  onChange={(e) => setSelectedChildId(e.target.value)}
-                >
-                  <option value=''>-- Pilih Anak --</option>
-                  {children.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} (Kelas {c.grade} / Semester {c.semester})
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              {/* Step 2: Select Subject */}
-              {selectedChildId && (
-                <label className='auth-field'>
-                  <span>Mata Pelajaran</span>
-                  <select
-                    value={selectedSubjectId}
-                    onChange={(e) => setSelectedSubjectId(e.target.value)}
-                  >
-                    <option value=''>-- Pilih Mata Pelajaran --</option>
-                    {subjects.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.icon} {s.shortName}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-
-              {/* Step 3: Select Module (Topik) */}
-              {selectedChildId && selectedSubjectId && (
-                <label className='auth-field'>
-                  <span>Topik</span>
-                  <select
-                    value={selectedModuleId}
-                    onChange={(e) => setSelectedModuleId(e.target.value)}
-                  >
-                    <option value=''>-- Pilih Topik --</option>
-                    {availableModules.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-
-              {/* Step 4: Select Frames (Bahasan) */}
-              {selectedModule && (
-                <div style={{ marginTop: 12 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: 8,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                      }}
-                    >
-                      Pilih Bahasan
-                    </span>
-                    <button
-                      type='button'
-                      onClick={toggleAllFrames}
-                      style={{
-                        fontSize: 12,
-                        color: 'var(--primary)',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {selectedFrames.length === selectedModule.frames.length
-                        ? 'Batalkan Semua'
-                        : 'Pilih Semua'}
-                    </button>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 6,
-                      padding: 12,
-                      background: 'var(--gray-50)',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border)',
-                    }}
-                  >
-                    {selectedModule.frames.map((frame) => (
-                      <label
-                        key={frame.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 10,
-                          padding: '6px 8px',
-                          cursor: 'pointer',
-                          borderRadius: 'var(--radius-sm)',
-                          background: selectedFrames.includes(frame.id)
-                            ? 'var(--primary-bg)'
-                            : 'transparent',
-                        }}
-                      >
-                        <input
-                          type='checkbox'
-                          checked={selectedFrames.includes(frame.id)}
-                          onChange={() => toggleFrame(frame.id)}
-                          style={{
-                            width: 16,
-                            height: 16,
-                          }}
-                        />
-                        <span style={{ fontSize: 14 }}>
-                          {KIND_ICON[frame.kind] ?? '📄'}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 500,
-                          }}
-                        >
-                          {frame.title}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            color: 'var(--text-secondary)',
-                          }}
-                        >
-                          ({KIND_LABEL[frame.kind] ?? frame.kind})
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                  <p
-                    style={{
-                      fontSize: 11,
-                      color: 'var(--text-secondary)',
-                      marginTop: 6,
-                    }}
-                  >
-                    {selectedFrames.length} dari {selectedModule.frames.length}{' '}
-                    panel dipilih
+            {/* Student Tracking */}
+            <div>
+              <p style={S.sectionLabel}>Student Tracking</p>
+              {childrenLoading ? (
+                <p style={{ color: '#999', fontSize: 13 }}>Memuat data anak...</p>
+              ) : children.length === 0 ? (
+                <div style={S.card}>
+                  <p style={{ color: '#999', fontSize: 13, textAlign: 'center', margin: '12px 0' }}>
+                    Belum ada akun anak. Klik "+ Assign New Module" atau buat akun anak baru.
                   </p>
                 </div>
-              )}
-
-              {/* Step 5: Deadline */}
-              {selectedModule && (
-                <label className='auth-field' style={{ marginTop: 12 }}>
-                  <span>Deadline</span>
-                  <input
-                    type='datetime-local'
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                  />
-                </label>
-              )}
-
-              {/* Error/Success messages */}
-              {assignError && <p className='auth-error'>{assignError}</p>}
-              {assignSuccess && (
-                <p
-                  style={{
-                    color: 'var(--success)',
-                    fontWeight: 600,
-                    fontSize: 13,
-                    marginTop: 8,
-                  }}
-                >
-                  {assignSuccess}
-                </p>
-              )}
-
-              {/* Assign button */}
-              {selectedModule && selectedFrames.length > 0 && (
-                <button
-                  type='button'
-                  className='btn-primary'
-                  disabled={assigning}
-                  onClick={handleAssign}
-                  style={{ marginTop: 12 }}
-                >
-                  {assigning
-                    ? 'Menugaskan...'
-                    : `Tugaskan ke ${selectedChildInfo?.name ?? 'Anak'}`}
-                </button>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  {children.map((child, i) => {
+                    const { latest, pct } = childCardProgress(child)
+                    return (
+                      <div key={child.id} style={S.childCard}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                          <div style={{
+                            width: 44, height: 44, borderRadius: '50%',
+                            background: ['#6c5ce7', '#00b894', '#fdcb6e', '#ff7675'][i % 4],
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: '#fff', fontWeight: 700, fontSize: 18,
+                          }}>
+                            {child.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p style={{ fontWeight: 700, fontSize: 15, margin: 0 }}>{child.name}</p>
+                            <p style={{ fontSize: 12, color: '#999', margin: 0 }}>
+                              Kelas {child.grade ?? '?'} · Semester {child.semester ?? '?'}
+                            </p>
+                          </div>
+                        </div>
+                        {latest ? (
+                          <>
+                            <p style={{ fontSize: 13, fontWeight: 600, color: '#6c5ce7', margin: '0 0 4px' }}>
+                              {latest.title}
+                            </p>
+                            <div style={{ height: 6, borderRadius: 999, background: '#f0f0f5', overflow: 'hidden' }}>
+                              <div style={{
+                                height: '100%', width: `${pct}%`,
+                                background: pct === 100 ? '#00b894' : '#6c5ce7',
+                                borderRadius: 999, transition: 'width 0.4s',
+                              }} />
+                            </div>
+                            <p style={{ fontSize: 11, color: '#999', margin: '4px 0 0' }}>{pct}% selesai</p>
+                          </>
+                        ) : (
+                          <p style={{ fontSize: 12, color: '#bbb', margin: 0 }}>Belum ada tugas</p>
+                        )}
+                        <button
+                          type='button'
+                          style={S.viewBtn}
+                          onClick={() => { setSelectedChild(child); setViewMode('modules') }}
+                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6c5ce7'; e.currentTarget.style.background = '#f8f7ff' }}
+                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e0e0e0'; e.currentTarget.style.background = '#fff' }}
+                        >
+                          View Details
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
               )}
             </div>
 
-            {/* Existing Assignments List */}
-            <h3
-              style={{
-                margin: '0 0 12px',
-                fontFamily: 'var(--font-display)',
-              }}
-            >
-              📋 Daftar Tugas
-            </h3>
-            {assignmentsLoading ? (
-              <p className='home-empty'>Memuat tugas...</p>
-            ) : assignments.length === 0 ? (
-              <p className='home-empty'>Belum ada tugas yang dibuat.</p>
-            ) : (
-              <>
-                {/* Search & Sort */}
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: 10,
-                    marginBottom: 16,
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <input
-                    type='text'
-                    value={taskSearchQuery}
-                    onChange={(e) => setTaskSearchQuery(e.target.value)}
-                    placeholder='🔍 Cari tugas...'
-                    style={{
-                      flex: 1,
-                      minWidth: 180,
-                      fontFamily: 'var(--font-body)',
-                      fontSize: 14,
-                      padding: '10px 14px',
-                      border: '2px solid var(--gray-200)',
-                      borderRadius: 'var(--radius-md)',
-                      background: 'var(--white)',
-                      color: 'var(--text-primary)',
-                      outline: 'none',
-                      transition: 'border-color 0.2s, box-shadow 0.2s',
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--primary)'
-                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 107, 255, 0.12)'
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--gray-200)'
-                      e.currentTarget.style.boxShadow = 'none'
-                    }}
-                  />
-                  <select
-                    value={taskSortOrder}
-                    onChange={(e) => setTaskSortOrder(e.target.value as typeof taskSortOrder)}
-                    style={{
-                      fontFamily: 'var(--font-body)',
-                      fontSize: 14,
-                      padding: '10px 14px',
-                      border: '2px solid var(--gray-200)',
-                      borderRadius: 'var(--radius-md)',
-                      background: 'var(--white)',
-                      color: 'var(--text-primary)',
-                      cursor: 'pointer',
-                      outline: 'none',
-                      transition: 'border-color 0.2s, box-shadow 0.2s',
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--primary)'
-                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 107, 255, 0.12)'
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--gray-200)'
-                      e.currentTarget.style.boxShadow = 'none'
-                    }}
-                  >
-                    <option value='newest'>Terbaru</option>
-                    <option value='oldest'>Terlama</option>
-                    <option value='deadline'>Deadline</option>
-                    <option value='status'>Status</option>
-                    <option value='child'>Anak</option>
-                  </select>
-                </div>
-
-                {/* Filtered & Sorted */}
-                {(() => {
-                  let filtered = assignments
-                  if (taskSearchQuery.trim()) {
-                    const q = taskSearchQuery.toLowerCase()
-                    filtered = filtered.filter((a) => {
-                      const childName = getChildName(a.childId).toLowerCase()
-                      const title = (a.title || '').toLowerCase()
-                      return title.includes(q) || childName.includes(q)
-                    })
-                  }
-                  filtered = [...filtered].sort((a, b) => {
-                    if (taskSortOrder === 'newest') return (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
-                    if (taskSortOrder === 'oldest') return (a.createdAt ?? '').localeCompare(b.createdAt ?? '')
-                    if (taskSortOrder === 'deadline') return (a.dueDate ?? 'z').localeCompare(b.dueDate ?? 'z')
-                    if (taskSortOrder === 'child') return getChildName(a.childId).localeCompare(getChildName(b.childId))
-                    const statusOrder: Record<string, number> = { overdue: 0, in_progress: 1, pending: 2, completed: 3 }
-                    return (statusOrder[a.status] ?? 4) - (statusOrder[b.status] ?? 4)
-                  })
-                  if (filtered.length === 0 && taskSearchQuery.trim()) {
+            {/* Weekly Progress (bar chart placeholder) */}
+            <div>
+              <p style={S.sectionLabel}>Weekly Progress</p>
+              <div style={S.card}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, height: 120, padding: '0 8px' }}>
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => {
+                    const heights = [30, 55, 40, 70, 45, 20, 10]
                     return (
-                      <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '20px 0', fontSize: 14 }}>
-                        Tidak ada tugas yang cocok dengan pencarian.
-                      </p>
-                    )
-                  }
-                  return (
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 12,
-                      }}
-                    >
-                      {filtered.map((a) => {
-                        const completion = getAssignmentCompletion(a)
-
-                  // Deadline-based card color
-                  const now = new Date()
-                  const isCompleted = a.status === 'completed'
-                  let cardBg = ''
-                  let cardBorder = ''
-                  if (isCompleted) {
-                    // Completed = white/default
-                  } else if (a.status === 'overdue') {
-                    // Overdue
-                    cardBg = 'rgba(239, 68, 68, 0.06)'
-                    cardBorder = '1.5px solid #ef4444'
-                  } else if (a.dueDate) {
-                    const due = new Date(a.dueDate)
-                    const hoursLeft = (due.getTime() - now.getTime()) / (1000 * 60 * 60)
-                    if (hoursLeft < 0) {
-                      cardBg = 'rgba(239, 68, 68, 0.06)'
-                      cardBorder = '1.5px solid #ef4444'
-                    } else if (hoursLeft <= 24) {
-                      cardBg = 'rgba(245, 158, 11, 0.06)'
-                      cardBorder = '1.5px solid #f59e0b'
-                    }
-                  }
-
-                  return (
-                    <div
-                      key={a.id}
-                      className='subject-card'
-                      style={{
-                        cursor: 'default',
-                        ...(cardBg ? { background: cardBg } : {}),
-                        ...(cardBorder ? { border: cardBorder } : {}),
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                        }}
-                      >
-                        <div style={{ flex: 1 }}>
-                          <h4
-                            className='module-card-title'
-                            style={{ fontSize: 16 }}
-                          >
-                            📖 {a.title}
-                          </h4>
-                          <p
-                            className='module-card-summary'
-                            style={{ fontSize: 14 }}
-                          >
-                            Untuk: {getChildName(a.childId)}
-                            {a.selectedFrames && (
-                              <> · {a.selectedFrames.length} panel</>
-                            )}
-                          </p>
-                          <p
-                            className='module-card-summary'
-                            style={{
-                              fontSize: 13,
-                              marginTop: 4,
-                            }}
-                          >
-                            Status:{' '}
-                            <span
-                              style={{
-                                color:
-                                  a.status === 'completed'
-                                    ? 'var(--success)'
-                                    : a.status === 'overdue'
-                                      ? 'var(--error)'
-                                      : 'var(--text-secondary)',
-                                fontWeight: 600,
-                              }}
-                            >
-                              {a.status === 'pending'
-                                ? '⏳ Menunggu'
-                                : a.status === 'in_progress'
-                                  ? '📝 Dikerjakan'
-                                  : a.status === 'completed'
-                                    ? '✅ Selesai'
-                                    : '⚠️ Terlambat'}
-                            </span>
-                            {(() => {
-                              const aq = questions[a.id] ?? []
-                              const unreplied = aq.filter((q) => !q.reply)
-                              if (unreplied.length > 0) {
-                                return (
-                                  <span
-                                    style={{
-                                      marginLeft: 8,
-                                      fontSize: 12,
-                                      color: '#f59e0b',
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    ❓ {unreplied.length} pertanyaan belum
-                                    dibalas
-                                  </span>
-                                )
-                              }
-                              return null
-                            })()}
-                            {a.dueDate && (
-                              <>
-                                {' · Deadline: '}
-                                {new Date(a.dueDate).toLocaleDateString(
-                                  'id-ID',
-                                  {
-                                    day: 'numeric',
-                                    month: 'long',
-                                    year: 'numeric',
-                                  },
-                                )}
-                              </>
-                            )}
-                          </p>
-
-                          {/* Progress for this assignment */}
-                          {completion.total > 0 && (
-                            <div
-                              style={{
-                                marginTop: 8,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                              }}
-                            >
-                              <div
-                                style={{
-                                  flex: 1,
-                                  height: 6,
-                                  borderRadius: 999,
-                                  background: 'var(--gray-200)',
-                                  overflow: 'hidden',
-                                  maxWidth: 120,
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    height: '100%',
-                                    width: `${completion.pct}%`,
-                                    background:
-                                      completion.pct === 100
-                                        ? 'var(--success)'
-                                        : 'var(--primary)',
-                                    borderRadius: 999,
-                                  }}
-                                />
-                              </div>
-                              <span
-                                style={{
-                                  fontSize: 12,
-                                  fontWeight: 600,
-                                  color:
-                                    completion.pct === 100
-                                      ? 'var(--success)'
-                                      : 'var(--text-secondary)',
-                                }}
-                              >
-                                {completion.completed}/{completion.total}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                          <button
-                            type='button'
-                            className='btn-secondary btn-small'
-                            onClick={() => {
-                              setEditingAssignment(a)
-                              setEditDueDate(
-                                a.dueDate
-                                  ? new Date(a.dueDate).toISOString().split('T')[0]
-                                  : '',
-                              )
-                              setEditSelectedFrames(
-                                (a.selectedFrames as string[]) ?? [],
-                              )
-                              // Load module for frame editing
-                              if (a.materialId) {
-                                const cached = moduleCache[a.materialId]
-                                if (cached) {
-                                  setEditModule(cached)
-                                } else {
-                                  fetchModule(a.materialId)
-                                    .then((mod) => setEditModule(mod))
-                                    .catch(() => setEditModule(null))
-                                }
-                              }
-                            }}
-                            style={{ fontSize: 12 }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type='button'
-                            className='btn-secondary btn-small'
-                            onClick={() => handleDeleteAssignment(a.id)}
-                            style={{ fontSize: 12 }}
-                          >
-                            Hapus
-                          </button>
-                        </div>
+                      <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        <div style={{
+                          width: '100%', height: heights[i], background: i < 5 ? '#6c5ce7' : '#e0e0f0',
+                          borderRadius: 6, minHeight: 4,
+                        }} />
+                        <span style={{ fontSize: 11, color: '#999' }}>{day}</span>
                       </div>
+                    )
+                  })}
+                </div>
+                <p style={{ fontSize: 11, color: '#bbb', textAlign: 'right', margin: '8px 0 0' }}>Menit dipelajari</p>
+              </div>
+            </div>
 
-                      {/* Questions & Reply Section */}
-                      {questions[a.id] && questions[a.id].length > 0 && (
-                        <div
-                          style={{
-                            marginTop: 12,
-                            paddingTop: 12,
-                            borderTop: '1px solid var(--border)',
-                          }}
-                        >
-                          <p
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 600,
-                              marginBottom: 8,
-                            }}
-                          >
-                            💬 Pertanyaan dari {getChildName(a.childId)}:
-                          </p>
-                          {questions[a.id].map((q) => (
-                            <div
-                              key={q.id}
-                              style={{
-                                padding: 10,
-                                background: 'var(--gray-50)',
-                                borderRadius: 'var(--radius-sm)',
-                                marginBottom: 8,
-                              }}
-                            >
-                              <p
-                                style={{
-                                  margin: 0,
-                                  fontSize: 12,
-                                  fontWeight: 500,
-                                }}
-                              >
-                                ❓ {q.question}
-                              </p>
-                              <p
-                                style={{
-                                  margin: '4px 0 0',
-                                  fontSize: 10,
-                                  color: 'var(--text-tertiary)',
-                                }}
-                              >
-                                {new Date(q.createdAt).toLocaleString('id-ID', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </p>
-                              {q.reply ? (
-                                <div
-                                  style={{
-                                    marginTop: 6,
-                                    paddingLeft: 12,
-                                    borderLeft: '2px solid var(--success)',
-                                  }}
-                                >
-                                  <p
-                                    style={{
-                                      margin: 0,
-                                      fontSize: 12,
-                                      color: 'var(--success)',
-                                    }}
-                                  >
-                                    💬 {q.reply}
-                                  </p>
-                                  <p
-                                    style={{
-                                      margin: '2px 0 0',
-                                      fontSize: 10,
-                                      color: 'var(--text-tertiary)',
-                                    }}
-                                  >
-                                    {new Date(q.repliedAt!).toLocaleString(
-                                      'id-ID',
-                                      {
-                                        day: 'numeric',
-                                        month: 'short',
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                      },
-                                    )}
-                                  </p>
-                                </div>
-                              ) : (
-                                <div
-                                  style={{
-                                    marginTop: 6,
-                                    display: 'flex',
-                                    gap: 8,
-                                  }}
-                                >
-                                  <input
-                                    type='text'
-                                    value={replyText[q.id] ?? ''}
-                                    onChange={(e) =>
-                                      setReplyText((prev) => ({
-                                        ...prev,
-                                        [q.id]: e.target.value,
-                                      }))
-                                    }
-                                    placeholder='Balas pertanyaan...'
-                                    style={{
-                                      flex: 1,
-                                      padding: '6px 10px',
-                                      border: '1px solid var(--border)',
-                                      borderRadius: 'var(--radius-sm)',
-                                      fontSize: 12,
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (
-                                        e.key === 'Enter' &&
-                                        sendingReply !== q.id
-                                      ) {
-                                        handleReply(q.id)
-                                      }
-                                    }}
-                                  />
-                                  <button
-                                    type='button'
-                                    className='btn-primary btn-small'
-                                    onClick={() => handleReply(q.id)}
-                                    disabled={
-                                      sendingReply === q.id ||
-                                      !replyText[q.id]?.trim()
-                                    }
-                                    style={{ fontSize: 11 }}
-                                  >
-                                    {sendingReply === q.id ? '...' : 'Balas'}
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+            {/* Upcoming Schedule (from assignments) */}
+            <div>
+              <p style={S.sectionLabel}>Upcoming Schedule</p>
+              <div style={S.card}>
+                {assignments.filter((a) => a.dueDate && a.status !== 'completed').slice(0, 3).map((a) => {
+                  const due = new Date(a.dueDate!)
+                  const ds = deadlineStatus(a)
+                  return (
+                    <div key={a.id} style={S.schedItem}>
+                      <div style={S.schedDate}>
+                        <span style={{ fontSize: 16, fontWeight: 700, color: '#6c5ce7' }}>{due.getDate()}</span>
+                        <span style={{ fontSize: 10, color: '#999', textTransform: 'uppercase' }}>
+                          {due.toLocaleDateString('id-ID', { month: 'short' })}
+                        </span>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontWeight: 600, fontSize: 14, margin: 0 }}>{a.title}</p>
+                        <p style={{ fontSize: 12, color: '#999', margin: '2px 0 0' }}>
+                          {getChildName(a.childId)} · {due.toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}
+                        </p>
+                      </div>
+                      <span style={S.statusBadge(ds.color, ds.bg)}>{ds.label}</span>
                     </div>
                   )
                 })}
-              </div>
-              )})()}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Edit Assignment Modal */}
-        {editingAssignment && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'rgba(0,0,0,0.4)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 2000,
-            }}
-            onClick={() => setEditingAssignment(null)}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: 'var(--bg-card)',
-                borderRadius: 'var(--radius-lg)',
-                padding: 24,
-                width: '90%',
-                maxWidth: 520,
-                maxHeight: '80vh',
-                overflowY: 'auto',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 16,
-                }}
-              >
-                <h3
-                  style={{
-                    margin: 0,
-                    fontFamily: 'var(--font-display)',
-                  }}
-                >
-                  ✏️ Edit Tugas
-                </h3>
-                <button
-                  type='button'
-                  onClick={() => setEditingAssignment(null)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: 20,
-                    cursor: 'pointer',
-                    padding: 4,
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Title (read-only) */}
-              <div style={{ marginBottom: 12 }}>
-                <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
-                  Judul
-                </p>
-                <p style={{ fontSize: 14, fontWeight: 600, margin: '4px 0 0' }}>
-                  {editingAssignment.title}
-                </p>
-              </div>
-
-              {/* For (read-only) */}
-              <div style={{ marginBottom: 12 }}>
-                <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
-                  Untuk
-                </p>
-                <p style={{ fontSize: 14, fontWeight: 600, margin: '4px 0 0' }}>
-                  {getChildName(editingAssignment.childId)}
-                </p>
-              </div>
-
-              {/* Deadline */}
-              <label className='auth-field' style={{ marginBottom: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>📅 Deadline</span>
-                <input
-                  type='date'
-                  value={editDueDate}
-                  onChange={(e) => setEditDueDate(e.target.value)}
-                />
-              </label>
-
-              {/* Selected Frames (read-only view, show what's selected) */}
-              {editModule && editSelectedFrames.length > 0 && (
-                <div style={{ marginBottom: 16 }}>
-                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 8px' }}>
-                    Bahasan yang ditugaskan
-                  </p>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 4,
-                      padding: 10,
-                      background: 'var(--gray-50)',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border)',
-                    }}>
-                    {editModule.frames
-                      .filter((f) => editSelectedFrames.includes(f.id))
-                      .map((frame) => (
-                        <div
-                          key={frame.id}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            padding: '4px 8px',
-                            fontSize: 13,
-                          }}
-                        >
-                          <span>{KIND_ICON[frame.kind] ?? '📄'}</span>
-                          <span>{frame.title}</span>
-                        </div>
-                      ))}
-                  </div>
-                  <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
-                    {editSelectedFrames.length} bahasan dipilih
-                  </p>
-                </div>
-              )}
-
-              {/* Action buttons */}
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
-                <button
-                  type='button'
-                  className='btn-secondary'
-                  onClick={() => setEditingAssignment(null)}
-                  style={{ fontSize: 13 }}
-                >
-                  Batal
-                </button>
-                <button
-                  type='button'
-                  className='btn-primary'
-                  onClick={handleSaveEdit}
-                  disabled={editSaving}
-                  style={{ fontSize: 13 }}
-                >
-                  {editSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
-                </button>
+                {assignments.filter((a) => a.dueDate && a.status !== 'completed').length === 0 && (
+                  <p style={{ color: '#bbb', fontSize: 13, textAlign: 'center', margin: 12 }}>Tidak ada jadwal mendatang</p>
+                )}
               </div>
             </div>
           </div>
+
+          {/* ─── Right Column ─── */}
+          <div style={S.rightCol}>
+
+            {/* Performance Summary */}
+            <div>
+              <p style={S.sectionLabel}>Performance Summary</p>
+              <div style={{ ...S.card, background: 'linear-gradient(135deg, #2d1b69, #4a2d8c)', color: '#fff', display: 'flex', alignItems: 'center', gap: 20 }}>
+                <div style={S.circularProgress(overallAvgScore)}>
+                  <div style={S.circularInner}>
+                    <span style={{ fontSize: 22, fontWeight: 800, color: '#6c5ce7' }}>{overallAvgScore}%</span>
+                    <span style={{ fontSize: 9, color: '#999' }}>Avg Score</span>
+                  </div>
+                </div>
+                <div>
+                  <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600 }}>📊 {totalModulesCompleted} Total Modules</p>
+                  <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600 }}>⏱ {children.length * 3} Hours This Week</p>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>🏆 Top {children.length > 0 ? Math.max(5, 20 - totalModulesCompleted) : 99}% This Month</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div>
+              <p style={S.sectionLabel}>Recent Activity</p>
+              <div style={S.card}>
+                {assignments.length === 0 ? (
+                  <p style={{ color: '#bbb', fontSize: 13, textAlign: 'center', margin: 12 }}>Belum ada aktivitas</p>
+                ) : (
+                  assignments.slice(0, 4).map((a) => {
+                    const isCompleted = a.status === 'completed'
+                    const isInProgress = a.status === 'in_progress'
+                    return (
+                      <div key={a.id} style={S.actItem}>
+                        <div style={S.actIcon(isCompleted ? '#d5f5ec' : isInProgress ? '#fff3e0' : '#f0f0ff')}>
+                          {isCompleted ? '✅' : isInProgress ? '⭐' : '📌'}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontWeight: 600, fontSize: 13, margin: 0 }}>
+                            {getChildName(a.childId)} {isCompleted ? 'menyelesaikan' : isInProgress ? 'mengerjakan' : 'ditugaskan'} {a.title}
+                          </p>
+                          <p style={{ fontSize: 12, color: '#999', margin: '2px 0 0' }}>
+                            {a.createdAt ? new Date(a.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : ''}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div>
+              <p style={S.sectionLabel}>Quick Actions</p>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  type='button'
+                  style={S.quickActBtn}
+                  onClick={() => setViewMode('modules')}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6c5ce7'; e.currentTarget.style.background = '#f8f7ff' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#eee'; e.currentTarget.style.background = '#fff' }}
+                >
+                  <span style={{ fontSize: 24 }}>📅</span>
+                  Schedule
+                </button>
+                <button
+                  type='button'
+                  style={S.quickActBtn}
+                  onClick={() => setViewMode('reports')}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6c5ce7'; e.currentTarget.style.background = '#f8f7ff' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#eee'; e.currentTarget.style.background = '#fff' }}
+                >
+                  <span style={{ fontSize: 24 }}>📈</span>
+                  Report
+                </button>
+              </div>
+            </div>
+
+            {/* Progress Detail (when child is selected) */}
+            {selectedChild && viewMode === 'modules' && (
+              <div>
+                <p style={S.sectionLabel}>Progres: {selectedChild.name}</p>
+                <div style={S.card}>
+                  {progressLoading ? (
+                    <p style={{ color: '#999', fontSize: 13, textAlign: 'center', margin: 12 }}>Memuat progres...</p>
+                  ) : (() => {
+                    const childAssignments = assignments.filter((a) => a.childId === selectedChild.id)
+                    if (childAssignments.length === 0) {
+                      return <p style={{ color: '#bbb', fontSize: 13, textAlign: 'center', margin: 12 }}>Belum ada tugas</p>
+                    }
+                    return childAssignments.map((a) => {
+                      const completion = getAssignmentCompletion(a)
+                      return (
+                        <div key={a.id} style={{ padding: '10px 0', borderBottom: '1px solid #f3f3f7' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <span style={{ fontSize: 13, fontWeight: 600 }}>📖 {a.title}</span>
+                            <span style={{ fontSize: 12, color: '#999' }}>{completion.completed}/{completion.total}</span>
+                          </div>
+                          <div style={{ height: 5, borderRadius: 999, background: '#f0f0f5', overflow: 'hidden' }}>
+                            <div style={{
+                              height: '100%', width: `${completion.pct}%`,
+                              background: completion.pct === 100 ? '#00b894' : '#6c5ce7',
+                              borderRadius: 999,
+                            }} />
+                          </div>
+                        </div>
+                      )
+                    })
+                  })()}
+                  <button
+                    type='button'
+                    style={{ ...S.viewBtn, marginTop: 8 }}
+                    onClick={() => setSelectedChild(null)}
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ─── Assignment List (below grid) ─── */}
+        {viewMode === 'modules' && (
+          <div style={{ marginTop: 28 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <p style={S.sectionLabel}>Daftar Tugas</p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type='text'
+                  value={taskSearchQuery}
+                  onChange={(e) => setTaskSearchQuery(e.target.value)}
+                  placeholder='🔍 Cari tugas...'
+                  style={{ ...S.input, width: 200 }}
+                />
+                <select
+                  value={taskSortOrder}
+                  onChange={(e) => setTaskSortOrder(e.target.value as typeof taskSortOrder)}
+                  style={{ ...S.select, width: 130 }}
+                >
+                  <option value='newest'>Terbaru</option>
+                  <option value='oldest'>Terlama</option>
+                  <option value='deadline'>Deadline</option>
+                  <option value='status'>Status</option>
+                  <option value='child'>Anak</option>
+                </select>
+              </div>
+            </div>
+            {assignmentsLoading ? (
+              <p style={{ color: '#999', fontSize: 13 }}>Memuat tugas...</p>
+            ) : assignments.length === 0 ? (
+              <div style={S.card}><p style={{ color: '#bbb', fontSize: 13, textAlign: 'center', margin: 12 }}>Belum ada tugas. Klik tombol "+ Assign New Module" untuk membuat tugas baru.</p></div>
+            ) : (
+              (() => {
+                let filtered = assignments
+                if (taskSearchQuery.trim()) {
+                  const q = taskSearchQuery.toLowerCase()
+                  filtered = filtered.filter((a) => {
+                    const childName = getChildName(a.childId).toLowerCase()
+                    const title = (a.title || '').toLowerCase()
+                    return title.includes(q) || childName.includes(q)
+                  })
+                }
+                filtered = [...filtered].sort((a, b) => {
+                  if (taskSortOrder === 'newest') return (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
+                  if (taskSortOrder === 'oldest') return (a.createdAt ?? '').localeCompare(b.createdAt ?? '')
+                  if (taskSortOrder === 'deadline') return (a.dueDate ?? 'z').localeCompare(b.dueDate ?? 'z')
+                  if (taskSortOrder === 'child') return getChildName(a.childId).localeCompare(getChildName(b.childId))
+                  const statusOrder: Record<string, number> = { overdue: 0, in_progress: 1, pending: 2, completed: 3 }
+                  return (statusOrder[a.status] ?? 4) - (statusOrder[b.status] ?? 4)
+                })
+                if (filtered.length === 0 && taskSearchQuery.trim()) {
+                  return <p style={{ color: '#999', fontSize: 13, textAlign: 'center', padding: 20 }}>Tidak ada tugas yang cocok dengan pencarian.</p>
+                }
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    {filtered.map((a) => {
+                      const completion = getAssignmentCompletion(a)
+                      const ds = deadlineStatus(a)
+                      const now = new Date()
+                      const isCompleted = a.status === 'completed'
+                      let cardBg = '#fff'
+                      let cardBorder = '1px solid #eee'
+                      if (!isCompleted && a.status === 'overdue') {
+                        cardBg = 'rgba(239,68,68,0.04)'
+                        cardBorder = '1.5px solid #ef4444'
+                      } else if (!isCompleted && a.dueDate) {
+                        const hoursLeft = (new Date(a.dueDate).getTime() - now.getTime()) / (1000 * 60 * 60)
+                        if (hoursLeft < 0) { cardBg = 'rgba(239,68,68,0.04)'; cardBorder = '1.5px solid #ef4444' }
+                        else if (hoursLeft <= 24) { cardBg = 'rgba(245,158,11,0.04)'; cardBorder = '1.5px solid #f59e0b' }
+                      }
+                      return (
+                        <div key={a.id} style={{ ...S.childCard, background: cardBg, border: cardBorder }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px' }}>📖 {a.title}</p>
+                              <p style={{ fontSize: 13, color: '#666', margin: '0 0 2px' }}>
+                                Untuk: {getChildName(a.childId)}
+                                {a.selectedFrames && ` · ${(a.selectedFrames as string[]).length} panel`}
+                              </p>
+                              <p style={{ fontSize: 12, color: '#999', margin: '0 0 8px' }}>
+                                {a.dueDate ? `📅 ${new Date(a.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}` : 'Tanpa deadline'}
+                              </p>
+                            </div>
+                          </div>
+                          <div style={{ height: 5, borderRadius: 999, background: '#f0f0f5', overflow: 'hidden', marginBottom: 6 }}>
+                            <div style={{
+                              height: '100%', width: `${completion.pct}%`,
+                              background: completion.pct === 100 ? '#00b894' : '#6c5ce7',
+                              borderRadius: 999,
+                            }} />
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: ds.color, background: ds.bg, padding: '2px 8px', borderRadius: 6 }}>
+                              {ds.label}
+                            </span>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button
+                                type='button'
+                                style={{ fontSize: 12, padding: '5px 12px', border: '1px solid #ddd', borderRadius: 8, background: '#fff', cursor: 'pointer', fontWeight: 600 }}
+                                onClick={() => {
+                                  setEditingAssignment(a)
+                                  setEditDueDate(a.dueDate ? new Date(a.dueDate).toISOString().split('T')[0] : '')
+                                  setEditSelectedFrames((a.selectedFrames as string[]) ?? [])
+                                  if (a.materialId) {
+                                    const cached = moduleCache[a.materialId]
+                                    if (cached) setEditModule(cached)
+                                    else fetchModule(a.materialId).then((mod) => setEditModule(mod)).catch(() => setEditModule(null))
+                                  }
+                                }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type='button'
+                                style={{ fontSize: 12, padding: '5px 12px', border: '1px solid #fdd', borderRadius: 8, background: '#fff', color: '#ff7675', cursor: 'pointer', fontWeight: 600 }}
+                                onClick={() => handleDeleteAssignment(a.id)}
+                              >
+                                Hapus
+                              </button>
+                            </div>
+                          </div>
+                          {/* Questions */}
+                          {questions[a.id] && questions[a.id].length > 0 && (
+                            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #f3f3f7' }}>
+                              <p style={{ fontSize: 12, fontWeight: 600, margin: '0 0 6px', color: '#6c5ce7' }}>
+                                💬 {questions[a.id].length} pertanyaan
+                              </p>
+                              {questions[a.id].slice(0, 2).map((q) => (
+                                <div key={q.id} style={{ padding: 8, background: '#f8f7ff', borderRadius: 8, marginBottom: 6 }}>
+                                  <p style={{ fontSize: 12, fontWeight: 500, margin: 0 }}>❓ {q.question}</p>
+                                  {q.reply ? (
+                                    <p style={{ fontSize: 12, color: '#00b894', margin: '4px 0 0' }}>💬 {q.reply}</p>
+                                  ) : (
+                                    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                                      <input
+                                        type='text'
+                                        value={replyText[q.id] ?? ''}
+                                        onChange={(e) => setReplyText((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                                        placeholder='Balas...'
+                                        style={{ flex: 1, padding: '5px 8px', border: '1px solid #e0e0e0', borderRadius: 6, fontSize: 12 }}
+                                        onKeyDown={(e) => { if (e.key === 'Enter' && sendingReply !== q.id) handleReply(q.id) }}
+                                      />
+                                      <button
+                                        type='button'
+                                        style={{ fontSize: 11, padding: '4px 10px', border: 'none', borderRadius: 6, background: '#6c5ce7', color: '#fff', cursor: 'pointer', fontWeight: 600 }}
+                                        onClick={() => handleReply(q.id)}
+                                        disabled={sendingReply === q.id || !replyText[q.id]?.trim()}
+                                      >
+                                        {sendingReply === q.id ? '...' : 'Balas'}
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()
+            )}
+          </div>
         )}
       </div>
+
+      {/* ─── FAB: Assign New Module ─── */}
+      <button
+        type='button'
+        style={S.fab}
+        onClick={() => setShowAssignModal(true)}
+        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(108,92,231,0.45)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(108,92,231,0.35)' }}
+      >
+        + Assign New Module
+      </button>
+
+      {/* ─── Create Child Modal ─── */}
+      {showCreateChild && (
+        <div style={S.modalOverlay} onClick={() => setShowCreateChild(false)}>
+          <div style={S.modalBox} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 18 }}>👶 Buat Akun Anak</h3>
+              <button type='button' onClick={() => setShowCreateChild(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer' }}>✕</button>
+            </div>
+            <form onSubmit={handleCreateChild}>
+              <label style={{ display: 'block', marginBottom: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Nama Lengkap Anak</span>
+                <input type='text' value={childForm.name} onChange={(e) => setChildForm((p) => ({ ...p, name: e.target.value }))} required placeholder='Nama lengkap' style={S.input} />
+              </label>
+              <label style={{ display: 'block', marginBottom: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Email</span>
+                <input type='email' value={childForm.email} onChange={(e) => setChildForm((p) => ({ ...p, email: e.target.value }))} required placeholder='anak@email.id' style={S.input} />
+              </label>
+              <label style={{ display: 'block', marginBottom: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Kata Sandi</span>
+                <input type='password' value={childForm.password} onChange={(e) => setChildForm((p) => ({ ...p, password: e.target.value }))} required minLength={6} placeholder='Minimal 6 karakter' style={S.input} />
+              </label>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                <label style={{ flex: 1 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Kelas</span>
+                  <select value={childForm.grade} onChange={(e) => setChildForm((p) => ({ ...p, grade: Number(e.target.value) }))} style={S.select}>
+                    {grades.map((g) => <option key={g.level} value={g.level}>{g.label}</option>)}
+                  </select>
+                </label>
+                <label style={{ flex: 1 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Semester</span>
+                  <select value={childForm.semester} onChange={(e) => setChildForm((p) => ({ ...p, semester: Number(e.target.value) }))} style={S.select}>
+                    {semesters.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                </label>
+              </div>
+              {childError && <p style={{ color: '#ff7675', fontSize: 13, margin: '0 0 8px' }}>{childError}</p>}
+              <button type='submit' disabled={childSubmitting} style={{
+                width: '100%', padding: '12px 0', border: 'none', borderRadius: 12,
+                background: '#6c5ce7', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                opacity: childSubmitting ? 0.6 : 1,
+              }}>
+                {childSubmitting ? 'Membuat...' : 'Buat Akun Anak'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Assign Module Modal ─── */}
+      {showAssignModal && (
+        <div style={S.modalOverlay} onClick={() => { setShowAssignModal(false); setAssignSuccess(null); setAssignError(null) }}>
+          <div style={S.modalBox} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 18 }}>📚 Tugaskan Modul</h3>
+              <button type='button' onClick={() => { setShowAssignModal(false); setAssignSuccess(null); setAssignError(null) }} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer' }}>✕</button>
+            </div>
+            <label style={{ display: 'block', marginBottom: 12 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Anak</span>
+              <select value={selectedChildId} onChange={(e) => setSelectedChildId(e.target.value)} style={S.select}>
+                <option value=''>-- Pilih Anak --</option>
+                {children.map((c) => <option key={c.id} value={c.id}>{c.name} (Kelas {c.grade})</option>)}
+              </select>
+            </label>
+            {selectedChildId && (
+              <label style={{ display: 'block', marginBottom: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Mata Pelajaran</span>
+                <select value={selectedSubjectId} onChange={(e) => setSelectedSubjectId(e.target.value)} style={S.select}>
+                  <option value=''>-- Pilih Mata Pelajaran --</option>
+                  {subjects.map((s) => <option key={s.id} value={s.id}>{s.icon} {s.shortName}</option>)}
+                </select>
+              </label>
+            )}
+            {selectedChildId && selectedSubjectId && (
+              <label style={{ display: 'block', marginBottom: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>Topik</span>
+                <select value={selectedModuleId} onChange={(e) => setSelectedModuleId(e.target.value)} style={S.select}>
+                  <option value=''>-- Pilih Topik --</option>
+                  {availableModules.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
+                </select>
+              </label>
+            )}
+            {selectedModule && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>Pilih Bahasan</span>
+                  <button type='button' onClick={toggleAllFrames} style={{ fontSize: 12, color: '#6c5ce7', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                    {selectedFrames.length === selectedModule.frames.length ? 'Batalkan Semua' : 'Pilih Semua'}
+                  </button>
+                </div>
+                <div style={{ border: '1px solid #eee', borderRadius: 10, padding: 8, maxHeight: 180, overflowY: 'auto' }}>
+                  {selectedModule.frames.map((frame) => (
+                    <label key={frame.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, cursor: 'pointer', background: selectedFrames.includes(frame.id) ? '#f0eeff' : 'transparent' }}>
+                      <input type='checkbox' checked={selectedFrames.includes(frame.id)} onChange={() => toggleFrame(frame.id)} style={{ width: 16, height: 16 }} />
+                      <span>{KIND_ICON[frame.kind] ?? '📄'}</span>
+                      <span style={{ fontSize: 13 }}>{frame.title}</span>
+                      <span style={{ fontSize: 11, color: '#999' }}>({KIND_LABEL[frame.kind] ?? frame.kind})</span>
+                    </label>
+                  ))}
+                </div>
+                <p style={{ fontSize: 11, color: '#999', margin: '4px 0 0' }}>{selectedFrames.length} dari {selectedModule.frames.length} panel dipilih</p>
+              </div>
+            )}
+            {selectedModule && (
+              <label style={{ display: 'block', marginBottom: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>📅 Deadline</span>
+                <input type='datetime-local' value={dueDate} onChange={(e) => setDueDate(e.target.value)} style={S.input} />
+              </label>
+            )}
+            {assignError && <p style={{ color: '#ff7675', fontSize: 13, margin: '0 0 8px' }}>{assignError}</p>}
+            {assignSuccess && <p style={{ color: '#00b894', fontSize: 13, fontWeight: 600, margin: '0 0 8px' }}>{assignSuccess}</p>}
+            {selectedModule && selectedFrames.length > 0 && (
+              <button type='button' disabled={assigning} onClick={handleAssign} style={{
+                width: '100%', padding: '12px 0', border: 'none', borderRadius: 12,
+                background: '#6c5ce7', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                opacity: assigning ? 0.6 : 1,
+              }}>
+                {assigning ? 'Menugaskan...' : `Tugaskan ke ${children.find((c) => c.id === selectedChildId)?.name ?? 'Anak'}`}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Edit Assignment Modal ─── */}
+      {editingAssignment && (
+        <div style={S.modalOverlay} onClick={() => setEditingAssignment(null)}>
+          <div style={S.modalBox} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 18 }}>✏️ Edit Tugas</h3>
+              <button type='button' onClick={() => setEditingAssignment(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer' }}>✕</button>
+            </div>
+            <p style={{ fontSize: 13, color: '#666', margin: '0 0 4px' }}>Judul</p>
+            <p style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>{editingAssignment.title}</p>
+            <p style={{ fontSize: 13, color: '#666', margin: '0 0 4px' }}>Untuk</p>
+            <p style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>{getChildName(editingAssignment.childId)}</p>
+            <label style={{ display: 'block', marginBottom: 12 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>📅 Deadline</span>
+              <input type='date' value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)} style={S.input} />
+            </label>
+            {editModule && editSelectedFrames.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <p style={{ fontSize: 13, color: '#666', margin: '0 0 6px' }}>Bahasan yang ditugaskan</p>
+                <div style={{ border: '1px solid #eee', borderRadius: 10, padding: 8 }}>
+                  {editModule.frames.filter((f) => editSelectedFrames.includes(f.id)).map((frame) => (
+                    <div key={frame.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', fontSize: 13 }}>
+                      <span>{KIND_ICON[frame.kind] ?? '📄'}</span>
+                      <span>{frame.title}</span>
+                    </div>
+                  ))}
+                </div>
+                <p style={{ fontSize: 11, color: '#999', margin: '4px 0 0' }}>{editSelectedFrames.length} bahasan dipilih</p>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
+              <button type='button' onClick={() => setEditingAssignment(null)} style={{ padding: '10px 20px', border: '1px solid #ddd', borderRadius: 10, background: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>Batal</button>
+              <button type='button' onClick={handleSaveEdit} disabled={editSaving} style={{ padding: '10px 20px', border: 'none', borderRadius: 10, background: '#6c5ce7', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: editSaving ? 0.6 : 1 }}>
+                {editSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
