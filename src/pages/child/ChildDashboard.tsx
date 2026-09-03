@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../../context/AuthContext'
+import TopBar from '../../components/TopBar'
 import {
   fetchChildAssignments,
   fetchModule,
@@ -304,6 +305,7 @@ export default function ChildDashboard() {
       display: 'flex',
       flex: 1,
       overflow: 'hidden',
+      marginTop: 48,
     } as React.CSSProperties,
     sidebar: {
       width: 220,
@@ -636,6 +638,7 @@ export default function ChildDashboard() {
 
   return (
     <div style={S.page}>
+      <TopBar />
       <div style={S.wrapper}>
         {/* Sidebar */}
         <nav style={S.sidebar}>
@@ -1761,7 +1764,7 @@ export default function ChildDashboard() {
             style={{
               width: 300,
               flexShrink: 0,
-              padding: '24px 20px 64px 0',
+              padding: '0 20px 64px 0',
               display: 'flex',
               flexDirection: 'column',
               gap: 20,

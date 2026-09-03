@@ -144,7 +144,7 @@ export default function TopBar({
   const isChild = user?.role === 'STUDENT'
 
   return (
-    <div className='topbar' style={isChild ? { padding: '10px 20px', margin: 0 } : undefined}>
+    <div className='topbar' style={isChild ? { padding: '10px 20px', position: 'fixed' as const, top: 0, left: 0, right: 0 } : undefined}>
       {/* Left: Logo or minimal info */}
       {isChild ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
