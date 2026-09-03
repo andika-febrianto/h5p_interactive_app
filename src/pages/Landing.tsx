@@ -94,6 +94,13 @@ export default function Landing() {
                 className='landing-nav-link'
                 onClick={() => navigate('/masuk')}
               >
+                Sudah punya akun
+              </button>
+              <button
+                type='button'
+                className='landing-nav-link'
+                onClick={() => navigate('/masuk')}
+              >
                 Masuk
               </button>
               <button
