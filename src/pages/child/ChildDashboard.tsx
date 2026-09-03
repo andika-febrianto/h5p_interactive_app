@@ -180,8 +180,8 @@ export default function ChildDashboard() {
   // ── Styles ──
 
   const S = {
-    page: { minHeight: '100vh', background: '#f4f5fa' } as React.CSSProperties,
-    wrapper: { display: 'flex', minHeight: '100vh' } as React.CSSProperties,
+    page: { height: '100vh', background: '#f4f5fa', display: 'flex', flexDirection: 'column', overflow: 'hidden' } as React.CSSProperties,
+    wrapper: { display: 'flex', flex: 1, overflow: 'hidden' } as React.CSSProperties,
     sidebar: {
       width: 220,
       background: '#fff',

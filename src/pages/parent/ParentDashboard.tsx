@@ -399,8 +399,8 @@ export default function ParentDashboard() {
   // ── Styles ──
 
   const S = {
-    page: { minHeight: '100vh', background: '#f4f5fa' } as React.CSSProperties,
-    container: { maxWidth: 1200, margin: '0 auto', padding: '24px 32px 64px' } as React.CSSProperties,
+    page: { height: '100vh', background: '#f4f5fa', display: 'flex', flexDirection: 'column', overflow: 'hidden' } as React.CSSProperties,
+    container: { maxWidth: 1200, margin: '0 auto', padding: '24px 32px 64px', flex: 1, overflowY: 'auto' } as React.CSSProperties,
     banner: {
       background: 'linear-gradient(135deg, #e8e3ff 0%, #f5f3ff 50%, #ede6ff 100%)',
       borderRadius: 20,
