@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import TopBar from '../components/TopBar'
 import { useParams, useNavigate, Navigate, useSearchParams } from 'react-router-dom'
 import { ProgressProvider, useProgress } from '../context/ProgressContext'
 import { fetchModule, fetchChildAssignments, ApiError } from '../lib/api'
@@ -51,6 +50,9 @@ function ModuleRunner({ mod, filteredFrames, assignmentId }: { mod: Module; filt
     )
   }
 
+  const currentFrame = !isSummary ? frames[currentIndex] : null
+  const kindLabel: Record<string, string> = { text: 'MATERI', quiz: 'KUIS', dragdrop: 'DRAG & DROP', video: 'VIDEO INTERAKTIF', pdf: 'DOKUMEN', shortanswer: 'ISIAN SINGKAT' }
+
   return (
     <div className='app-shell'>
       <Sidebar
@@ -63,8 +65,31 @@ function ModuleRunner({ mod, filteredFrames, assignmentId }: { mod: Module; filt
         onJump={handleJump}
         onExit={handleExit}
       />
-      <main className='app-main'>
-        <div className='app-main-inner'>
+      <main className='app-main' style={{ padding: 0 }}>
+        {/* Top header bar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 32px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {currentFrame && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#6c5ce7', background: '#f0eeff', padding: '4px 10px', borderRadius: 6, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                Panel {currentFrame.panel} · {kindLabel[currentFrame.kind] ?? currentFrame.kind}
+              </span>
+            )}
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
+              {isSummary ? 'Ringkasan' : frames[currentIndex]?.title}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 12, color: '#999' }}>{currentIndex + 1} / {frames.length}</span>
+            <button
+              type='button'
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: '#666', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+              onClick={handleExit}
+            >
+              ⚙️ Pengaturan
+            </button>
+          </div>
+        </div>
+        <div className='app-main-inner' style={{ padding: '24px 32px 64px' }}>
           {error && (
             <p className='home-empty'>
               {error} (progres berjalan secara lokal untuk sesi ini)
@@ -169,7 +194,6 @@ export default function ModulePage() {
     return (
       <div className='home-page'>
         <div className='home-inner'>
-          <TopBar />
           <p className='home-empty'>Memuat modul...</p>
         </div>
       </div>
