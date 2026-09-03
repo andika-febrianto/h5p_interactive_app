@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../../context/AuthContext'
@@ -8,6 +8,11 @@ import {
   fetchChildModuleProgress,
   fetchAssignmentQuestions,
   askQuestion,
+  fetchUnreadCount,
+  fetchNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  type Notification as NotifType,
   markAssignmentStarted,
   checkStudentNotifications,
   type ParentAssignment,
@@ -36,6 +41,62 @@ export default function ChildDashboard() {
   const [questions, setQuestions] = useState<Record<string, Question[]>>({})
   const [newQuestion, setNewQuestion] = useState('')
   const [sendingQuestion, setSendingQuestion] = useState(false)
+
+  // Notification state
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [notifications, setNotifications] = useState<NotifType[]>([])
+  const [showNotifPanel, setShowNotifPanel] = useState(false)
+  const notifPanelRef = useRef<HTMLDivElement>(null)
+
+  const loadUnreadCount = useCallback(async () => {
+    try {
+      const res = await fetchUnreadCount()
+      setUnreadCount(res.count)
+    } catch {}
+  }, [])
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      const notifs = await fetchNotifications()
+      setNotifications(notifs.slice(0, 20))
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    if (!user) return
+    loadUnreadCount()
+    loadNotifications()
+    const interval = setInterval(loadUnreadCount, 30000)
+    return () => clearInterval(interval)
+  }, [user, loadUnreadCount, loadNotifications])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifPanelRef.current && !notifPanelRef.current.contains(e.target as Node)) {
+        setShowNotifPanel(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleNotifClick = async (notif: NotifType) => {
+    if (!notif.read) {
+      try {
+        await markNotificationRead(notif.id)
+        setUnreadCount((c) => Math.max(0, c - 1))
+        setNotifications((prev) => prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n)))
+      } catch {}
+    }
+  }
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllNotificationsRead()
+      setUnreadCount(0)
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+    } catch {}
+  }
 
   // ── Data Loading ──
 
@@ -299,9 +360,56 @@ export default function ChildDashboard() {
         <nav style={S.sidebar}>
           <div style={S.sidebarLogo}>
             <div style={S.sidebarLogoIcon}>📖</div>
-            <div>
+            <div style={{ flex: 1 }}>
               <p style={S.sidebarTitle}>Perpustakaan<br />Belajar</p>
               <p style={S.sidebarSubtitle}>Petualangan belajarmu 🚀</p>
+            </div>
+            {/* Notification bell */}
+            <div ref={notifPanelRef} style={{ position: 'relative' }}>
+              <button
+                type='button'
+                onClick={() => setShowNotifPanel((p) => !p)}
+                style={{ cursor: 'pointer', border: 'none', background: 'none', fontSize: 18, position: 'relative', padding: 4 }}
+                title='Notifikasi'
+              >
+                🔔
+                {unreadCount > 0 && (
+                  <span style={{ position: 'absolute', top: -2, right: -4, background: '#ef4444', color: '#fff', fontSize: 9, fontWeight: 700, minWidth: 14, height: 14, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', lineHeight: 1 }}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              {showNotifPanel && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, width: 300, maxHeight: 400, overflowY: 'auto', background: '#fff', borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.12)', border: '1px solid #e5e7eb', zIndex: 1000 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>Notifikasi</span>
+                    {unreadCount > 0 && (
+                      <button type='button' onClick={handleMarkAllRead} style={{ fontSize: 11, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                        Tandai semua dibaca
+                      </button>
+                    )}
+                  </div>
+                  {notifications.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: '#9ca3af', padding: 20, fontSize: 12 }}>Belum ada notifikasi</p>
+                  ) : (
+                    notifications.map((n) => (
+                      <div
+                        key={n.id}
+                        onClick={() => handleNotifClick(n)}
+                        style={{ padding: '10px 14px', borderBottom: '1px solid #f9fafb', cursor: 'pointer', background: n.read ? '#fff' : '#f0f0ff', display: 'flex', gap: 8, alignItems: 'flex-start' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#f5f5ff' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = n.read ? '#fff' : '#f0f0ff' }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontWeight: n.read ? 500 : 700, fontSize: 12, margin: 0, color: '#1f2937' }}>{n.title}</p>
+                          <p style={{ fontSize: 11, color: '#6b7280', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.message}</p>
+                        </div>
+                        {!n.read && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1', flexShrink: 0, marginTop: 4 }} />}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
           {sideItems.map((item) => (
