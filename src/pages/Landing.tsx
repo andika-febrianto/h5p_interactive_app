@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { AuthBar } from '../components/AuthBar'
 import HeroIllustration from '../components/HeroIllustration'
 
 const FEATURES = [
