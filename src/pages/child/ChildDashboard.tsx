@@ -150,8 +150,8 @@ export default function ChildDashboard() {
     const p = getAssignmentProgress(a)
     return p.total > 0 && p.completed === p.total
   }).length
-  const totalPoints = completedCount * 100
-  const streak = 5
+  const inProgressCount = assignments.filter((a) => a.status === 'in_progress').length
+  const totalPoints = completedCount * 100 + inProgressCount * 20
 
   // Get subject breakdown for weekly progress
   const subjectBreakdown = useMemo(() => {
@@ -167,6 +167,15 @@ export default function ChildDashboard() {
     })
     return Object.values(map).slice(0, 4)
   }, [assignments, moduleCache])
+
+  // Calculate streak from completed assignments
+  const streak = useMemo(() => {
+    const completedDates = assignments
+      .filter((a) => a.status === 'completed')
+      .map((a) => new Date(a.createdAt ?? Date.now()).toDateString())
+    const uniqueDates = [...new Set(completedDates)]
+    return Math.min(uniqueDates.length, 30)
+  }, [assignments])
 
   // ── Styles ──
 
