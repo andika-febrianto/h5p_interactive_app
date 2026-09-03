@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import TopBar from '../../components/TopBar'
+
 import { useAuth } from '../../context/AuthContext'
 import {
   fetchChildAssignments,
@@ -294,7 +294,6 @@ export default function ChildDashboard() {
 
   return (
     <div style={S.page}>
-      <TopBar />
       <div style={S.wrapper}>
         {/* Sidebar */}
         <nav style={S.sidebar}>

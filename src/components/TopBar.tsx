@@ -39,7 +39,21 @@ const NOTIF_ICONS: Record<string, string> = {
   daily_reminder: '📅',
 }
 
-export default function TopBar() {
+interface Tab {
+  key: string
+  label: string
+  icon?: string
+}
+
+export default function TopBar({
+  tabs,
+  activeTab,
+  onTabChange,
+}: {
+  tabs?: Tab[]
+  activeTab?: string
+  onTabChange?: (key: string) => void
+} = {}) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [showDropdown, setShowDropdown] = useState(false)
@@ -126,10 +140,54 @@ export default function TopBar() {
   }
 
   const showBell = user && (user.role === 'PARENT' || user.role === 'STUDENT')
+  const isParent = user?.role === 'PARENT'
+  const isChild = user?.role === 'STUDENT'
 
   return (
-    <div className='topbar'>
-      <Logo />
+    <div className='topbar' style={isChild ? { padding: '10px 20px', margin: 0 } : undefined}>
+      {/* Left: Logo or minimal info */}
+      {isChild ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 18, color: '#6c5ce7' }}>📚</span>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700, color: '#1a1a2e' }}>
+            Perpustakaan Belajar
+          </span>
+        </div>
+      ) : (
+        <Logo />
+      )}
+
+      {/* Center: Tabs for parent */}
+      {isParent && tabs && tabs.length > 0 && (
+        <div style={{ display: 'flex', gap: 4, position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              type='button'
+              onClick={() => onTabChange?.(tab.key)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 18px',
+                borderRadius: 8,
+                border: 'none',
+                background: activeTab === tab.key ? '#6c5ce7' : 'transparent',
+                color: activeTab === tab.key ? '#fff' : '#666',
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              {tab.icon && <span>{tab.icon}</span>}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Right: User info + bell */}
       {user && (
         <div className='topbar-operator'>
           {showBell && (
@@ -317,9 +375,11 @@ export default function TopBar() {
             </div>
           )}
 
-          <span className='topbar-operator-name'>
-            {user.role !== 'TEACHER' && user.name}
-          </span>
+          {!isChild && (
+            <span className='topbar-operator-name'>
+              {user.role !== 'TEACHER' && user.name}
+            </span>
+          )}
           <span className='topbar-operator-role'>
             {user.role === 'TEACHER'
               ? 'Operator'

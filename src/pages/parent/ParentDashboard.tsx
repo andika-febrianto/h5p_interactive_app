@@ -400,7 +400,7 @@ export default function ParentDashboard() {
 
   const S = {
     page: { height: '100vh', background: '#f4f5fa', display: 'flex', flexDirection: 'column', overflow: 'hidden' } as React.CSSProperties,
-    container: { maxWidth: 1200, margin: '0 auto', padding: '24px 32px 64px', flex: 1, overflowY: 'auto' } as React.CSSProperties,
+    container: { maxWidth: 1200, margin: '0 auto', padding: '16px 32px 32px', flex: 1, overflowY: 'auto' } as React.CSSProperties,
     banner: {
       background: 'linear-gradient(135deg, #e8e3ff 0%, #f5f3ff 50%, #ede6ff 100%)',
       borderRadius: 20,
@@ -613,17 +613,6 @@ export default function ParentDashboard() {
       overflowY: 'auto',
       boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
     } as React.CSSProperties,
-    navTab: (active: boolean) => ({
-      padding: '8px 18px',
-      borderRadius: 8,
-      border: 'none',
-      background: active ? '#6c5ce7' : 'transparent',
-      color: active ? '#fff' : '#636e72',
-      fontWeight: 600,
-      fontSize: 13,
-      cursor: 'pointer',
-      transition: 'all 0.2s',
-    }) as React.CSSProperties,
     input: {
       width: '100%',
       padding: '10px 14px',
@@ -649,31 +638,18 @@ export default function ParentDashboard() {
     } as React.CSSProperties,
   }
 
-  // ── Nav Tabs ──
-  const navItems: { key: ViewMode; label: string }[] = [
-    { key: 'overview', label: 'Overview' },
-    { key: 'modules', label: 'Modules' },
-    { key: 'reports', label: 'Reports' },
+  // ── Nav Tabs (passed to TopBar) ──
+  const navItems = [
+    { key: 'overview', label: 'Overview', icon: '📊' },
+    { key: 'modules', label: 'Modules', icon: '📚' },
+    { key: 'reports', label: 'Reports', icon: '📈' },
   ]
 
   // ── Render ──
   return (
     <div style={S.page}>
-      <TopBar />
+      <TopBar tabs={navItems} activeTab={viewMode} onTabChange={(k) => setViewMode(k as ViewMode)} />
       <div style={S.container}>
-        {/* Nav Tabs */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 24 }}>
-          {navItems.map((item) => (
-            <button
-              key={item.key}
-              type='button'
-              style={S.navTab(viewMode === item.key)}
-              onClick={() => setViewMode(item.key)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
 
         {/* Welcome Banner */}
         <div style={S.banner}>
