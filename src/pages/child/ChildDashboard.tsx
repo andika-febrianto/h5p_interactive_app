@@ -1764,7 +1764,7 @@ export default function ChildDashboard() {
             style={{
               width: 300,
               flexShrink: 0,
-              padding: '0 20px 64px 0',
+              padding: '48px 20px 64px 0',
               display: 'flex',
               flexDirection: 'column',
               gap: 20,
