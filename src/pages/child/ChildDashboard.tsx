@@ -145,7 +145,7 @@ export default function ChildDashboard() {
     return result
   }, [assignments, searchQuery, sortOrder, moduleCache])
 
-  const activeAssignment = assignments.find((a) => a.status === 'in_progress') || assignments.find((a) => a.status === 'pending')
+  const activeAssignment = assignments.find((a) => a.status === 'in_progress') || assignments.find((a) => a.status === 'pending') || assignments.find((a) => a.status === 'overdue')
   const completedCount = assignments.filter((a) => {
     const p = getAssignmentProgress(a)
     return p.total > 0 && p.completed === p.total
@@ -501,14 +501,7 @@ export default function ChildDashboard() {
               {!activeAssignment && !assignmentsLoading && (
                 <div style={{ textAlign: 'center', padding: '40px 20px' }}>
                   <p style={{ fontSize: 48, marginBottom: 12 }}>📝</p>
-                  <p style={{ color: '#999', fontSize: 14, marginBottom: 16 }}>Belum ada tugas dari orang tua.</p>
-                  <button
-                    type='button'
-                    style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: '#6c5ce7', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
-                    onClick={() => navigate(user?.grade && user?.semester ? `/kelas/${user.grade}/semester/${user.semester}` : '/kelas')}
-                  >
-                    Mulai Belajar Mandiri
-                  </button>
+                  <p style={{ color: '#999', fontSize: 14, marginBottom: 16 }}>Semua tugas sudah selesai! 🎉</p>
                 </div>
               )}
 
@@ -707,23 +700,28 @@ export default function ChildDashboard() {
               </div>
             </div>
 
-            {/* Ranking */}
+            {/* Points */}
             <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px' }}>🏆 Peringkat Kamu</h3>
-              <p style={{ fontSize: 11, color: '#999', margin: '0 0 12px' }}>Top 5 di kelas</p>
-              {[
-                { rank: 1, name: 'Aria Putri', xp: 1420 },
-                { rank: 2, name: 'Raka Pratama', xp: 1380 },
-                { rank: 3, name: 'Maya Sari', xp: 1320 },
-                { rank: 4, name: `${user?.name ?? 'Kamu'} (kamu)`, xp: totalPoints, isUser: true },
-                { rank: 5, name: 'Budi Santoso', xp: totalPoints - 50 },
-              ].sort((a, b) => b.xp - a.xp).map((r, i) => (
-                <div key={i} style={{ ...S.rankItem, background: r.isUser ? '#f0eeff' : 'transparent', borderRadius: r.isUser ? 8 : 0, padding: r.isUser ? '8px' : '8px 0' }}>
-                  <span style={S.rankNum(i < 3)}>{i + 1}</span>
-                  <span style={{ flex: 1, fontSize: 13, fontWeight: r.isUser ? 700 : 500 }}>{r.name}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: r.isUser ? '#6c5ce7' : '#999' }}>{r.xp} XP</span>
+              <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px' }}>⭐ Poin Kamu</h3>
+              <p style={{ fontSize: 11, color: '#999', margin: '0 0 12px' }}>Total poin yang sudah kamu kumpulkan</p>
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                <div style={{ fontSize: 36, fontWeight: 700, color: '#6c5ce7' }}>{totalPoints}</div>
+                <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>XP</div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-around', borderTop: '1px solid #f3f3f7', paddingTop: 12, marginTop: 8 }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#00b894' }}>{completedCount}</div>
+                  <div style={{ fontSize: 10, color: '#999' }}>Selesai</div>
                 </div>
-              ))}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#ff7675' }}>{assignments.filter(a => a.status === 'overdue').length}</div>
+                  <div style={{ fontSize: 10, color: '#999' }}>Terlambat</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#6c5ce7' }}>{inProgressCount}</div>
+                  <div style={{ fontSize: 10, color: '#999' }}>Berjalan</div>
+                </div>
+              </div>
             </div>
           </aside>
         )}
