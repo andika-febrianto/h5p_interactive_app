@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate, Navigate, useSearchParams } from 'react-router-dom'
+import {
+  useParams,
+  useNavigate,
+  Navigate,
+  useSearchParams,
+} from 'react-router-dom'
 import { ProgressProvider, useProgress } from '../context/ProgressContext'
 import { fetchModule, fetchChildAssignments, ApiError } from '../lib/api'
 import { Sidebar } from '../components/Sidebar'
@@ -8,8 +13,17 @@ import { SummaryScreen } from '../components/SummaryScreen'
 import { useAuth } from '../context/AuthContext'
 import { getSubjectById } from '../data/subjects'
 import type { Module } from '../types/storyboard'
+import Loading from '../components/Loading'
 
-function ModuleRunner({ mod, filteredFrames, assignmentId }: { mod: Module; filteredFrames?: string[]; assignmentId?: string | null }) {
+function ModuleRunner({
+  mod,
+  filteredFrames,
+  assignmentId,
+}: {
+  mod: Module
+  filteredFrames?: string[]
+  assignmentId?: string | null
+}) {
   const { currentIndex, setCurrentIndex, resetProgress, loading, error } =
     useProgress()
   const navigate = useNavigate()
@@ -17,9 +31,10 @@ function ModuleRunner({ mod, filteredFrames, assignmentId }: { mod: Module; filt
   const allFrames = mod.frames
   // If filteredFrames (selected frame IDs from parent assignment) is provided,
   // show only those frames. Otherwise show all.
-  const frames = filteredFrames && filteredFrames.length > 0
-    ? allFrames.filter((f) => filteredFrames.includes(f.id))
-    : allFrames
+  const frames =
+    filteredFrames && filteredFrames.length > 0
+      ? allFrames.filter((f) => filteredFrames.includes(f.id))
+      : allFrames
   const isSummary = currentIndex >= frames.length
   const subject = getSubjectById(mod.subjectId)
 
@@ -38,20 +53,29 @@ function ModuleRunner({ mod, filteredFrames, assignmentId }: { mod: Module; filt
     }
   }
 
+  // if (loading) {
+  //   return (
+  //     <div className='app-shell'>
+  //       <main className='app-main'>
+  //         <div className='app-main-inner'>
+  //           <p className='home-empty'>Memuat progres...</p>
+  //         </div>
+  //       </main>
+  //     </div>
+  //   )
+  // }
   if (loading) {
-    return (
-      <div className='app-shell'>
-        <main className='app-main'>
-          <div className='app-main-inner'>
-            <p className='home-empty'>Memuat progres...</p>
-          </div>
-        </main>
-      </div>
-    )
+    return <Loading />
   }
-
   const currentFrame = !isSummary ? frames[currentIndex] : null
-  const kindLabel: Record<string, string> = { text: 'MATERI', quiz: 'KUIS', dragdrop: 'DRAG & DROP', video: 'VIDEO INTERAKTIF', pdf: 'DOKUMEN', shortanswer: 'ISIAN SINGKAT' }
+  const kindLabel: Record<string, string> = {
+    text: 'MATERI',
+    quiz: 'KUIS',
+    dragdrop: 'DRAG & DROP',
+    video: 'VIDEO INTERAKTIF',
+    pdf: 'DOKUMEN',
+    shortanswer: 'ISIAN SINGKAT',
+  }
 
   return (
     <div className='app-shell'>
@@ -67,22 +91,63 @@ function ModuleRunner({ mod, filteredFrames, assignmentId }: { mod: Module; filt
       />
       <main className='app-main' style={{ padding: 0 }}>
         {/* Top header bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 32px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 32px',
+            borderBottom: '1px solid var(--border)',
+            background: 'var(--white)',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             {currentFrame && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#6c5ce7', background: '#f0eeff', padding: '4px 10px', borderRadius: 6, letterSpacing: 0.5, textTransform: 'uppercase' }}>
-                Panel {currentFrame.panel} · {kindLabel[currentFrame.kind] ?? currentFrame.kind}
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: '#6c5ce7',
+                  background: '#f0eeff',
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  letterSpacing: 0.5,
+                  textTransform: 'uppercase',
+                }}
+              >
+                Panel {currentFrame.panel} ·{' '}
+                {kindLabel[currentFrame.kind] ?? currentFrame.kind}
               </span>
             )}
-            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
+            <span
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                color: 'var(--text-primary)',
+              }}
+            >
               {isSummary ? 'Ringkasan' : frames[currentIndex]?.title}
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 12, color: '#999' }}>{currentIndex + 1} / {frames.length}</span>
+            <span style={{ fontSize: 12, color: '#999' }}>
+              {currentIndex + 1} / {frames.length}
+            </span>
             <button
               type='button'
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: '#666', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 14px',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                background: 'var(--white)',
+                color: '#666',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
               onClick={handleExit}
             >
               ⚙️ Pengaturan
@@ -120,7 +185,9 @@ export default function ModulePage() {
   const { user } = useAuth()
   const [searchParams] = useSearchParams()
   const assignmentId = searchParams.get('assignment')
-  const [selectedFrameIds, setSelectedFrameIds] = useState<string[] | null>(null)
+  const [selectedFrameIds, setSelectedFrameIds] = useState<string[] | null>(
+    null,
+  )
 
   useEffect(() => {
     if (!moduleId) return
@@ -153,7 +220,9 @@ export default function ModulePage() {
   }, [assignmentId, user?.id])
 
   if (notFound) {
-    return <Navigate to={user?.role === 'STUDENT' ? '/anak' : '/kelas'} replace />
+    return (
+      <Navigate to={user?.role === 'STUDENT' ? '/anak' : '/kelas'} replace />
+    )
   }
 
   if (locked) {
@@ -201,13 +270,18 @@ export default function ModulePage() {
   }
 
   // Compute filtered frames count for ProgressProvider
-  const visibleFrames = selectedFrameIds && selectedFrameIds.length > 0
-    ? mod.frames.filter((f) => selectedFrameIds.includes(f.id))
-    : mod.frames
+  const visibleFrames =
+    selectedFrameIds && selectedFrameIds.length > 0
+      ? mod.frames.filter((f) => selectedFrameIds.includes(f.id))
+      : mod.frames
 
   return (
     <ProgressProvider totalFrames={visibleFrames.length} moduleId={mod.id}>
-      <ModuleRunner mod={mod} filteredFrames={selectedFrameIds ?? undefined} assignmentId={assignmentId} />
+      <ModuleRunner
+        mod={mod}
+        filteredFrames={selectedFrameIds ?? undefined}
+        assignmentId={assignmentId}
+      />
     </ProgressProvider>
   )
 }
