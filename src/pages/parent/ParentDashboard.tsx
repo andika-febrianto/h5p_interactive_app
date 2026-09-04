@@ -1353,7 +1353,8 @@ export default function ParentDashboard() {
               </div>
               <button
                 style={S.manageBtn}
-                onClick={() => setShowAssignModal(true)}
+                // onClick={() => setShowAssignModal(true)}
+                onClick={() => setShowCreateChild(true)}
               >
                 <svg
                   width='14'
