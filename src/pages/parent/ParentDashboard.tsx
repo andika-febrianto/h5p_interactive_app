@@ -706,7 +706,7 @@ const S = {
 }
 
 export default function ParentDashboard() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [viewMode, setViewMode] = useState<ViewMode>('overview')
 
@@ -758,6 +758,9 @@ export default function ParentDashboard() {
   const [editModule] = useState<Module | null>(null)
   const [editSaving, setEditSaving] = useState(false)
 
+  //Profile Dropdown
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+
   // ── Data Loading ──
   useEffect(() => {
     fetchChildren()
@@ -771,6 +774,7 @@ export default function ParentDashboard() {
     generateWeeklyReport().catch(() => {})
     generateMonthlyReport().catch(() => {})
   }, [])
+
   useEffect(() => {
     fetchAssignments()
       .then(setAssignments)
@@ -1195,7 +1199,7 @@ export default function ParentDashboard() {
           </nav>
 
           <div style={S.headerRight}>
-            <button style={S.switchBtn} onClick={() => navigate('/anak')}>
+            {/* <button style={S.switchBtn} onClick={() => navigate('/anak')}>
               <span>Beralih ke Akun Siswa</span>
               <svg
                 width='14'
@@ -1211,7 +1215,7 @@ export default function ParentDashboard() {
                   strokeLinejoin='round'
                 />
               </svg>
-            </button>
+            </button> */}
             <button style={S.bellBtn}>
               <svg
                 width='20'
@@ -1229,8 +1233,8 @@ export default function ParentDashboard() {
               </svg>
               {bellCount > 0 && <span style={S.bellBadge}>{bellCount}</span>}
             </button>
-            <div style={S.divider} />
-            <div style={S.profileArea} onClick={() => setShowCreateChild(true)}>
+            {/* <div style={S.divider} /> */}
+            {/* <div style={S.profileArea} onClick={() => setShowCreateChild(true)}>
               <div style={S.avatar}>
                 {user?.name?.charAt(0)?.toUpperCase() ?? 'P'}
               </div>
@@ -1258,6 +1262,210 @@ export default function ParentDashboard() {
                   strokeLinejoin='round'
                 />
               </svg>
+            </div> */}
+
+            {/* Profile Dropdown */}
+            <div
+              style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                paddingLeft: 8,
+                borderLeft: '1px solid #e2e8f0',
+              }}
+            >
+              <button
+                type='button'
+                onClick={() => setIsProfileOpen((prev) => !prev)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: isProfileOpen ? '#f1f5f9' : '#f8fafc',
+                  padding: '6px 12px 6px 6px',
+                  borderRadius: 999,
+                  border: '1px solid #e2e8f0',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                }}
+                className='hover:bg-slate-100'
+                aria-expanded={isProfileOpen}
+                aria-haspopup='menu'
+              >
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    background: '#5850EC',
+                    color: '#fff',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 13,
+                    boxShadow:
+                      '0 2px 4px rgba(88,80,236,0.15), 0 0 0 2px #C7D2FE',
+                  }}
+                >
+                  {user?.name?.charAt(0).toUpperCase() ?? 'O'}
+                </div>
+
+                <div style={{ textAlign: 'left' }}>
+                  <span
+                    style={{
+                      display: 'block',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {user?.name?.split(' ')[0] ?? 'Operator'}
+                  </span>
+
+                  <span
+                    style={{
+                      display: 'block',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      color: '#94a3b8',
+                    }}
+                  >
+                    Kelas {user?.grade ?? 4} SD
+                  </span>
+                </div>
+
+                <svg
+                  style={{
+                    width: 16,
+                    height: 16,
+                    color: '#94a3b8',
+                    transform: isProfileOpen
+                      ? 'rotate(180deg)'
+                      : 'rotate(0deg)',
+                    transition: 'transform 0.2s',
+                  }}
+                  fill='none'
+                  stroke='currentColor'
+                  strokeWidth={2}
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    d='M19 9l-7 7-7-7'
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                  />
+                </svg>
+              </button>
+
+              {/* Dropdown */}
+              {isProfileOpen && (
+                <div
+                  role='menu'
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    width: 220,
+                    background: '#fff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 12,
+                    boxShadow:
+                      '0 10px 25px rgba(15, 23, 42, 0.12), 0 4px 6px rgba(15, 23, 42, 0.05)',
+                    padding: 6,
+                    zIndex: 1000,
+                  }}
+                >
+                  {/* User info */}
+                  <div
+                    style={{
+                      padding: '10px 12px',
+                      borderBottom: '1px solid #f1f5f9',
+                      marginBottom: 4,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: '#0f172a',
+                      }}
+                    >
+                      {user?.name ?? 'Operator'}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: '#94a3b8',
+                        marginTop: 2,
+                      }}
+                    >
+                      Kelas {user?.grade ?? 4} SD
+                    </div>
+                  </div>
+
+                  <button
+                    type='button'
+                    role='menuitem'
+                    onClick={() => {
+                      setIsProfileOpen(false)
+                      // Add settings action here
+                    }}
+                    style={{
+                      width: '100%',
+                      border: 0,
+                      background: 'transparent',
+                      padding: '9px 12px',
+                      borderRadius: 8,
+                      textAlign: 'left',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: '#334155',
+                      cursor: 'pointer',
+                    }}
+                    className='hover:bg-slate-50'
+                  >
+                    Settings
+                  </button>
+
+                  <div
+                    style={{
+                      height: 1,
+                      background: '#f1f5f9',
+                      margin: '4px 0',
+                    }}
+                  />
+
+                  <button
+                    type='button'
+                    role='menuitem'
+                    onClick={() => {
+                      setIsProfileOpen(false)
+                      logout()
+                      navigate('/')
+                      // Add logout action here
+                    }}
+                    style={{
+                      width: '100%',
+                      border: 0,
+                      background: 'transparent',
+                      padding: '9px 12px',
+                      borderRadius: 8,
+                      textAlign: 'left',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                    }}
+                    className='hover:bg-red-50'
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
