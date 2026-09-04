@@ -31,7 +31,7 @@ type SideTab =
   | 'reports'
 
 export default function ChildDashboard() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [sideTab, setSideTab] = useState<SideTab>('home')
 
@@ -60,6 +60,9 @@ export default function ChildDashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const bellRef = useRef<HTMLDivElement>(null)
+
+  //Profile Dropdown
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
 
   // ── Data Loading ──
 
@@ -128,7 +131,9 @@ export default function ChildDashboard() {
       await markAllNotificationsRead()
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
       setUnreadCount(0)
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }
 
   const loadQuestions = useCallback(async (assignmentId: string) => {
@@ -549,33 +554,44 @@ export default function ChildDashboard() {
                       </div>
                     ) : (
                       notifications.slice(0, 20).map((n) => {
-                        const iconClass = n.type === 'NEW_ASSIGNMENT'
-                          ? 'child-notif-icon-new'
-                          : n.type === 'OVERDUE'
-                            ? 'child-notif-icon-overdue'
-                            : n.type === 'QUESTION_REPLY'
-                              ? 'child-notif-icon-reply'
-                              : 'child-notif-icon-completed'
-                        const icon = n.type === 'NEW_ASSIGNMENT'
-                          ? '📚'
-                          : n.type === 'OVERDUE'
-                            ? '⚠️'
-                            : n.type === 'QUESTION_REPLY'
-                              ? '💬'
-                              : n.type === 'SCORE'
-                                ? '⭐'
-                                : '📋'
+                        const iconClass =
+                          n.type === 'NEW_ASSIGNMENT'
+                            ? 'child-notif-icon-new'
+                            : n.type === 'OVERDUE'
+                              ? 'child-notif-icon-overdue'
+                              : n.type === 'QUESTION_REPLY'
+                                ? 'child-notif-icon-reply'
+                                : 'child-notif-icon-completed'
+                        const icon =
+                          n.type === 'NEW_ASSIGNMENT'
+                            ? '📚'
+                            : n.type === 'OVERDUE'
+                              ? '⚠️'
+                              : n.type === 'QUESTION_REPLY'
+                                ? '💬'
+                                : n.type === 'SCORE'
+                                  ? '⭐'
+                                  : '📋'
                         return (
                           <div key={n.id} className='child-notif-item'>
-                            <div className={`child-notif-icon ${iconClass}`}>{icon}</div>
+                            <div className={`child-notif-icon ${iconClass}`}>
+                              {icon}
+                            </div>
                             <div className='child-notif-body'>
                               <p className='child-notif-title'>{n.title}</p>
                               <p className='child-notif-desc'>{n.message}</p>
                               <span className='child-notif-time'>
-                                {new Date(n.createdAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                {new Date(n.createdAt).toLocaleString('id-ID', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
                               </span>
                             </div>
-                            {!n.read && <span className='child-notif-unread-dot' />}
+                            {!n.read && (
+                              <span className='child-notif-unread-dot' />
+                            )}
                           </div>
                         )
                       })
@@ -588,6 +604,7 @@ export default function ChildDashboard() {
             {/* Profile Dropdown */}
             <div
               style={{
+                position: 'relative',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
@@ -597,11 +614,12 @@ export default function ChildDashboard() {
             >
               <button
                 type='button'
+                onClick={() => setIsProfileOpen((prev) => !prev)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  background: '#f8fafc',
+                  background: isProfileOpen ? '#f1f5f9' : '#f8fafc',
                   padding: '6px 12px 6px 6px',
                   borderRadius: 999,
                   border: '1px solid #e2e8f0',
@@ -609,6 +627,8 @@ export default function ChildDashboard() {
                   transition: 'background 0.2s',
                 }}
                 className='hover:bg-slate-100'
+                aria-expanded={isProfileOpen}
+                aria-haspopup='menu'
               >
                 <div
                   style={{
@@ -628,6 +648,7 @@ export default function ChildDashboard() {
                 >
                   {user?.name?.charAt(0).toUpperCase() ?? 'O'}
                 </div>
+
                 <div style={{ textAlign: 'left' }}>
                   <span
                     style={{
@@ -640,6 +661,7 @@ export default function ChildDashboard() {
                   >
                     {user?.name?.split(' ')[0] ?? 'Operator'}
                   </span>
+
                   <span
                     style={{
                       display: 'block',
@@ -651,8 +673,17 @@ export default function ChildDashboard() {
                     Kelas {user?.grade ?? 4} SD
                   </span>
                 </div>
+
                 <svg
-                  style={{ width: 16, height: 16, color: '#94a3b8' }}
+                  style={{
+                    width: 16,
+                    height: 16,
+                    color: '#94a3b8',
+                    transform: isProfileOpen
+                      ? 'rotate(180deg)'
+                      : 'rotate(0deg)',
+                    transition: 'transform 0.2s',
+                  }}
                   fill='none'
                   stroke='currentColor'
                   strokeWidth={2}
@@ -665,6 +696,113 @@ export default function ChildDashboard() {
                   />
                 </svg>
               </button>
+
+              {/* Dropdown */}
+              {isProfileOpen && (
+                <div
+                  role='menu'
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    width: 220,
+                    background: '#fff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 12,
+                    boxShadow:
+                      '0 10px 25px rgba(15, 23, 42, 0.12), 0 4px 6px rgba(15, 23, 42, 0.05)',
+                    padding: 6,
+                    zIndex: 1000,
+                  }}
+                >
+                  {/* User info */}
+                  <div
+                    style={{
+                      padding: '10px 12px',
+                      borderBottom: '1px solid #f1f5f9',
+                      marginBottom: 4,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: '#0f172a',
+                      }}
+                    >
+                      {user?.name ?? 'Operator'}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: '#94a3b8',
+                        marginTop: 2,
+                      }}
+                    >
+                      Kelas {user?.grade ?? 4} SD
+                    </div>
+                  </div>
+
+                  <button
+                    type='button'
+                    role='menuitem'
+                    onClick={() => {
+                      setIsProfileOpen(false)
+                      // Add settings action here
+                    }}
+                    style={{
+                      width: '100%',
+                      border: 0,
+                      background: 'transparent',
+                      padding: '9px 12px',
+                      borderRadius: 8,
+                      textAlign: 'left',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: '#334155',
+                      cursor: 'pointer',
+                    }}
+                    className='hover:bg-slate-50'
+                  >
+                    Settings
+                  </button>
+
+                  <div
+                    style={{
+                      height: 1,
+                      background: '#f1f5f9',
+                      margin: '4px 0',
+                    }}
+                  />
+
+                  <button
+                    type='button'
+                    role='menuitem'
+                    onClick={() => {
+                      setIsProfileOpen(false)
+                      logout()
+                      navigate('/')
+                      // Add logout action here
+                    }}
+                    style={{
+                      width: '100%',
+                      border: 0,
+                      background: 'transparent',
+                      padding: '9px 12px',
+                      borderRadius: 8,
+                      textAlign: 'left',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                    }}
+                    className='hover:bg-red-50'
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

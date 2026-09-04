@@ -222,7 +222,8 @@ export default function ParentDashboard() {
   const [assignError, setAssignError] = useState<string | null>(null)
   const [assignSuccess, setAssignSuccess] = useState<string | null>(null)
   const [showAssignModal, setShowAssignModal] = useState(false)
-  const [editingAssignment, setEditingAssignment] = useState<ParentAssignment | null>(null)
+  const [editingAssignment, setEditingAssignment] =
+    useState<ParentAssignment | null>(null)
   const [editDueDate, setEditDueDate] = useState('')
   const [editSelectedFrames] = useState<string[]>([])
   const [editModule] = useState<Module | null>(null)
@@ -799,7 +800,14 @@ export default function ParentDashboard() {
 
       {/* ── ASSIGN MODULE MODAL ── */}
       {showAssignModal && (
-        <div style={S.modalOverlay} onClick={() => { setShowAssignModal(false); setAssignSuccess(null); setAssignError(null) }}>
+        <div
+          style={S.modalOverlay}
+          onClick={() => {
+            setShowAssignModal(false)
+            setAssignSuccess(null)
+            setAssignError(null)
+          }}
+        >
           <div style={S.modalBox} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>📚 Tugaskan Modul</h3>
