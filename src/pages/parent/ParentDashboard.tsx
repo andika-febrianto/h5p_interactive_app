@@ -279,17 +279,18 @@ const S = {
     boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
   } as React.CSSProperties,
   childAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     background: '#5B4DFF',
     color: '#fff',
     fontWeight: 700,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: 16,
-    boxShadow: '0 2px 8px rgba(91,77,255,0.2)',
+    fontSize: 18,
+    boxShadow: '0 2px 8px rgba(91,77,255,0.25)',
+    position: 'relative' as const,
   } as React.CSSProperties,
   childLabel: {
     fontSize: 10,
@@ -344,6 +345,20 @@ const S = {
     alignItems: 'center',
     gap: 6,
     boxShadow: '0 2px 8px rgba(91,77,255,0.2)',
+    transition: 'all 0.2s',
+  } as React.CSSProperties,
+  addChildBtn: {
+    padding: '12px 16px',
+    borderRadius: 16,
+    background: '#fff',
+    color: '#5B4DFF',
+    border: '1px solid #e2e8f0',
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
     transition: 'all 0.2s',
   } as React.CSSProperties,
 
@@ -1560,27 +1575,200 @@ export default function ParentDashboard() {
                   <div style={S.starSub}>Tukar hadiah orang tua</div>
                 </div>
               </div>
-              <button
-                style={S.manageBtn}
-                // onClick={() => setShowAssignModal(true)}
-                onClick={() => setShowCreateChild(true)}
-              >
-                <svg
-                  width='14'
-                  height='14'
-                  fill='none'
-                  stroke='currentColor'
-                  strokeWidth='2.5'
-                  viewBox='0 0 24 24'
+              {children.length > 0 ? (
+                <>
+                  <div style={S.childCard}>
+                    <div style={S.childAvatar}>
+                      {selectedChild?.name.charAt(0)?.toUpperCase() ?? 'A'}
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: -4,
+                          right: -4,
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          background: '#10B981',
+                          border: '2px solid #fff',
+                          display: 'block',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <div style={S.childLabel}>Profil Anak</div>
+                      <div style={S.childName}>{childName}</div>
+                      <div style={S.childGrade}>
+                        {childGradeText} • {childSemText}
+                      </div>
+                    </div>
+                    {children.length > 1 && (
+                      <button
+                        style={{
+                          border: 'none',
+                          background: 'none',
+                          cursor: 'pointer',
+                          padding: 4,
+                          color: '#94a3b8',
+                        }}
+                        onClick={() =>
+                          setSelectedChildIdx((i) =>
+                            (i + 1) % children.length,
+                          )
+                        }
+                      >
+                        <svg
+                          width='16'
+                          height='16'
+                          fill='none'
+                          stroke='currentColor'
+                          strokeWidth='2.5'
+                          viewBox='0 0 24 24'
+                        >
+                          <path
+                            d='M19 9l-7 7-7-7'
+                            strokeLinecap='round'
+                            strokeLinejoin='round'
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  {children.length > 1 && (
+                    <div style={S.childCard}>
+                      <div style={S.childAvatar}>
+                        {children[0]?.name.charAt(0)?.toUpperCase() ?? 'A'}
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: -4,
+                            right: -4,
+                            width: 12,
+                            height: 12,
+                            borderRadius: '50%',
+                            background: '#FDE68A',
+                            border: '2px solid #fff',
+                            display: 'block',
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <div style={S.childLabel}>Anak Lain</div>
+                        <div style={{ ...S.childName, color: '#475569' }}>
+                          {children[0]?.name}
+                        </div>
+                        <div style={{ ...S.childGrade, color: '#94a3b8' }}>
+                          Kelas {children[0]?.grade} SD • Sem. {children[0]?.semester}
+                        </div>
+                      </div>
+                      <button
+                        style={{
+                          border: 'none',
+                          background: '#F5F3FF',
+                          color: '#5B4DFF',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: '4px 10px',
+                          borderRadius: 8,
+                          cursor: 'pointer',
+                        }}
+                        onClick={() =>
+                          setSelectedChildIdx(0)
+                        }
+                      >
+                        Pilih
+                      </button>
+                    </div>
+                  )}
+                  <div style={S.starCard}>
+                    <span style={{ fontSize: 20 }}>⭐</span>
+                    <div>
+                      <div style={S.starText}>{totalPoints} Poin Apresiasi</div>
+                      <div style={S.starSub}>Tukar hadiah orang tua</div>
+                    </div>
+                  </div>
+                  <button
+                    style={S.manageBtn}
+                    onClick={() => setShowCreateChild(true)}
+                  >
+                    <svg
+                      width='14'
+                      height='14'
+                      fill='none'
+                      stroke='currentColor'
+                      strokeWidth='2.5'
+                      viewBox='0 0 24 24'
+                    >
+                      <path
+                        d='M12 4v16m8-8H4'
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                      />
+                    </svg>
+                    Kelola 2 Profil
+                  </button>
+                  <button
+                    style={S.addChildBtn}
+                    onClick={() => setShowCreateChild(true)}
+                  >
+                    <svg
+                      width='14'
+                      height='14'
+                      fill='none'
+                      stroke='currentColor'
+                      strokeWidth='2.5'
+                      viewBox='0 0 24 24'
+                    >
+                      <path
+                        d='M12 4v16m8-8H4'
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                      />
+                    </svg>
+                    + Tambah Anak
+                  </button>
+                </>
+              ) : (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                    background: '#fff',
+                    padding: '12px 20px',
+                    borderRadius: 16,
+                    border: '1px solid rgba(91,77,255,0.1)',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                  }}
                 >
-                  <path
-                    d='M12 4v16m8-8H4'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                  />
-                </svg>
-                Tambah Profil Anak
-              </button>
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      background: '#F5F3FF',
+                      color: '#5B4DFF',
+                      fontSize: 20,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    👶
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
+                    Daftarkan Anak Pertama
+                  </div>
+                  <button
+                    style={S.manageBtn}
+                    onClick={() => setShowCreateChild(true)}
+                  >
+                    Buat Akun Anak
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -1640,35 +1828,33 @@ export default function ParentDashboard() {
                       Progress Belajar {childName}
                     </h2>
                   </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      padding: '4px 10px',
-                      background: '#FFFBEB',
-                      color: '#92400E',
-                      borderRadius: 999,
-                      border: '1px solid #FDE68A',
-                    }}
-                  >
-                    Matematika Dasar
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      padding: '4px 10px',
-                      background: '#d1fae5',
-                      color: '#065f46',
-                      borderRadius: 999,
-                      border: '1px solid #a7f3d0',
-                    }}
-                  >
-                    Semester 1
-                  </span>
-                </div>
+                </div>                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    background: '#FFF7ED',
+                    color: '#C2410C',
+                    borderRadius: 999,
+                    border: '1px solid #FED7AA',
+                  }}
+                >
+                  Matematika Dasar
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    background: '#d1fae5',
+                    color: '#065f46',
+                    borderRadius: 999,
+                    border: '1px solid #a7f3d0',
+                  }}
+                >
+                  Semester 1
+                </span>
+
               </div>
 
               {selectedChild && activeAssignments.length > 0 ? (
@@ -1739,22 +1925,56 @@ export default function ParentDashboard() {
                       <div style={S.progressBar}>
                         <div style={S.progressBarInner(comp.pct)} />
                       </div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginTop: 12,
-                          paddingTop: 12,
-                          borderTop: '1px solid rgba(226,232,240,0.5)',
-                        }}
-                      >
-                        <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                      <div style={S.progressMeta}>
+                        <span
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            color: '#94a3b8',
+                          }}
+                        >
+                          <svg
+                            width='14'
+                            height='14'
+                            fill='none'
+                            stroke='currentColor'
+                            strokeWidth='2'
+                            viewBox='0 0 24 24'
+                          >
+                            <circle cx='12' cy='12' r='10' />
+                            <polyline points='12 6 12 12 16 14' />
+                          </svg>
+                          Estimasi sisa: ~35 menit belajar
+                        </span>
+                        <span
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            color: '#059669',
+                            fontWeight: 600,
+                          }}
+                        >
+                          <svg
+                            width='14'
+                            height='14'
+                            fill='none'
+                            stroke='currentColor'
+                            strokeWidth='2'
+                            viewBox='0 0 24 24'
+                          >
+                            <path
+                              d='M5 13l4 4L19 7'
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                            />
+                          </svg>
                           Kuis latihan lulus: {totalModulesCompleted}x
                         </span>
-                        <div style={{ display: 'flex', gap: 8 }}>
+                        <div style={S.progressActions}>
                           <button
-                            style={S.btnSecondary}
+                            style={S.progressBtnSecondary}
                             onClick={() =>
                               navigate(`/modul/${mainAssignment.materialId}`)
                             }
@@ -1762,12 +1982,7 @@ export default function ParentDashboard() {
                             Lihat Detail Materi
                           </button>
                           <button
-                            style={{
-                              ...S.btnSecondary,
-                              background: '#5B4DFF',
-                              color: '#fff',
-                              border: 'none',
-                            }}
+                            style={S.progressBtnPrimary}
                             onClick={() =>
                               navigate(`/modul/${mainAssignment.materialId}`)
                             }
