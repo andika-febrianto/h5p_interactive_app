@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../../context/AuthContext'
@@ -10,10 +10,14 @@ import {
   askQuestion,
   markAssignmentStarted,
   checkStudentNotifications,
+  fetchNotifications,
+  fetchUnreadCount,
+  markAllNotificationsRead,
   type ParentAssignment,
   type Module,
   type FrameProgress,
   type Question,
+  type Notification,
 } from '../../lib/api'
 import { getSubjectById } from '../../data/subjects'
 
@@ -50,6 +54,12 @@ export default function ChildDashboard() {
   const [sendingQuestion, setSendingQuestion] = useState(false)
   const [subjectFilter, setSubjectFilter] = useState('all')
 
+  // ── Notification State ──
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const bellRef = useRef<HTMLDivElement>(null)
+
   // ── Data Loading ──
 
   useEffect(() => {
@@ -83,6 +93,42 @@ export default function ChildDashboard() {
   useEffect(() => {
     checkStudentNotifications().catch(() => {})
   }, [user?.id])
+
+  // ── Notification polling ──
+  useEffect(() => {
+    if (!user?.id) return
+    const load = () => {
+      fetchNotifications()
+        .then(setNotifications)
+        .catch(() => {})
+      fetchUnreadCount()
+        .then((d) => setUnreadCount(d.count))
+        .catch(() => {})
+    }
+    load()
+    const iv = setInterval(load, 30000)
+    return () => clearInterval(iv)
+  }, [user?.id])
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    if (!notifOpen) return
+    const handler = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+        setNotifOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [notifOpen])
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllNotificationsRead()
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+      setUnreadCount(0)
+    } catch { /* silent */ }
+  }
 
   const loadQuestions = useCallback(async (assignmentId: string) => {
     try {
@@ -453,52 +499,90 @@ export default function ChildDashboard() {
               <span>{getLevel()}</span>
             </div>
 
-            {/* Notification Bell */}
-            <button
-              type='button'
-              aria-label='Notifikasi'
-              style={{
-                position: 'relative',
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                background: '#f1f5f9',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#64748b',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'background 0.2s',
-              }}
-              className='hover:bg-e2e8f0'
-            >
-              <svg
-                style={{ width: 20, height: 20 }}
-                fill='none'
-                stroke='currentColor'
-                strokeWidth={2}
-                viewBox='0 0 24 24'
+            {/* Notification Bell + Dropdown */}
+            <div ref={bellRef} style={{ position: 'relative' }}>
+              <button
+                type='button'
+                aria-label='Notifikasi'
+                onClick={() => setNotifOpen((p) => !p)}
+                className='child-bell-btn'
               >
-                <path
-                  d='M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                />
-              </svg>
-              <span
-                style={{
-                  position: 'absolute',
-                  top: 8,
-                  right: 8,
-                  width: 10,
-                  height: 10,
-                  background: '#F43F5E',
-                  border: '2px solid #fff',
-                  borderRadius: '50%',
-                }}
-              />
-            </button>
+                <svg
+                  style={{ width: 20, height: 20 }}
+                  fill='none'
+                  stroke='currentColor'
+                  strokeWidth={2}
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    d='M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0'
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                  />
+                </svg>
+                {unreadCount > 0 && (
+                  <span className='child-bell-badge'>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div className='child-notif-dropdown'>
+                  <div className='child-notif-header'>
+                    <h3>Notifikasi</h3>
+                    {unreadCount > 0 && (
+                      <button
+                        type='button'
+                        className='child-notif-mark-read'
+                        onClick={handleMarkAllRead}
+                      >
+                        Tandai semua dibaca
+                      </button>
+                    )}
+                  </div>
+                  <div className='child-notif-list'>
+                    {notifications.length === 0 ? (
+                      <div className='child-notif-empty'>
+                        Belum ada notifikasi 🔔
+                      </div>
+                    ) : (
+                      notifications.slice(0, 20).map((n) => {
+                        const iconClass = n.type === 'NEW_ASSIGNMENT'
+                          ? 'child-notif-icon-new'
+                          : n.type === 'OVERDUE'
+                            ? 'child-notif-icon-overdue'
+                            : n.type === 'QUESTION_REPLY'
+                              ? 'child-notif-icon-reply'
+                              : 'child-notif-icon-completed'
+                        const icon = n.type === 'NEW_ASSIGNMENT'
+                          ? '📚'
+                          : n.type === 'OVERDUE'
+                            ? '⚠️'
+                            : n.type === 'QUESTION_REPLY'
+                              ? '💬'
+                              : n.type === 'SCORE'
+                                ? '⭐'
+                                : '📋'
+                        return (
+                          <div key={n.id} className='child-notif-item'>
+                            <div className={`child-notif-icon ${iconClass}`}>{icon}</div>
+                            <div className='child-notif-body'>
+                              <p className='child-notif-title'>{n.title}</p>
+                              <p className='child-notif-desc'>{n.message}</p>
+                              <span className='child-notif-time'>
+                                {new Date(n.createdAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            {!n.read && <span className='child-notif-unread-dot' />}
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Profile Dropdown */}
             <div
