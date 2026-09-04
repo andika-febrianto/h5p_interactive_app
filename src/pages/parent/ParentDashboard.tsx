@@ -765,6 +765,7 @@ export default function ParentDashboard() {
       .catch(() => setChildren([]))
       .finally(() => setChildrenLoading(false))
   }, [])
+
   useEffect(() => {
     checkDeadlines().catch(() => {})
     generateWeeklyReport().catch(() => {})
