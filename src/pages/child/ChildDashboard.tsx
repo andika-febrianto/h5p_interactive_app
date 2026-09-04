@@ -20,6 +20,7 @@ import {
   type Notification,
 } from '../../lib/api'
 import { getSubjectById } from '../../data/subjects'
+import './ChildDashboard.css'
 
 type SideTab =
   | 'home'
