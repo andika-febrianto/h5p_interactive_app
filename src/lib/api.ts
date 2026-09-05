@@ -846,7 +846,7 @@ export function updateChild(
   id: string,
   body: Record<string, unknown>,
 ): Promise<ChildInfo> {
-  return request(`/children/${encodeURIComponent(id)}`, {
+  return request(`/parent/children/${encodeURIComponent(id)}`, {
     method: 'PUT',
     body: JSON.stringify(body),
   })

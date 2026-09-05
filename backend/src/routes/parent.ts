@@ -970,7 +970,9 @@ parentRouter.put(
         })
       }
       res.json(updatedChild)
-    } catch (error) {}
+    } catch (error) {
+      next(error)
+    }
   },
 )
 
