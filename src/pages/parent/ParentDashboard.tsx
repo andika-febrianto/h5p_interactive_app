@@ -714,7 +714,9 @@ export default function ParentDashboard() {
   const [viewMode, setViewMode] = useState<ViewMode>('overview')
 
   // Modules browsing state
-  const [expandedSubjectId, setExpandedSubjectId] = useState<string | null>(null)
+  const [expandedSubjectId, setExpandedSubjectId] = useState<string | null>(
+    null,
+  )
   const [browseModules, setBrowseModules] = useState<ModuleSummary[]>([])
   const [browseLoading, setBrowseLoading] = useState(false)
 
@@ -1137,10 +1139,18 @@ export default function ParentDashboard() {
 
   // Load modules for browsing when viewMode or selectedChild changes
   useEffect(() => {
-    if (viewMode !== 'modules' || !selectedChild?.grade || !selectedChild?.semester) return
+    if (
+      viewMode !== 'modules' ||
+      !selectedChild?.grade ||
+      !selectedChild?.semester
+    )
+      return
     setBrowseLoading(true)
     setExpandedSubjectId(null)
-    fetchModules({ grade: selectedChild.grade, semester: selectedChild.semester })
+    fetchModules({
+      grade: selectedChild.grade,
+      semester: selectedChild.semester,
+    })
       .then(setBrowseModules)
       .catch(() => setBrowseModules([]))
       .finally(() => setBrowseLoading(false))
@@ -2277,42 +2287,42 @@ export default function ParentDashboard() {
 
         {/* ── OVERVIEW GRID ── */}
         {viewMode === 'overview' && (
-        <div style={S.grid}>
-          {/* LEFT */}
-          <div style={S.leftCol}>
-            {/* Progress Belajar */}
-            <section style={S.card}>
-              <div style={S.cardHeader}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 16, background: '#F5F3FF', border: '1px solid #EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5B4DFF' }}>
-                    <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </div>
-                  <div>
-                    <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.08em', color: '#5B4DFF', background: '#F5F3FF', padding: '2px 8px', borderRadius: 4 }}>Modul Yang Sedang Berjalan</span>
-                    <h2 style={{ ...S.sectionTitle, marginTop: 4 }}>Progress Belajar {childName}</h2>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px', background: '#FFFBEB', color: '#92400E', borderRadius: 999, border: '1px solid #FDE68A' }}>Matematika Dasar</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px', background: '#d1fae5', color: '#065f46', borderRadius: 999, border: '1px solid #a7f3d0' }}>Semester 1</span>
-                </div>
-              </div>
-
-              {selectedChild && activeAssignments.length > 0 ? (() => {
-                const mainAssignment = activeAssignments[0]
-                const comp = getAssignmentCompletion(mainAssignment)
-                return (
-                  <div style={S.progressCard}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                      <div>
-                        <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>Materi Utama Saat Ini:</p>
-                        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '4px 0 0' }}>{mainAssignment.title}</h3>
-                        <p style={{ fontSize: 12, color: '#94a3b8', margin: '4px 0 0' }}>{comp.total} panel ditugaskan</p>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: 28, fontWeight: 900, color: '#5B4DFF' }}>{comp.pct}%</span>
-                        <p style={{ fontSize: 11, color: '#94a3b8', margin: '2px 0 0' }}>{comp.completed} dari {comp.total} selesai</p>
-                      </div>
+          <div style={S.grid}>
+            {/* LEFT */}
+            <div style={S.leftCol}>
+              {/* Progress Belajar */}
+              <section style={S.card}>
+                <div style={S.cardHeader}>
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: 12 }}
+                  >
+                    <div
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 16,
+                        background: '#F5F3FF',
+                        border: '1px solid #EDE9FE',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#5B4DFF',
+                      }}
+                    >
+                      <svg
+                        width='24'
+                        height='24'
+                        fill='none'
+                        stroke='currentColor'
+                        strokeWidth='2'
+                        viewBox='0 0 24 24'
+                      >
+                        <path
+                          d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                        />
+                      </svg>
                     </div>
                     <div>
                       <span
@@ -2363,6 +2373,139 @@ export default function ParentDashboard() {
                     </span>
                   </div>
                 </div>
+
+                {selectedChild && activeAssignments.length > 0
+                  ? (() => {
+                      const mainAssignment = activeAssignments[0]
+                      const comp = getAssignmentCompletion(mainAssignment)
+
+                      return (
+                        <>
+                          <div style={S.progressCard}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-start',
+                                marginBottom: 16,
+                              }}
+                            >
+                              <div>
+                                <p
+                                  style={{
+                                    fontSize: 12,
+                                    color: '#94a3b8',
+                                    margin: 0,
+                                  }}
+                                >
+                                  Materi Utama Saat Ini:
+                                </p>
+
+                                <h3
+                                  style={{
+                                    fontSize: 16,
+                                    fontWeight: 700,
+                                    color: '#0f172a',
+                                    margin: '4px 0 0',
+                                  }}
+                                >
+                                  {mainAssignment.title}
+                                </h3>
+
+                                <p
+                                  style={{
+                                    fontSize: 12,
+                                    color: '#94a3b8',
+                                    margin: '4px 0 0',
+                                  }}
+                                >
+                                  {comp.total} panel ditugaskan
+                                </p>
+                              </div>
+
+                              <div style={{ textAlign: 'right' }}>
+                                <span
+                                  style={{
+                                    fontSize: 28,
+                                    fontWeight: 900,
+                                    color: '#5B4DFF',
+                                  }}
+                                >
+                                  {comp.pct}%
+                                </span>
+
+                                <p
+                                  style={{
+                                    fontSize: 11,
+                                    color: '#94a3b8',
+                                    margin: '2px 0 0',
+                                  }}
+                                >
+                                  {comp.completed} dari {comp.total} selesai
+                                </p>
+                              </div>
+                            </div>
+
+                            <div>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  textTransform: 'uppercase' as const,
+                                  letterSpacing: '0.08em',
+                                  color: '#5B4DFF',
+                                  background: '#F5F3FF',
+                                  padding: '2px 8px',
+                                  borderRadius: 4,
+                                }}
+                              >
+                                Modul Yang Sedang Berjalan
+                              </span>
+
+                              <h2
+                                style={{
+                                  ...S.sectionTitle,
+                                  marginTop: 4,
+                                }}
+                              >
+                                Progress Belajar {childName}
+                              </h2>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                padding: '4px 10px',
+                                background: '#FFFBEB',
+                                color: '#92400E',
+                                borderRadius: 999,
+                                border: '1px solid #FDE68A',
+                              }}
+                            >
+                              Matematika Dasar
+                            </span>
+
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                padding: '4px 10px',
+                                background: '#d1fae5',
+                                color: '#065f46',
+                                borderRadius: 999,
+                                border: '1px solid #a7f3d0',
+                              }}
+                            >
+                              Semester 1
+                            </span>
+                          </div>
+                        </>
+                      )
+                    })()
+                  : null}
 
                 {selectedChild && activeAssignments.length > 0 ? (
                   (() => {
@@ -3084,142 +3227,572 @@ export default function ParentDashboard() {
                     </svg>
                     Unduh Laporan Rapor Lengkap (PDF)
                   </button>
-                ))}
-              </div>
-            </section>
-          </aside>
-        </div>
+                  ))
+                </div>
+              </section>
+            </aside>
+          </div>
         )}
 
         {/* ── MODUL BELAJAR VIEW ── */}
         {viewMode === 'modules' && (
-        <div>
-          {/* Child selector tabs */}
-          {children.length > 1 && (
-            <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-              {children.map((c, idx) => (
-                <button key={c.id} onClick={() => { setSelectedChildIdx(idx); setExpandedSubjectId(null) }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', borderRadius: 14, border: `2px solid ${idx === selectedChildIdx ? '#5B4DFF' : '#e2e8f0'}`, background: idx === selectedChildIdx ? '#F5F3FF' : '#fff', cursor: 'pointer', transition: 'all 0.2s', fontWeight: idx === selectedChildIdx ? 700 : 600, color: idx === selectedChildIdx ? '#5B4DFF' : '#64748b' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: idx === selectedChildIdx ? '#5B4DFF' : '#f1f5f9', color: idx === selectedChildIdx ? '#fff' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 }}>{c.name.charAt(0).toUpperCase()}</div>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{c.name}</div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Kelas {c.grade ?? '?'} \u2022 Sem {c.semester ?? '?'}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div style={S.grid}>
-            {/* LEFT: Daftar Pelajaran */}
-            <div style={S.leftCol}>
-              <section style={S.card}>
-                <div style={S.cardHeader}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 48, height: 48, borderRadius: 16, background: '#F5F3FF', border: '1px solid #EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5B4DFF' }}>
-                      <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <div>
+            {/* Child selector tabs */}
+            {children.length > 1 && (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+                {children.map((c, idx) => (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      setSelectedChildIdx(idx)
+                      setExpandedSubjectId(null)
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '10px 18px',
+                      borderRadius: 14,
+                      border: `2px solid ${idx === selectedChildIdx ? '#5B4DFF' : '#e2e8f0'}`,
+                      background: idx === selectedChildIdx ? '#F5F3FF' : '#fff',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      fontWeight: idx === selectedChildIdx ? 700 : 600,
+                      color: idx === selectedChildIdx ? '#5B4DFF' : '#64748b',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 10,
+                        background:
+                          idx === selectedChildIdx ? '#5B4DFF' : '#f1f5f9',
+                        color: idx === selectedChildIdx ? '#fff' : '#64748b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 13,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {c.name.charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                      <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.08em', color: '#5B4DFF', background: '#F5F3FF', padding: '2px 8px', borderRadius: 4 }}>Daftar Pelajaran</span>
-                      <h2 style={{ ...S.sectionTitle, marginTop: 4 }}>Mata Pelajaran {childName}</h2>
-                      <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{childGradeText} \u2022 {childSemText}</p>
-                    </div>
-                  </div>
-                </div>
-                {browseLoading ? (
-                  <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Memuat daftar pelajaran...</div>
-                ) : subjects.filter((s) => browseModules.some((m) => m.subjectId === s.id)).length === 0 ? (
-                  <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Belum ada pelajaran untuk kelas ini.</div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {subjects.filter((s) => browseModules.some((m) => m.subjectId === s.id)).map((s) => {
-                      const subjectModules = browseModules.filter((m) => m.subjectId === s.id)
-                      const isExpanded = expandedSubjectId === s.id
-                      return (
-                        <div key={s.id}>
-                          <button onClick={() => setExpandedSubjectId(isExpanded ? null : s.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 14, border: `2px solid ${isExpanded ? s.accent : '#f1f5f9'}`, background: isExpanded ? `${s.accent}11` : '#fff', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}>
-                            <div style={{ width: 44, height: 44, borderRadius: 12, background: `${s.accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{s.icon}</div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{s.name}</div>
-                              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{subjectModules.length} topik tersedia</div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ fontSize: 11, fontWeight: 700, color: s.accent, background: `${s.accent}15`, padding: '3px 10px', borderRadius: 8 }}>{subjectModules.length} modul</span>
-                              <svg width="16" height="16" fill="none" stroke={isExpanded ? s.accent : '#94a3b8'} strokeWidth="2.5" viewBox="0 0 24 24" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                            </div>
-                          </button>
-                          {isExpanded && (
-                            <div style={{ marginTop: 8, marginLeft: 22, paddingLeft: 16, borderLeft: `3px solid ${s.accent}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                              {subjectModules.map((mod) => (
-                                <div key={mod.id} onClick={() => navigate(`/modul/${mod.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, background: '#fff', border: '1px solid #f1f5f9', cursor: 'pointer', transition: 'all 0.2s' }}>
-                                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${s.accent}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{KIND_ICON[mod.firstFrameKind] ?? '\u{1F4C4}'}</div>
-                                  <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{mod.title}</div>
-                                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{mod.frameCount} panel \u00b7 {mod.estimatedMinutes}</div>
-                                  </div>
-                                  <svg width="16" height="16" fill="none" stroke="#94a3b8" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </section>
-            </div>
-
-            {/* RIGHT: Detail Topik */}
-            <aside style={S.rightCol}>
-              <section style={S.card}>
-                <div style={S.cardHeader}>
-                  <div>
-                    <h3 style={S.sectionTitle}>Detail Topik</h3>
-                    <p style={S.sectionSub}>Klik mata pelajaran untuk melihat topik</p>
-                  </div>
-                </div>
-                {expandedSubjectId ? (() => {
-                  const expandedSubject = subjects.find((s) => s.id === expandedSubjectId)
-                  const subjectModules = browseModules.filter((m) => m.subjectId === expandedSubjectId)
-                  if (!expandedSubject) return null
-                  return (
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, padding: '12px 14px', borderRadius: 12, background: `${expandedSubject.accent}11`, border: `1px solid ${expandedSubject.accent}30` }}>
-                        <span style={{ fontSize: 24 }}>{expandedSubject.icon}</span>
-                        <div>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{expandedSubject.name}</div>
-                          <div style={{ fontSize: 12, color: '#94a3b8' }}>{subjectModules.length} topik \u00b7 {childGradeText}</div>
-                        </div>
+                    <div style={{ textAlign: 'left' }}>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: '#0f172a',
+                        }}
+                      >
+                        {c.name}
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {subjectModules.map((mod, i) => (
-                          <div key={mod.id} onClick={() => navigate(`/modul/${mod.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 14, border: '1px solid #f1f5f9', background: '#f8fafc', cursor: 'pointer', transition: 'all 0.2s' }}>
-                            <div style={{ width: 36, height: 36, borderRadius: 10, background: expandedSubject.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>{mod.title}</div>
-                              <div style={{ fontSize: 11, color: '#94a3b8' }}>{mod.subtitle}</div>
-                              <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                                <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: `${expandedSubject.accent}15`, color: expandedSubject.accent }}>{mod.frameCount} panel</span>
-                                <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: '#f1f5f9', color: '#64748b' }}>{mod.estimatedMinutes}</span>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: '#94a3b8',
+                          fontWeight: 500,
+                        }}
+                      >
+                        Kelas {c.grade ?? '?'} \u2022 Sem {c.semester ?? '?'}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div style={S.grid}>
+              {/* LEFT: Daftar Pelajaran */}
+              <div style={S.leftCol}>
+                <section style={S.card}>
+                  <div style={S.cardHeader}>
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: 12 }}
+                    >
+                      <div
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 16,
+                          background: '#F5F3FF',
+                          border: '1px solid #EDE9FE',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#5B4DFF',
+                        }}
+                      >
+                        <svg
+                          width='24'
+                          height='24'
+                          fill='none'
+                          stroke='currentColor'
+                          strokeWidth='2'
+                          viewBox='0 0 24 24'
+                        >
+                          <path
+                            d='M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'
+                            strokeLinecap='round'
+                            strokeLinejoin='round'
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            textTransform: 'uppercase' as const,
+                            letterSpacing: '0.08em',
+                            color: '#5B4DFF',
+                            background: '#F5F3FF',
+                            padding: '2px 8px',
+                            borderRadius: 4,
+                          }}
+                        >
+                          Daftar Pelajaran
+                        </span>
+                        <h2 style={{ ...S.sectionTitle, marginTop: 4 }}>
+                          Mata Pelajaran {childName}
+                        </h2>
+                        <p
+                          style={{
+                            fontSize: 12,
+                            color: '#94a3b8',
+                            marginTop: 2,
+                          }}
+                        >
+                          {childGradeText} \u2022 {childSemText}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  {browseLoading ? (
+                    <div
+                      style={{
+                        padding: 40,
+                        textAlign: 'center',
+                        color: '#94a3b8',
+                        fontSize: 13,
+                      }}
+                    >
+                      Memuat daftar pelajaran...
+                    </div>
+                  ) : subjects.filter((s) =>
+                      browseModules.some((m) => m.subjectId === s.id),
+                    ).length === 0 ? (
+                    <div
+                      style={{
+                        padding: 40,
+                        textAlign: 'center',
+                        color: '#94a3b8',
+                        fontSize: 13,
+                      }}
+                    >
+                      Belum ada pelajaran untuk kelas ini.
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 10,
+                      }}
+                    >
+                      {subjects
+                        .filter((s) =>
+                          browseModules.some((m) => m.subjectId === s.id),
+                        )
+                        .map((s) => {
+                          const subjectModules = browseModules.filter(
+                            (m) => m.subjectId === s.id,
+                          )
+                          const isExpanded = expandedSubjectId === s.id
+                          return (
+                            <div key={s.id}>
+                              <button
+                                onClick={() =>
+                                  setExpandedSubjectId(isExpanded ? null : s.id)
+                                }
+                                style={{
+                                  width: '100%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 14,
+                                  padding: '14px 16px',
+                                  borderRadius: 14,
+                                  border: `2px solid ${isExpanded ? s.accent : '#f1f5f9'}`,
+                                  background: isExpanded
+                                    ? `${s.accent}11`
+                                    : '#fff',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  textAlign: 'left',
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: 44,
+                                    height: 44,
+                                    borderRadius: 12,
+                                    background: `${s.accent}18`,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: 22,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {s.icon}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                  <div
+                                    style={{
+                                      fontSize: 14,
+                                      fontWeight: 700,
+                                      color: '#0f172a',
+                                    }}
+                                  >
+                                    {s.name}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: 12,
+                                      color: '#94a3b8',
+                                      marginTop: 2,
+                                    }}
+                                  >
+                                    {subjectModules.length} topik tersedia
+                                  </div>
+                                </div>
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      fontSize: 11,
+                                      fontWeight: 700,
+                                      color: s.accent,
+                                      background: `${s.accent}15`,
+                                      padding: '3px 10px',
+                                      borderRadius: 8,
+                                    }}
+                                  >
+                                    {subjectModules.length} modul
+                                  </span>
+                                  <svg
+                                    width='16'
+                                    height='16'
+                                    fill='none'
+                                    stroke={isExpanded ? s.accent : '#94a3b8'}
+                                    strokeWidth='2.5'
+                                    viewBox='0 0 24 24'
+                                    style={{
+                                      transform: isExpanded
+                                        ? 'rotate(180deg)'
+                                        : 'rotate(0deg)',
+                                      transition: 'transform 0.2s',
+                                    }}
+                                  >
+                                    <path
+                                      d='M19 9l-7 7-7-7'
+                                      strokeLinecap='round'
+                                      strokeLinejoin='round'
+                                    />
+                                  </svg>
+                                </div>
+                              </button>
+                              {isExpanded && (
+                                <div
+                                  style={{
+                                    marginTop: 8,
+                                    marginLeft: 22,
+                                    paddingLeft: 16,
+                                    borderLeft: `3px solid ${s.accent}`,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 8,
+                                  }}
+                                >
+                                  {subjectModules.map((mod) => (
+                                    <div
+                                      key={mod.id}
+                                      onClick={() =>
+                                        navigate(`/modul/${mod.id}`)
+                                      }
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 12,
+                                        padding: '12px 14px',
+                                        borderRadius: 12,
+                                        background: '#fff',
+                                        border: '1px solid #f1f5f9',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                      }}
+                                    >
+                                      <div
+                                        style={{
+                                          width: 36,
+                                          height: 36,
+                                          borderRadius: 10,
+                                          background: `${s.accent}15`,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontSize: 16,
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        {KIND_ICON[mod.firstFrameKind] ??
+                                          '\u{1F4C4}'}
+                                      </div>
+                                      <div style={{ flex: 1 }}>
+                                        <div
+                                          style={{
+                                            fontSize: 13,
+                                            fontWeight: 700,
+                                            color: '#0f172a',
+                                          }}
+                                        >
+                                          {mod.title}
+                                        </div>
+                                        <div
+                                          style={{
+                                            fontSize: 11,
+                                            color: '#94a3b8',
+                                            marginTop: 2,
+                                          }}
+                                        >
+                                          {mod.frameCount} panel \u00b7{' '}
+                                          {mod.estimatedMinutes}
+                                        </div>
+                                      </div>
+                                      <svg
+                                        width='16'
+                                        height='16'
+                                        fill='none'
+                                        stroke='#94a3b8'
+                                        strokeWidth='2'
+                                        viewBox='0 0 24 24'
+                                      >
+                                        <path
+                                          d='M9 5l7 7-7 7'
+                                          strokeLinecap='round'
+                                          strokeLinejoin='round'
+                                        />
+                                      </svg>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                    </div>
+                  )}
+                </section>
+              </div>
+
+              {/* RIGHT: Detail Topik */}
+              <aside style={S.rightCol}>
+                <section style={S.card}>
+                  <div style={S.cardHeader}>
+                    <div>
+                      <h3 style={S.sectionTitle}>Detail Topik</h3>
+                      <p style={S.sectionSub}>
+                        Klik mata pelajaran untuk melihat topik
+                      </p>
+                    </div>
+                  </div>
+                  {expandedSubjectId ? (
+                    (() => {
+                      const expandedSubject = subjects.find(
+                        (s) => s.id === expandedSubjectId,
+                      )
+                      const subjectModules = browseModules.filter(
+                        (m) => m.subjectId === expandedSubjectId,
+                      )
+                      if (!expandedSubject) return null
+                      return (
+                        <div>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 10,
+                              marginBottom: 16,
+                              padding: '12px 14px',
+                              borderRadius: 12,
+                              background: `${expandedSubject.accent}11`,
+                              border: `1px solid ${expandedSubject.accent}30`,
+                            }}
+                          >
+                            <span style={{ fontSize: 24 }}>
+                              {expandedSubject.icon}
+                            </span>
+                            <div>
+                              <div
+                                style={{
+                                  fontSize: 15,
+                                  fontWeight: 700,
+                                  color: '#0f172a',
+                                }}
+                              >
+                                {expandedSubject.name}
+                              </div>
+                              <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                                {subjectModules.length} topik \u00b7{' '}
+                                {childGradeText}
                               </div>
                             </div>
-                            <button onClick={(e) => { e.stopPropagation(); navigate(`/modul/${mod.id}`) }} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: expandedSubject.accent, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>Buka</button>
                           </div>
-                        ))}
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 8,
+                            }}
+                          >
+                            {subjectModules.map((mod, i) => (
+                              <div
+                                key={mod.id}
+                                onClick={() => navigate(`/modul/${mod.id}`)}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 12,
+                                  padding: '14px 16px',
+                                  borderRadius: 14,
+                                  border: '1px solid #f1f5f9',
+                                  background: '#f8fafc',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: 10,
+                                    background: expandedSubject.accent,
+                                    color: '#fff',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: 14,
+                                    fontWeight: 800,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {i + 1}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                  <div
+                                    style={{
+                                      fontSize: 13,
+                                      fontWeight: 700,
+                                      color: '#0f172a',
+                                      marginBottom: 2,
+                                    }}
+                                  >
+                                    {mod.title}
+                                  </div>
+                                  <div
+                                    style={{ fontSize: 11, color: '#94a3b8' }}
+                                  >
+                                    {mod.subtitle}
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      gap: 6,
+                                      marginTop: 4,
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        fontSize: 10,
+                                        fontWeight: 600,
+                                        padding: '2px 8px',
+                                        borderRadius: 6,
+                                        background: `${expandedSubject.accent}15`,
+                                        color: expandedSubject.accent,
+                                      }}
+                                    >
+                                      {mod.frameCount} panel
+                                    </span>
+                                    <span
+                                      style={{
+                                        fontSize: 10,
+                                        fontWeight: 600,
+                                        padding: '2px 8px',
+                                        borderRadius: 6,
+                                        background: '#f1f5f9',
+                                        color: '#64748b',
+                                      }}
+                                    >
+                                      {mod.estimatedMinutes}
+                                    </span>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    navigate(`/modul/${mod.id}`)
+                                  }}
+                                  style={{
+                                    padding: '8px 14px',
+                                    borderRadius: 10,
+                                    border: 'none',
+                                    background: expandedSubject.accent,
+                                    color: '#fff',
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  Buka
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })()
+                  ) : (
+                    <div style={{ padding: 48, textAlign: 'center' }}>
+                      <div style={{ fontSize: 48, marginBottom: 12 }}>
+                        {'\u{1F4DA}'}
                       </div>
+                      <p
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 600,
+                          color: '#64748b',
+                          margin: '0 0 4px',
+                        }}
+                      >
+                        Pilih Mata Pelajaran
+                      </p>
+                      <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
+                        Klik salah satu pelajaran di kiri untuk melihat daftar
+                        topiknya
+                      </p>
                     </div>
-                  )
-                })() : (
-                  <div style={{ padding: 48, textAlign: 'center' }}>
-                    <div style={{ fontSize: 48, marginBottom: 12 }}>{'\u{1F4DA}'}</div>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: '#64748b', margin: '0 0 4px' }}>Pilih Mata Pelajaran</p>
-                    <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>Klik salah satu pelajaran di kiri untuk melihat daftar topiknya</p>
-                  </div>
-                )}
-              </section>
-            </aside>
+                  )}
+                </section>
+              </aside>
+            </div>
           </div>
-        </div>
         )}
       </main>
 
