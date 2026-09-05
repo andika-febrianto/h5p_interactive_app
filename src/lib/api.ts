@@ -525,6 +525,7 @@ export interface ChildInfo {
   semester: number | null
   birthDate: string | null
   gender: string | null
+  isActive?: boolean
 }
 
 export interface ModuleProgress {
@@ -613,7 +614,9 @@ export function fetchChildModuleProgress(
 }
 
 // Reading progress
-export function fetchChildReading(childId: string): Promise<ReadingProgressItem[]> {
+export function fetchChildReading(
+  childId: string,
+): Promise<ReadingProgressItem[]> {
   return request(`/parent/children/${encodeURIComponent(childId)}/reading`)
 }
 
@@ -679,9 +682,7 @@ export function deleteAssignment(id: string): Promise<void> {
 export function fetchChildAssignments(
   childId: string,
 ): Promise<ParentAssignment[]> {
-  return request(
-    `/parent/children/${encodeURIComponent(childId)}/assignments`,
-  )
+  return request(`/parent/children/${encodeURIComponent(childId)}/assignments`)
 }
 
 // ---------- Notifications ----------
@@ -753,29 +754,22 @@ export function replyToQuestion(
   questionId: string,
   reply: string,
 ): Promise<Question> {
-  return request(
-    `/parent/questions/${encodeURIComponent(questionId)}/reply`,
-    {
-      method: 'PUT',
-      body: JSON.stringify({ reply }),
-    },
-  )
+  return request(`/parent/questions/${encodeURIComponent(questionId)}/reply`, {
+    method: 'PUT',
+    body: JSON.stringify({ reply }),
+  })
 }
 
 // ---------- Assignment Status ----------
 
-export function markAssignmentStarted(
-  assignmentId: string,
-): Promise<void> {
+export function markAssignmentStarted(assignmentId: string): Promise<void> {
   return request(
     `/parent/assignments/${encodeURIComponent(assignmentId)}/start`,
     { method: 'POST' },
   )
 }
 
-export function markAssignmentCompleted(
-  assignmentId: string,
-): Promise<void> {
+export function markAssignmentCompleted(assignmentId: string): Promise<void> {
   return request(
     `/parent/assignments/${encodeURIComponent(assignmentId)}/complete`,
     { method: 'POST' },
@@ -825,4 +819,47 @@ export function notifyStudentScore(body: {
 
 export function checkStudentNotifications(): Promise<void> {
   return request('/parent/student/check')
+}
+
+// Manage profile on parent dashboard
+// export async function updateChild(
+//   id: string,
+//   data: Partial<{
+//     name: string
+//     email: string
+//     grade: number
+//     semester: number
+//     isActive: boolean
+//   }>,
+// ): Promise<ChildInfo> {
+//   const res = await fetch(`${API_BASE}/children/${id}`, {
+//     method: 'PATCH',
+//     headers: { 'Content-Type': 'application/json' },
+//     credentials: 'include',
+//     body: JSON.stringify(data),
+//   })
+//   if (!res.ok) throw new ApiError(await res.text(), res.status)
+//   return res.json()
+// }
+
+export function updateChild(
+  id: string,
+  body: Record<string, unknown>,
+): Promise<ChildInfo> {
+  return request(`/parent/children/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
+}
+
+// export async function deleteChild(id: string): Promise<void> {
+//   const res = await fetch(`${API_BASE}/children/${id}`, {
+//     method: 'DELETE',
+//     credentials: 'include',
+//   })
+//   if (!res.ok) throw new ApiError(await res.text(), res.status)
+// }
+
+export function deleteChild(id: string): Promise<void> {
+  return request(`/children/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }

@@ -46,6 +46,7 @@ export type UserMinAggregateOutputType = {
   semester: number | null
   birthDate: Date | null
   gender: string | null
+  isActive: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -60,6 +61,7 @@ export type UserMaxAggregateOutputType = {
   semester: number | null
   birthDate: Date | null
   gender: string | null
+  isActive: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -74,6 +76,7 @@ export type UserCountAggregateOutputType = {
   semester: number
   birthDate: number
   gender: number
+  isActive: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -100,6 +103,7 @@ export type UserMinAggregateInputType = {
   semester?: true
   birthDate?: true
   gender?: true
+  isActive?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -114,6 +118,7 @@ export type UserMaxAggregateInputType = {
   semester?: true
   birthDate?: true
   gender?: true
+  isActive?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -128,6 +133,7 @@ export type UserCountAggregateInputType = {
   semester?: true
   birthDate?: true
   gender?: true
+  isActive?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -229,6 +235,7 @@ export type UserGroupByOutputType = {
   semester: number | null
   birthDate: Date | null
   gender: string | null
+  isActive: boolean
   createdAt: Date
   updatedAt: Date
   _count: UserCountAggregateOutputType | null
@@ -266,6 +273,7 @@ export type UserWhereInput = {
   semester?: Prisma.IntNullableFilter<"User"> | number | null
   birthDate?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   gender?: Prisma.StringNullableFilter<"User"> | string | null
+  isActive?: Prisma.BoolFilter<"User"> | boolean
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   progress?: Prisma.ProgressRecordListRelationFilter
@@ -292,6 +300,7 @@ export type UserOrderByWithRelationInput = {
   semester?: Prisma.SortOrderInput | Prisma.SortOrder
   birthDate?: Prisma.SortOrderInput | Prisma.SortOrder
   gender?: Prisma.SortOrderInput | Prisma.SortOrder
+  isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   progress?: Prisma.ProgressRecordOrderByRelationAggregateInput
@@ -321,6 +330,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   semester?: Prisma.IntNullableFilter<"User"> | number | null
   birthDate?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   gender?: Prisma.StringNullableFilter<"User"> | string | null
+  isActive?: Prisma.BoolFilter<"User"> | boolean
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   progress?: Prisma.ProgressRecordListRelationFilter
@@ -347,6 +357,7 @@ export type UserOrderByWithAggregationInput = {
   semester?: Prisma.SortOrderInput | Prisma.SortOrder
   birthDate?: Prisma.SortOrderInput | Prisma.SortOrder
   gender?: Prisma.SortOrderInput | Prisma.SortOrder
+  isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
@@ -369,6 +380,7 @@ export type UserScalarWhereWithAggregatesInput = {
   semester?: Prisma.IntNullableWithAggregatesFilter<"User"> | number | null
   birthDate?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   gender?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  isActive?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
 }
@@ -383,6 +395,7 @@ export type UserCreateInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordCreateNestedManyWithoutUserInput
@@ -409,6 +422,7 @@ export type UserUncheckedCreateInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordUncheckedCreateNestedManyWithoutUserInput
@@ -435,6 +449,7 @@ export type UserUpdateInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUpdateManyWithoutUserNestedInput
@@ -461,6 +476,7 @@ export type UserUncheckedUpdateInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUncheckedUpdateManyWithoutUserNestedInput
@@ -487,6 +503,7 @@ export type UserCreateManyInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -501,6 +518,7 @@ export type UserUpdateManyMutationInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -515,6 +533,7 @@ export type UserUncheckedUpdateManyInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -529,6 +548,7 @@ export type UserCountOrderByAggregateInput = {
   semester?: Prisma.SortOrder
   birthDate?: Prisma.SortOrder
   gender?: Prisma.SortOrder
+  isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -548,6 +568,7 @@ export type UserMaxOrderByAggregateInput = {
   semester?: Prisma.SortOrder
   birthDate?: Prisma.SortOrder
   gender?: Prisma.SortOrder
+  isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -562,6 +583,7 @@ export type UserMinOrderByAggregateInput = {
   semester?: Prisma.SortOrder
   birthDate?: Prisma.SortOrder
   gender?: Prisma.SortOrder
+  isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -603,6 +625,10 @@ export type NullableDateTimeFieldUpdateOperationsInput = {
 
 export type NullableStringFieldUpdateOperationsInput = {
   set?: string | null
+}
+
+export type BoolFieldUpdateOperationsInput = {
+  set?: boolean
 }
 
 export type DateTimeFieldUpdateOperationsInput = {
@@ -789,6 +815,7 @@ export type UserCreateWithoutSessionsInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordCreateNestedManyWithoutUserInput
@@ -814,6 +841,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordUncheckedCreateNestedManyWithoutUserInput
@@ -855,6 +883,7 @@ export type UserUpdateWithoutSessionsInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUpdateManyWithoutUserNestedInput
@@ -880,6 +909,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUncheckedUpdateManyWithoutUserNestedInput
@@ -905,6 +935,7 @@ export type UserCreateWithoutProgressInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -930,6 +961,7 @@ export type UserUncheckedCreateWithoutProgressInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -971,6 +1003,7 @@ export type UserUpdateWithoutProgressInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -996,6 +1029,7 @@ export type UserUncheckedUpdateWithoutProgressInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1021,6 +1055,7 @@ export type UserCreateWithoutSubscriptionInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordCreateNestedManyWithoutUserInput
@@ -1046,6 +1081,7 @@ export type UserUncheckedCreateWithoutSubscriptionInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordUncheckedCreateNestedManyWithoutUserInput
@@ -1087,6 +1123,7 @@ export type UserUpdateWithoutSubscriptionInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUpdateManyWithoutUserNestedInput
@@ -1112,6 +1149,7 @@ export type UserUncheckedUpdateWithoutSubscriptionInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUncheckedUpdateManyWithoutUserNestedInput
@@ -1137,6 +1175,7 @@ export type UserCreateWithoutPaymentsInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordCreateNestedManyWithoutUserInput
@@ -1162,6 +1201,7 @@ export type UserUncheckedCreateWithoutPaymentsInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordUncheckedCreateNestedManyWithoutUserInput
@@ -1203,6 +1243,7 @@ export type UserUpdateWithoutPaymentsInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUpdateManyWithoutUserNestedInput
@@ -1228,6 +1269,7 @@ export type UserUncheckedUpdateWithoutPaymentsInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUncheckedUpdateManyWithoutUserNestedInput
@@ -1253,6 +1295,7 @@ export type UserCreateWithoutParentChildrenInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordCreateNestedManyWithoutUserInput
@@ -1278,6 +1321,7 @@ export type UserUncheckedCreateWithoutParentChildrenInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordUncheckedCreateNestedManyWithoutUserInput
@@ -1308,6 +1352,7 @@ export type UserCreateWithoutChildParentsInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordCreateNestedManyWithoutUserInput
@@ -1333,6 +1378,7 @@ export type UserUncheckedCreateWithoutChildParentsInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordUncheckedCreateNestedManyWithoutUserInput
@@ -1374,6 +1420,7 @@ export type UserUpdateWithoutParentChildrenInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUpdateManyWithoutUserNestedInput
@@ -1399,6 +1446,7 @@ export type UserUncheckedUpdateWithoutParentChildrenInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUncheckedUpdateManyWithoutUserNestedInput
@@ -1435,6 +1483,7 @@ export type UserUpdateWithoutChildParentsInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUpdateManyWithoutUserNestedInput
@@ -1460,6 +1509,7 @@ export type UserUncheckedUpdateWithoutChildParentsInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUncheckedUpdateManyWithoutUserNestedInput
@@ -1485,6 +1535,7 @@ export type UserCreateWithoutReadingProgressInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordCreateNestedManyWithoutUserInput
@@ -1510,6 +1561,7 @@ export type UserUncheckedCreateWithoutReadingProgressInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordUncheckedCreateNestedManyWithoutUserInput
@@ -1551,6 +1603,7 @@ export type UserUpdateWithoutReadingProgressInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUpdateManyWithoutUserNestedInput
@@ -1576,6 +1629,7 @@ export type UserUncheckedUpdateWithoutReadingProgressInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUncheckedUpdateManyWithoutUserNestedInput
@@ -1601,6 +1655,7 @@ export type UserCreateWithoutAssignmentsGivenInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordCreateNestedManyWithoutUserInput
@@ -1626,6 +1681,7 @@ export type UserUncheckedCreateWithoutAssignmentsGivenInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordUncheckedCreateNestedManyWithoutUserInput
@@ -1656,6 +1712,7 @@ export type UserCreateWithoutAssignmentsReceivedInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordCreateNestedManyWithoutUserInput
@@ -1681,6 +1738,7 @@ export type UserUncheckedCreateWithoutAssignmentsReceivedInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordUncheckedCreateNestedManyWithoutUserInput
@@ -1722,6 +1780,7 @@ export type UserUpdateWithoutAssignmentsGivenInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUpdateManyWithoutUserNestedInput
@@ -1747,6 +1806,7 @@ export type UserUncheckedUpdateWithoutAssignmentsGivenInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUncheckedUpdateManyWithoutUserNestedInput
@@ -1783,6 +1843,7 @@ export type UserUpdateWithoutAssignmentsReceivedInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUpdateManyWithoutUserNestedInput
@@ -1808,6 +1869,7 @@ export type UserUncheckedUpdateWithoutAssignmentsReceivedInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUncheckedUpdateManyWithoutUserNestedInput
@@ -1833,6 +1895,7 @@ export type UserCreateWithoutNotificationsInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordCreateNestedManyWithoutUserInput
@@ -1858,6 +1921,7 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordUncheckedCreateNestedManyWithoutUserInput
@@ -1899,6 +1963,7 @@ export type UserUpdateWithoutNotificationsInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUpdateManyWithoutUserNestedInput
@@ -1924,6 +1989,7 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUncheckedUpdateManyWithoutUserNestedInput
@@ -1949,6 +2015,7 @@ export type UserCreateWithoutQuestionsAskedInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordCreateNestedManyWithoutUserInput
@@ -1974,6 +2041,7 @@ export type UserUncheckedCreateWithoutQuestionsAskedInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordUncheckedCreateNestedManyWithoutUserInput
@@ -2004,6 +2072,7 @@ export type UserCreateWithoutQuestionsAnsweredInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordCreateNestedManyWithoutUserInput
@@ -2029,6 +2098,7 @@ export type UserUncheckedCreateWithoutQuestionsAnsweredInput = {
   semester?: number | null
   birthDate?: Date | string | null
   gender?: string | null
+  isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressRecordUncheckedCreateNestedManyWithoutUserInput
@@ -2070,6 +2140,7 @@ export type UserUpdateWithoutQuestionsAskedInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUpdateManyWithoutUserNestedInput
@@ -2095,6 +2166,7 @@ export type UserUncheckedUpdateWithoutQuestionsAskedInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUncheckedUpdateManyWithoutUserNestedInput
@@ -2131,6 +2203,7 @@ export type UserUpdateWithoutQuestionsAnsweredInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUpdateManyWithoutUserNestedInput
@@ -2156,6 +2229,7 @@ export type UserUncheckedUpdateWithoutQuestionsAnsweredInput = {
   semester?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressRecordUncheckedUpdateManyWithoutUserNestedInput
@@ -2302,6 +2376,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   semester?: boolean
   birthDate?: boolean
   gender?: boolean
+  isActive?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   progress?: boolean | Prisma.User$progressArgs<ExtArgs>
@@ -2329,6 +2404,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   semester?: boolean
   birthDate?: boolean
   gender?: boolean
+  isActive?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -2343,6 +2419,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   semester?: boolean
   birthDate?: boolean
   gender?: boolean
+  isActive?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -2357,11 +2434,12 @@ export type UserSelectScalar = {
   semester?: boolean
   birthDate?: boolean
   gender?: boolean
+  isActive?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "passwordHash" | "role" | "grade" | "semester" | "birthDate" | "gender" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "passwordHash" | "role" | "grade" | "semester" | "birthDate" | "gender" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   progress?: boolean | Prisma.User$progressArgs<ExtArgs>
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
@@ -2406,6 +2484,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     semester: number | null
     birthDate: Date | null
     gender: string | null
+    isActive: boolean
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["user"]>
@@ -2852,6 +2931,7 @@ export interface UserFieldRefs {
   readonly semester: Prisma.FieldRef<"User", 'Int'>
   readonly birthDate: Prisma.FieldRef<"User", 'DateTime'>
   readonly gender: Prisma.FieldRef<"User", 'String'>
+  readonly isActive: Prisma.FieldRef<"User", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
 }

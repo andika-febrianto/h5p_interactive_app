@@ -35,30 +35,32 @@ enum Role {
 }
 
 model User {
-  id           String           @id @default(cuid())
+  id           String    @id @default(cuid())
   name         String
-  email        String           @unique
+  email        String    @unique
   passwordHash String
   role         Role
-  grade        Int?             // school grade (1-6), only for STUDENT
-  semester     Int?             // semester (1 or 2), only for STUDENT
-  birthDate    DateTime?        // date of birth, only for STUDENT
-  gender       String?          // 'Laki-laki' | 'Perempuan', only for STUDENT
-  progress     ProgressRecord[]
-  sessions     Session[]
-  subscription Subscription?
-  payments     Payment[]
+  grade        Int? // school grade (1-6), only for STUDENT
+  semester     Int? // semester (1 or 2), only for STUDENT
+  birthDate    DateTime? // date of birth, only for STUDENT
+  gender       String? // 'Laki-laki' | 'Perempuan', only for STUDENT
+  isActive     Boolean   @default(true)
+
+  progress            ProgressRecord[]
+  sessions            Session[]
+  subscription        Subscription?
+  payments            Payment[]
   // Parent-Child relationships
-  parentChildren  ParentChild[] @relation("Parent")
-  childParents    ParentChild[] @relation("Child")
-  readingProgress ReadingProgress[]
-  assignmentsGiven ParentAssignment[] @relation("Parent")
+  parentChildren      ParentChild[]      @relation("Parent")
+  childParents        ParentChild[]      @relation("Child")
+  readingProgress     ReadingProgress[]
+  assignmentsGiven    ParentAssignment[] @relation("Parent")
   assignmentsReceived ParentAssignment[] @relation("Child")
-  notifications Notification[]
-  questionsAsked Question[] @relation("QuestionChild")
-  questionsAnswered Question[] @relation("QuestionParent")
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  notifications       Notification[]
+  questionsAsked      Question[]         @relation("QuestionChild")
+  questionsAnswered   Question[]         @relation("QuestionParent")
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
   @@map("users")
 }
@@ -239,18 +241,18 @@ model ParentChild {
 
 // Track reading progress for children
 model ReadingProgress {
-  id          String   @id @default(cuid())
-  childId     String
-  child       User     @relation(fields: [childId], references: [id], onDelete: Cascade)
-  materialId  String   // references a module or external material
-  materialType String  // 'module' | 'book' | 'article'
-  title       String
-  totalPages  Int      @default(0)
-  currentPage Int      @default(0)
-  status      String   @default("in_progress") // 'not_started' | 'in_progress' | 'completed'
-  lastReadAt  DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  childId      String
+  child        User     @relation(fields: [childId], references: [id], onDelete: Cascade)
+  materialId   String // references a module or external material
+  materialType String // 'module' | 'book' | 'article'
+  title        String
+  totalPages   Int      @default(0)
+  currentPage  Int      @default(0)
+  status       String   @default("in_progress") // 'not_started' | 'in_progress' | 'completed'
+  lastReadAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@unique([childId, materialId])
   @@index([childId])
@@ -259,22 +261,22 @@ model ReadingProgress {
 
 // Tasks/assignments created by parents for their children
 model ParentAssignment {
-  id            String   @id @default(cuid())
-  parentId      String
-  parent        User     @relation("Parent", fields: [parentId], references: [id], onDelete: Cascade)
-  childId       String
-  child         User     @relation("Child", fields: [childId], references: [id], onDelete: Cascade)
-  title         String
-  description   String?
-  materialId    String?  // optional link to a module
-  selectedFrames Json?   // array of frame ids selected by parent, e.g. ["bc1", "bc3"]
-  dueDate       DateTime?
-  status        String   @default("pending") // 'pending' | 'in_progress' | 'completed' | 'overdue'
-  notes         String?  // parent's notes or feedback
-  notifications Notification[]
-  questions     Question[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id             String         @id @default(cuid())
+  parentId       String
+  parent         User           @relation("Parent", fields: [parentId], references: [id], onDelete: Cascade)
+  childId        String
+  child          User           @relation("Child", fields: [childId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  materialId     String? // optional link to a module
+  selectedFrames Json? // array of frame ids selected by parent, e.g. ["bc1", "bc3"]
+  dueDate        DateTime?
+  status         String         @default("pending") // 'pending' | 'in_progress' | 'completed' | 'overdue'
+  notes          String? // parent's notes or feedback
+  notifications  Notification[]
+  questions      Question[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   @@index([parentId])
   @@index([childId])
@@ -283,16 +285,16 @@ model ParentAssignment {
 
 // Notifications for parent-child communication
 model Notification {
-  id            String   @id @default(cuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type          String   // 'assignment_created' | 'child_started' | 'child_completed' | 'child_question' | 'parent_reply' | 'new_assignment'
-  title         String
-  message       String
-  assignmentId  String?
-  assignment    ParentAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
-  read          Boolean  @default(false)
-  createdAt     DateTime @default(now())
+  id           String            @id @default(cuid())
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String // 'assignment_created' | 'child_started' | 'child_completed' | 'child_question' | 'parent_reply' | 'new_assignment'
+  title        String
+  message      String
+  assignmentId String?
+  assignment   ParentAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  read         Boolean           @default(false)
+  createdAt    DateTime          @default(now())
 
   @@index([userId])
   @@index([userId, read])
@@ -301,17 +303,17 @@ model Notification {
 
 // Questions from children to parents about assignments
 model Question {
-  id            String   @id @default(cuid())
-  assignmentId  String
-  assignment    ParentAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  childId       String
-  child         User     @relation("QuestionChild", fields: [childId], references: [id], onDelete: Cascade)
-  parentId      String
-  parent        User     @relation("QuestionParent", fields: [parentId], references: [id], onDelete: Cascade)
-  question      String
-  reply         String?
-  createdAt     DateTime @default(now())
-  repliedAt     DateTime?
+  id           String           @id @default(cuid())
+  assignmentId String
+  assignment   ParentAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  childId      String
+  child        User             @relation("QuestionChild", fields: [childId], references: [id], onDelete: Cascade)
+  parentId     String
+  parent       User             @relation("QuestionParent", fields: [parentId], references: [id], onDelete: Cascade)
+  question     String
+  reply        String?
+  createdAt    DateTime         @default(now())
+  repliedAt    DateTime?
 
   @@index([assignmentId])
   @@index([childId])
