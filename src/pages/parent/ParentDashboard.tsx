@@ -28,6 +28,7 @@ import {
 } from '../../lib/api'
 import { ApiError } from '../../lib/api'
 import { grades, semesters } from '../../data/grades'
+import ModulBelajar from './ModulBelajar'
 
 const KIND_ICON: Record<string, string> = {
   text: '📄',
@@ -1592,253 +1593,259 @@ export default function ParentDashboard() {
       {/* ── MAIN ── */}
       <main style={S.main}>
         {/* Welcome Hero */}
-        <section style={S.hero}>
-          <div
-            style={{
-              position: 'absolute',
-              right: -40,
-              bottom: -40,
-              width: 256,
-              height: 256,
-              borderRadius: '50%',
-              background: 'rgba(91,77,255,0.12)',
-              filter: 'blur(60px)',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              top: 8,
-              right: '33%',
-              width: 128,
-              height: 128,
-              borderRadius: '50%',
-              background: 'rgba(245,158,11,0.12)',
-              filter: 'blur(40px)',
-            }}
-          />
-          <div style={S.heroInner}>
-            <div style={{ maxWidth: 560 }}>
-              <div style={S.heroBadge}>
-                <span style={S.heroDot} /> Status Pendamping Aktif: Semester
-                Ganjil 2026/2027
+        {viewMode === 'overview' && (
+          <section style={S.hero}>
+            <div
+              style={{
+                position: 'absolute',
+                right: -40,
+                bottom: -40,
+                width: 256,
+                height: 256,
+                borderRadius: '50%',
+                background: 'rgba(91,77,255,0.12)',
+                filter: 'blur(60px)',
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: '33%',
+                width: 128,
+                height: 128,
+                borderRadius: '50%',
+                background: 'rgba(245,158,11,0.12)',
+                filter: 'blur(40px)',
+              }}
+            />
+            <div style={S.heroInner}>
+              <div style={{ maxWidth: 560 }}>
+                <div style={S.heroBadge}>
+                  <span style={S.heroDot} /> Status Pendamping Aktif: Semester
+                  Ganjil 2026/2027
+                </div>
+                <h1 style={S.heroTitle}>
+                  Selamat Datang Kembali, {firstName}! 👋
+                </h1>
+                <p style={S.heroSub}>
+                  Pantau kemajuan belajar {childNamesText}, pastikan misi
+                  terselesaikan tepat waktu, dan dukung minat belajar dengan
+                  mudah hari ini.
+                </p>
               </div>
-              <h1 style={S.heroTitle}>
-                Selamat Datang Kembali, {firstName}! 👋
-              </h1>
-              <p style={S.heroSub}>
-                Pantau kemajuan belajar {childNamesText}, pastikan misi
-                terselesaikan tepat waktu, dan dukung minat belajar dengan mudah
-                hari ini.
-              </p>
-            </div>
-            <div style={S.heroRight}>
-              <div
-                style={{ display: 'flex', gap: 12, flexWrap: 'wrap' as const }}
-              >
-                {children.map((c, idx) => {
-                  const active = idx === selectedChildIdx
-                  return (
-                    <div
-                      key={c.id}
-                      onClick={() => setSelectedChildIdx(idx)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        background: '#fff',
-                        padding: '10px 16px',
-                        borderRadius: 16,
-                        border: active
-                          ? '2px solid #5B4DFF'
-                          : '1px solid #e2e8f0',
-                        boxShadow: active
-                          ? '0 4px 12px rgba(91,77,255,0.15)'
-                          : '0 1px 4px rgba(0,0,0,0.04)',
-                        cursor: 'pointer',
-                        minWidth: 210,
-                      }}
-                    >
+              <div style={S.heroRight}>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 12,
+                    flexWrap: 'wrap' as const,
+                  }}
+                >
+                  {children.map((c, idx) => {
+                    const active = idx === selectedChildIdx
+                    return (
                       <div
+                        key={c.id}
+                        onClick={() => setSelectedChildIdx(idx)}
                         style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 12,
-                          background: active ? '#5B4DFF' : '#e2e8f0',
-                          color: active ? '#fff' : '#64748b',
-                          fontWeight: 700,
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 16,
+                          gap: 12,
+                          background: '#fff',
+                          padding: '10px 16px',
+                          borderRadius: 16,
+                          border: active
+                            ? '2px solid #5B4DFF'
+                            : '1px solid #e2e8f0',
                           boxShadow: active
-                            ? '0 2px 8px rgba(91,77,255,0.2)'
-                            : 'none',
-                          position: 'relative',
-                          flexShrink: 0,
+                            ? '0 4px 12px rgba(91,77,255,0.15)'
+                            : '0 1px 4px rgba(0,0,0,0.04)',
+                          cursor: 'pointer',
+                          minWidth: 210,
                         }}
                       >
-                        {c.name.charAt(0).toUpperCase()}
-                        {active && (
-                          <span
-                            style={{
-                              position: 'absolute',
-                              top: -2,
-                              right: -2,
-                              width: 10,
-                              height: 10,
-                              borderRadius: '50%',
-                              background: '#10B981',
-                              border: '2px solid #fff',
-                            }}
-                          />
-                        )}
-                      </div>
-
-                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: 14,
-                              fontWeight: 700,
-                              color: '#0f172a',
-                            }}
-                          >
-                            {c.name}
-                          </span>
-                          {active && (
-                            <span
-                              style={{
-                                fontSize: 10,
-                                fontWeight: 700,
-                                color: '#5B4DFF',
-                                background: '#EEF2FF',
-                                padding: '2px 8px',
-                                borderRadius: 999,
-                                flexShrink: 0,
-                              }}
-                            >
-                              Aktif
-                            </span>
-                          )}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 500,
-                            color: active ? '#5B4DFF' : '#64748b',
-                            marginTop: 1,
-                          }}
-                        >
-                          Kelas {c.grade ?? '?'} SD • Sem. {c.semester ?? '?'}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 11,
-                            color: '#94a3b8',
-                            marginTop: 2,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            whiteSpace: 'nowrap' as const,
-                          }}
-                        >
-                          <span>⭐{childPoints(c)} Poin</span>
-                          <span>•</span>
-                          <span>{childStatusText(c, active)}</span>
-                        </div>
-                      </div>
-
-                      {!active && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedChildIdx(idx)
-                          }}
-                          style={{
-                            fontSize: 11,
+                            width: 40,
+                            height: 40,
+                            borderRadius: 12,
+                            background: active ? '#5B4DFF' : '#e2e8f0',
+                            color: active ? '#fff' : '#64748b',
                             fontWeight: 700,
-                            color: '#5B4DFF',
-                            background: '#F5F3FF',
-                            border: 'none',
-                            padding: '6px 14px',
-                            borderRadius: 10,
-                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 16,
+                            boxShadow: active
+                              ? '0 2px 8px rgba(91,77,255,0.2)'
+                              : 'none',
+                            position: 'relative',
                             flexShrink: 0,
                           }}
                         >
-                          Pilih
-                        </button>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
+                          {c.name.charAt(0).toUpperCase()}
+                          {active && (
+                            <span
+                              style={{
+                                position: 'absolute',
+                                top: -2,
+                                right: -2,
+                                width: 10,
+                                height: 10,
+                                borderRadius: '50%',
+                                background: '#10B981',
+                                border: '2px solid #fff',
+                              }}
+                            />
+                          )}
+                        </div>
 
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column' as const,
-                  gap: 8,
-                }}
-              >
-                <button
-                  style={S.manageBtn}
-                  onClick={() => setShowManageProfiles(true)}
-                >
-                  <svg
-                    width='14'
-                    height='14'
-                    fill='none'
-                    stroke='currentColor'
-                    strokeWidth='2.5'
-                    viewBox='0 0 24 24'
-                  >
-                    <path
-                      d='M12 4v16m8-8H4'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                    />
-                  </svg>
-                  Kelola Profil {childName}
-                </button>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: 14,
+                                fontWeight: 700,
+                                color: '#0f172a',
+                              }}
+                            >
+                              {c.name}
+                            </span>
+                            {active && (
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  color: '#5B4DFF',
+                                  background: '#EEF2FF',
+                                  padding: '2px 8px',
+                                  borderRadius: 999,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                Aktif
+                              </span>
+                            )}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 500,
+                              color: active ? '#5B4DFF' : '#64748b',
+                              marginTop: 1,
+                            }}
+                          >
+                            Kelas {c.grade ?? '?'} SD • Sem. {c.semester ?? '?'}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: '#94a3b8',
+                              marginTop: 2,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              whiteSpace: 'nowrap' as const,
+                            }}
+                          >
+                            <span>⭐{childPoints(c)} Poin</span>
+                            <span>•</span>
+                            <span>{childStatusText(c, active)}</span>
+                          </div>
+                        </div>
 
-                <button
+                        {!active && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedChildIdx(idx)
+                            }}
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: '#5B4DFF',
+                              background: '#F5F3FF',
+                              border: 'none',
+                              padding: '6px 14px',
+                              borderRadius: 10,
+                              cursor: 'pointer',
+                              flexShrink: 0,
+                            }}
+                          >
+                            Pilih
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div
                   style={{
-                    ...S.manageBtn,
-                    background: '#fff',
-                    color: '#5B4DFF',
-                    border: '1px solid rgba(91,77,255,0.2)',
-                    boxShadow: 'none',
+                    display: 'flex',
+                    flexDirection: 'column' as const,
+                    gap: 8,
                   }}
-                  onClick={() => setShowCreateChild(true)}
                 >
-                  <svg
-                    width='14'
-                    height='14'
-                    fill='none'
-                    stroke='currentColor'
-                    strokeWidth='2.5'
-                    viewBox='0 0 24 24'
+                  <button
+                    style={S.manageBtn}
+                    onClick={() => setShowManageProfiles(true)}
                   >
-                    <path
-                      d='M12 4v16m8-8H4'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                    />
-                  </svg>
-                  Tambah Anak
-                </button>
+                    <svg
+                      width='14'
+                      height='14'
+                      fill='none'
+                      stroke='currentColor'
+                      strokeWidth='2.5'
+                      viewBox='0 0 24 24'
+                    >
+                      <path
+                        d='M12 4v16m8-8H4'
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                      />
+                    </svg>
+                    Kelola Profil {childName}
+                  </button>
+
+                  <button
+                    style={{
+                      ...S.manageBtn,
+                      background: '#fff',
+                      color: '#5B4DFF',
+                      border: '1px solid rgba(91,77,255,0.2)',
+                      boxShadow: 'none',
+                    }}
+                    onClick={() => setShowCreateChild(true)}
+                  >
+                    <svg
+                      width='14'
+                      height='14'
+                      fill='none'
+                      stroke='currentColor'
+                      strokeWidth='2.5'
+                      viewBox='0 0 24 24'
+                    >
+                      <path
+                        d='M12 4v16m8-8H4'
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                      />
+                    </svg>
+                    Tambah Anak
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* ── MANAGE PROFILES MODAL ── */}
         {showManageProfiles && (
@@ -2245,527 +2252,148 @@ export default function ParentDashboard() {
         )}
 
         {/* Grid: 8/4 */}
-        <div style={S.grid}>
-          {/* LEFT */}
-          <div style={S.leftCol}>
-            {/* Progress Belajar */}
-            <section style={S.card}>
-              <div style={S.cardHeader}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {viewMode === 'overview' && (
+          <div style={S.grid}>
+            {/* LEFT */}
+            <div style={S.leftCol}>
+              {/* Progress Belajar */}
+              <section style={S.card}>
+                <div style={S.cardHeader}>
                   <div
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 16,
-                      background: '#F5F3FF',
-                      border: '1px solid #EDE9FE',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#5B4DFF',
-                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12 }}
                   >
-                    <svg
-                      width='24'
-                      height='24'
-                      fill='none'
-                      stroke='currentColor'
-                      strokeWidth='2'
-                      viewBox='0 0 24 24'
+                    <div
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 16,
+                        background: '#F5F3FF',
+                        border: '1px solid #EDE9FE',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#5B4DFF',
+                      }}
                     >
-                      <path
-                        d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                      />
-                    </svg>
+                      <svg
+                        width='24'
+                        height='24'
+                        fill='none'
+                        stroke='currentColor'
+                        strokeWidth='2'
+                        viewBox='0 0 24 24'
+                      >
+                        <path
+                          d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          textTransform: 'uppercase' as const,
+                          letterSpacing: '0.08em',
+                          color: '#5B4DFF',
+                          background: '#F5F3FF',
+                          padding: '2px 8px',
+                          borderRadius: 4,
+                        }}
+                      >
+                        Modul Yang Sedang Berjalan
+                      </span>
+                      <h2 style={{ ...S.sectionTitle, marginTop: 4 }}>
+                        Progress Belajar {childName}
+                      </h2>
+                    </div>
                   </div>
-                  <div>
+                  <div style={{ display: 'flex', gap: 8 }}>
                     <span
                       style={{
                         fontSize: 11,
                         fontWeight: 600,
-                        textTransform: 'uppercase' as const,
-                        letterSpacing: '0.08em',
-                        color: '#5B4DFF',
-                        background: '#F5F3FF',
-                        padding: '2px 8px',
-                        borderRadius: 4,
+                        padding: '4px 10px',
+                        background: '#FFFBEB',
+                        color: '#92400E',
+                        borderRadius: 999,
+                        border: '1px solid #FDE68A',
                       }}
                     >
-                      Modul Yang Sedang Berjalan
+                      Matematika Dasar
                     </span>
-                    <h2 style={{ ...S.sectionTitle, marginTop: 4 }}>
-                      Progress Belajar {childName}
-                    </h2>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      padding: '4px 10px',
-                      background: '#FFFBEB',
-                      color: '#92400E',
-                      borderRadius: 999,
-                      border: '1px solid #FDE68A',
-                    }}
-                  >
-                    Matematika Dasar
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      padding: '4px 10px',
-                      background: '#d1fae5',
-                      color: '#065f46',
-                      borderRadius: 999,
-                      border: '1px solid #a7f3d0',
-                    }}
-                  >
-                    Semester 1
-                  </span>
-                </div>
-              </div>
-
-              {selectedChild && activeAssignments.length > 0 ? (
-                (() => {
-                  const mainAssignment = activeAssignments[0]
-                  const comp = getAssignmentCompletion(mainAssignment)
-                  return (
-                    <div style={S.progressCard}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                          marginBottom: 16,
-                        }}
-                      >
-                        <div>
-                          <p
-                            style={{
-                              fontSize: 12,
-                              color: '#94a3b8',
-                              margin: 0,
-                            }}
-                          >
-                            Materi Utama Saat Ini:
-                          </p>
-                          <h3
-                            style={{
-                              fontSize: 16,
-                              fontWeight: 700,
-                              color: '#0f172a',
-                              margin: '4px 0 0',
-                            }}
-                          >
-                            {mainAssignment.title}
-                          </h3>
-                          <p
-                            style={{
-                              fontSize: 12,
-                              color: '#94a3b8',
-                              margin: '4px 0 0',
-                            }}
-                          >
-                            {comp.total} panel ditugaskan
-                          </p>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <span
-                            style={{
-                              fontSize: 28,
-                              fontWeight: 900,
-                              color: '#5B4DFF',
-                            }}
-                          >
-                            {comp.pct}%
-                          </span>
-                          <p
-                            style={{
-                              fontSize: 11,
-                              color: '#94a3b8',
-                              margin: '2px 0 0',
-                            }}
-                          >
-                            {comp.completed} dari {comp.total} selesai
-                          </p>
-                        </div>
-                      </div>
-                      <div style={S.progressBar}>
-                        <div style={S.progressBarInner(comp.pct)} />
-                      </div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginTop: 12,
-                          paddingTop: 12,
-                          borderTop: '1px solid rgba(226,232,240,0.5)',
-                        }}
-                      >
-                        <span style={{ fontSize: 12, color: '#94a3b8' }}>
-                          Kuis latihan lulus: {totalModulesCompleted}x
-                        </span>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <button
-                            style={S.btnSecondary}
-                            onClick={() =>
-                              navigate(`/modul/${mainAssignment.materialId}`)
-                            }
-                          >
-                            Lihat Detail Materi
-                          </button>
-                          <button
-                            style={{
-                              ...S.btnSecondary,
-                              background: '#5B4DFF',
-                              color: '#fff',
-                              border: 'none',
-                            }}
-                            onClick={() =>
-                              navigate(`/modul/${mainAssignment.materialId}`)
-                            }
-                          >
-                            Uji Pemahaman Anak
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })()
-              ) : (
-                <div
-                  style={{
-                    padding: 40,
-                    textAlign: 'center',
-                    color: '#94a3b8',
-                    fontSize: 13,
-                  }}
-                >
-                  {childrenLoading
-                    ? 'Memuat data...'
-                    : 'Belum ada modul aktif. Klik "+ Beri Tugas" untuk membuat tugas baru.'}
-                </div>
-              )}
-
-              <div style={S.subjectChips}>
-                {subjects.slice(0, 3).map((s) => {
-                  const sAssignments = assignments.filter(
-                    (a) =>
-                      a.materialId &&
-                      moduleCache[a.materialId]?.subjectId === s.id,
-                  )
-                  const pct =
-                    sAssignments.length > 0
-                      ? Math.round(
-                          sAssignments.reduce(
-                            (sum, a) => sum + getAssignmentCompletion(a).pct,
-                            0,
-                          ) / sAssignments.length,
-                        )
-                      : 0
-                  return (
-                    <div key={s.id} style={S.subjectChip}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 6,
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            background: s.accent,
-                          }}
-                        />
-                        <span
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: '#334155',
-                          }}
-                        >
-                          {s.shortName}
-                        </span>
-                      </div>
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: s.accent,
-                        }}
-                      >
-                        {pct}% Selesai
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            </section>
-
-            {/* Weekly Chart */}
-            <section style={S.card}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 20,
-                }}
-              >
-                <div>
-                  <div
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <span
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        background: '#5B4DFF',
-                      }}
-                    />
-                    <h2 style={S.sectionTitle}>Aktivitas Belajar Mingguan</h2>
-                  </div>
-                  <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-                    Waktu interaksi {childName} menyelesaikan latihan & video
-                  </p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: 11, color: '#94a3b8' }}>
-                      Rata-rata Harian
-                    </span>
-                    <p
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 800,
-                        color: '#0f172a',
-                        margin: '2px 0 0',
-                      }}
-                    >
-                      42 Menit / Hari
-                    </p>
-                  </div>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: '#059669',
-                      background: '#d1fae5',
-                      padding: '4px 10px',
-                      borderRadius: 8,
-                      border: '1px solid #a7f3d0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                    }}
-                  >
-                    <svg
-                      width='12'
-                      height='12'
-                      fill='none'
-                      stroke='currentColor'
-                      strokeWidth='2.5'
-                      viewBox='0 0 24 24'
-                    >
-                      <path
-                        d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6'
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                      />
-                    </svg>
-                    +14% vs mgg lalu
-                  </span>
-                </div>
-              </div>
-              <div style={S.chartArea}>
-                {barData.map((b) => (
-                  <div key={b.day} style={S.barGroup}>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: b.peak ? 800 : 600,
-                        color: b.peak ? '#5B4DFF' : '#94a3b8',
-                        background: b.peak ? '#F5F3FF' : 'transparent',
-                        padding: b.peak ? '1px 6px' : 0,
-                        borderRadius: 4,
-                      }}
-                    >
-                      {b.min}m{b.peak ? ' ⭐' : ''}
-                    </span>
-                    <div style={S.bar(b.h, b.active, b.peak)} />
                     <span
                       style={{
                         fontSize: 11,
-                        fontWeight: b.peak ? 700 : 500,
-                        color: b.peak ? '#5B4DFF' : '#94a3b8',
+                        fontWeight: 600,
+                        padding: '4px 10px',
+                        background: '#d1fae5',
+                        color: '#065f46',
+                        borderRadius: 999,
+                        border: '1px solid #a7f3d0',
                       }}
                     >
-                      {b.day}
-                      {b.peak ? ' (Hari Ini)' : ''}
+                      Semester 1
                     </span>
                   </div>
-                ))}
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontSize: 12,
-                  color: '#94a3b8',
-                }}
-              >
-                <div style={{ display: 'flex', gap: 16 }}>
-                  <span
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <span
-                      style={{
-                        width: 12,
-                        height: 12,
-                        borderRadius: 4,
-                        background: '#5B4DFF',
-                      }}
-                    />{' '}
-                    Hari Aktif
-                  </span>
-                  <span
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <span
-                      style={{
-                        width: 12,
-                        height: 12,
-                        borderRadius: 4,
-                        background: '#e2e8f0',
-                      }}
-                    />{' '}
-                    Akhir Pekan
-                  </span>
                 </div>
-                <span style={{ fontWeight: 600, color: '#334155' }}>
-                  Total:{' '}
-                  <strong style={{ color: '#0f172a' }}>3 Jam 48 Menit</strong>
-                </span>
-              </div>
-            </section>
 
-            {/* Upcoming Schedule */}
-            <section style={S.card}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 16,
-                }}
-              >
-                <div>
-                  <h2 style={S.sectionTitle}>Jadwal & Target Mendatang</h2>
-                  <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
-                    Pantau tenggat waktu tugas {childName}
-                  </p>
-                </div>
-                <button
-                  style={{
-                    ...S.btnSecondary,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: '#5B4DFF',
-                  }}
-                  onClick={() => setShowAssignModal(true)}
-                >
-                  + Tambah Pengingat
-                </button>
-              </div>
-              <div
-                style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
-              >
-                {upcomingItems.length === 0 ? (
-                  <p
-                    style={{
-                      color: '#94a3b8',
-                      fontSize: 13,
-                      textAlign: 'center',
-                      padding: 20,
-                    }}
-                  >
-                    Tidak ada jadwal mendatang
-                  </p>
-                ) : (
-                  upcomingItems.map((a) => {
-                    const ds = deadlineStatus(a)
-                    const due = a.dueDate ? new Date(a.dueDate) : new Date()
-                    const isOverdue =
-                      ds.label.includes('Terlambat') ||
-                      ds.label.includes('Perlu Perhatian')
+                {selectedChild && activeAssignments.length > 0 ? (
+                  (() => {
+                    const mainAssignment = activeAssignments[0]
+                    const comp = getAssignmentCompletion(mainAssignment)
                     return (
-                      <div key={a.id} style={S.schedItem(ds.border, ds.bg)}>
+                      <div style={S.progressCard}>
                         <div
                           style={{
                             display: 'flex',
-                            alignItems: 'center',
-                            gap: 12,
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            marginBottom: 16,
                           }}
                         >
-                          <div style={S.schedDate}>
-                            <span
+                          <div>
+                            <p
+                              style={{
+                                fontSize: 12,
+                                color: '#94a3b8',
+                                margin: 0,
+                              }}
+                            >
+                              Materi Utama Saat Ini:
+                            </p>
+                            <h3
                               style={{
                                 fontSize: 16,
-                                fontWeight: 800,
-                                color: isOverdue ? '#dc2626' : '#0f172a',
+                                fontWeight: 700,
+                                color: '#0f172a',
+                                margin: '4px 0 0',
                               }}
                             >
-                              {due.getDate()}
-                            </span>
+                              {mainAssignment.title}
+                            </h3>
+                            <p
+                              style={{
+                                fontSize: 12,
+                                color: '#94a3b8',
+                                margin: '4px 0 0',
+                              }}
+                            >
+                              {comp.total} panel ditugaskan
+                            </p>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
                             <span
                               style={{
-                                fontSize: 9,
-                                fontWeight: 700,
-                                color: '#94a3b8',
-                                textTransform: 'uppercase' as const,
+                                fontSize: 28,
+                                fontWeight: 900,
+                                color: '#5B4DFF',
                               }}
                             >
-                              {due.toLocaleDateString('id-ID', {
-                                month: 'short',
-                              })}
+                              {comp.pct}%
                             </span>
-                          </div>
-                          <div>
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                flexWrap: 'wrap' as const,
-                              }}
-                            >
-                              <h3
-                                style={{
-                                  fontSize: 13,
-                                  fontWeight: 700,
-                                  color: '#0f172a',
-                                  margin: 0,
-                                }}
-                              >
-                                {a.title}
-                              </h3>
-                              <span
-                                style={S.schedBadge(ds.color, ds.bg, ds.border)}
-                              >
-                                {ds.label}
-                              </span>
-                            </div>
                             <p
                               style={{
                                 fontSize: 11,
@@ -2773,79 +2401,279 @@ export default function ParentDashboard() {
                                 margin: '2px 0 0',
                               }}
                             >
-                              {subjects.find(
-                                (s) =>
-                                  a.materialId &&
-                                  moduleCache[a.materialId]?.subjectId === s.id,
-                              )?.shortName ?? 'Umum'}{' '}
-                              • {getChildName(a.childId)}
+                              {comp.completed} dari {comp.total} selesai
                             </p>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                          {isOverdue ? (
+                        <div style={S.progressBar}>
+                          <div style={S.progressBarInner(comp.pct)} />
+                        </div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginTop: 12,
+                            paddingTop: 12,
+                            borderTop: '1px solid rgba(226,232,240,0.5)',
+                          }}
+                        >
+                          <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                            Kuis latihan lulus: {totalModulesCompleted}x
+                          </span>
+                          <div style={{ display: 'flex', gap: 8 }}>
                             <button
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                color: '#dc2626',
-                                background: '#fee2e2',
-                                padding: '6px 14px',
-                                borderRadius: 10,
-                                border: 'none',
-                                cursor: 'pointer',
-                              }}
-                              onClick={() => navigate(`/modul/${a.materialId}`)}
-                            >
-                              Bantu {childName.split(' ')[0]} Mulai
-                            </button>
-                          ) : (
-                            <button
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 600,
-                                color: '#475569',
-                                background: '#f1f5f9',
-                                padding: '6px 14px',
-                                borderRadius: 10,
-                                border: 'none',
-                                cursor: 'pointer',
-                              }}
+                              style={S.btnSecondary}
                               onClick={() =>
-                                alert(
-                                  'Pengingat WhatsApp akan dikirim saat fitur tersedia.',
-                                )
+                                navigate(`/modul/${mainAssignment.materialId}`)
                               }
                             >
-                              Atur Pengingat WA
+                              Lihat Detail Materi
                             </button>
-                          )}
+                            <button
+                              style={{
+                                ...S.btnSecondary,
+                                background: '#5B4DFF',
+                                color: '#fff',
+                                border: 'none',
+                              }}
+                              onClick={() =>
+                                navigate(`/modul/${mainAssignment.materialId}`)
+                              }
+                            >
+                              Uji Pemahaman Anak
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )
-                  })
+                  })()
+                ) : (
+                  <div
+                    style={{
+                      padding: 40,
+                      textAlign: 'center',
+                      color: '#94a3b8',
+                      fontSize: 13,
+                    }}
+                  >
+                    {childrenLoading
+                      ? 'Memuat data...'
+                      : 'Belum ada modul aktif. Klik "+ Beri Tugas" untuk membuat tugas baru.'}
+                  </div>
                 )}
-              </div>
-            </section>
-          </div>
 
-          {/* RIGHT */}
-          <aside style={S.rightCol}>
-            {/* Performance Summary */}
-            <section style={S.perfCard}>
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  right: 0,
-                  width: 176,
-                  height: 176,
-                  borderRadius: '50%',
-                  background: 'rgba(91,77,255,0.2)',
-                  filter: 'blur(60px)',
-                }}
-              />
-              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={S.subjectChips}>
+                  {subjects.slice(0, 3).map((s) => {
+                    const sAssignments = assignments.filter(
+                      (a) =>
+                        a.materialId &&
+                        moduleCache[a.materialId]?.subjectId === s.id,
+                    )
+                    const pct =
+                      sAssignments.length > 0
+                        ? Math.round(
+                            sAssignments.reduce(
+                              (sum, a) => sum + getAssignmentCompletion(a).pct,
+                              0,
+                            ) / sAssignments.length,
+                          )
+                        : 0
+                    return (
+                      <div key={s.id} style={S.subjectChip}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              background: s.accent,
+                            }}
+                          />
+                          <span
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 600,
+                              color: '#334155',
+                            }}
+                          >
+                            {s.shortName}
+                          </span>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: s.accent,
+                          }}
+                        >
+                          {pct}% Selesai
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </section>
+
+              {/* Weekly Chart */}
+              <section style={S.card}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 20,
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <span
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          background: '#5B4DFF',
+                        }}
+                      />
+                      <h2 style={S.sectionTitle}>Aktivitas Belajar Mingguan</h2>
+                    </div>
+                    <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                      Waktu interaksi {childName} menyelesaikan latihan & video
+                    </p>
+                  </div>
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: 12 }}
+                  >
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                        Rata-rata Harian
+                      </span>
+                      <p
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 800,
+                          color: '#0f172a',
+                          margin: '2px 0 0',
+                        }}
+                      >
+                        42 Menit / Hari
+                      </p>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: '#059669',
+                        background: '#d1fae5',
+                        padding: '4px 10px',
+                        borderRadius: 8,
+                        border: '1px solid #a7f3d0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                    >
+                      <svg
+                        width='12'
+                        height='12'
+                        fill='none'
+                        stroke='currentColor'
+                        strokeWidth='2.5'
+                        viewBox='0 0 24 24'
+                      >
+                        <path
+                          d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6'
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                        />
+                      </svg>
+                      +14% vs mgg lalu
+                    </span>
+                  </div>
+                </div>
+                <div style={S.chartArea}>
+                  {barData.map((b) => (
+                    <div key={b.day} style={S.barGroup}>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: b.peak ? 800 : 600,
+                          color: b.peak ? '#5B4DFF' : '#94a3b8',
+                          background: b.peak ? '#F5F3FF' : 'transparent',
+                          padding: b.peak ? '1px 6px' : 0,
+                          borderRadius: 4,
+                        }}
+                      >
+                        {b.min}m{b.peak ? ' ⭐' : ''}
+                      </span>
+                      <div style={S.bar(b.h, b.active, b.peak)} />
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: b.peak ? 700 : 500,
+                          color: b.peak ? '#5B4DFF' : '#94a3b8',
+                        }}
+                      >
+                        {b.day}
+                        {b.peak ? ' (Hari Ini)' : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: 12,
+                    color: '#94a3b8',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <span
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <span
+                        style={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: 4,
+                          background: '#5B4DFF',
+                        }}
+                      />{' '}
+                      Hari Aktif
+                    </span>
+                    <span
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <span
+                        style={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: 4,
+                          background: '#e2e8f0',
+                        }}
+                      />{' '}
+                      Akhir Pekan
+                    </span>
+                  </div>
+                  <span style={{ fontWeight: 600, color: '#334155' }}>
+                    Total:{' '}
+                    <strong style={{ color: '#0f172a' }}>3 Jam 48 Menit</strong>
+                  </span>
+                </div>
+              </section>
+
+              {/* Upcoming Schedule */}
+              <section style={S.card}>
                 <div
                   style={{
                     display: 'flex',
@@ -2854,352 +2682,700 @@ export default function ParentDashboard() {
                     marginBottom: 16,
                   }}
                 >
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      letterSpacing: '0.1em',
-                      textTransform: 'uppercase' as const,
-                      color: '#C4B5FD',
-                    }}
-                  >
-                    Ringkasan Performa
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      padding: '3px 10px',
-                      borderRadius: 999,
-                      background: 'rgba(79,70,229,0.6)',
-                      color: '#C7D2FE',
-                      border: '1px solid rgba(91,77,255,0.3)',
-                    }}
-                  >
-                    Bulan Ini
-                  </span>
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 20,
-                    margin: '20px 0',
-                  }}
-                >
-                  <div style={S.radialProgress(overallAvgScore)}>
-                    <div style={S.radialInner}>
-                      <span
-                        style={{
-                          fontSize: 24,
-                          fontWeight: 900,
-                          color: '#fff',
-                          lineHeight: 1,
-                        }}
-                      >
-                        {overallAvgScore}%
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 9,
-                          fontWeight: 600,
-                          color: '#C4B5FD',
-                          textTransform: 'uppercase' as const,
-                          marginTop: 2,
-                        }}
-                      >
-                        Rata Skor
-                      </span>
-                    </div>
-                  </div>
                   <div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: '#FCD34D',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        marginBottom: 4,
-                      }}
-                    >
-                      🏆 Top{' '}
-                      {children.length > 0
-                        ? Math.max(5, 20 - totalModulesCompleted)
-                        : 15}
-                      % Se-Kelas
-                    </div>
-                    <h4
-                      style={{
-                        fontSize: 15,
-                        fontWeight: 700,
-                        color: '#fff',
-                        margin: '0 0 4px',
-                        lineHeight: 1.3,
-                      }}
-                    >
-                      Perkembangan Sangat Baik!
-                    </h4>
-                    <p
-                      style={{
-                        fontSize: 12,
-                        color: '#C7D2FE',
-                        margin: 0,
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {childName} konsisten berlatih terutama di materi hitung
-                      cepat.
+                    <h2 style={S.sectionTitle}>Jadwal & Target Mendatang</h2>
+                    <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                      Pantau tenggat waktu tugas {childName}
                     </p>
                   </div>
+                  <button
+                    style={{
+                      ...S.btnSecondary,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: '#5B4DFF',
+                    }}
+                    onClick={() => setShowAssignModal(true)}
+                  >
+                    + Tambah Pengingat
+                  </button>
                 </div>
                 <div
-                  style={{
-                    borderTop: '1px solid rgba(79,70,229,0.6)',
-                    paddingTop: 12,
-                    marginTop: 8,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 8,
-                  }}
+                  style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
                 >
-                  {[
-                    [
-                      '📚',
-                      'Total Modul Tuntas:',
-                      `${totalModulesCompleted} Modul`,
-                    ],
-                    ['⏱️', 'Durasi Pekan Ini:', '3.5 Jam'],
-                    [
-                      '🎯',
-                      'Kuis Nilai Sempurna:',
-                      `${Math.min(totalModulesCompleted * 2, 6)} Kali`,
-                    ],
-                  ].map(([icon, label, val]) => (
-                    <div
-                      key={String(label)}
+                  {upcomingItems.length === 0 ? (
+                    <p
                       style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        fontSize: 12,
-                        color: '#C7D2FE',
+                        color: '#94a3b8',
+                        fontSize: 13,
+                        textAlign: 'center',
+                        padding: 20,
                       }}
                     >
-                      <span
+                      Tidak ada jadwal mendatang
+                    </p>
+                  ) : (
+                    upcomingItems.map((a) => {
+                      const ds = deadlineStatus(a)
+                      const due = a.dueDate ? new Date(a.dueDate) : new Date()
+                      const isOverdue =
+                        ds.label.includes('Terlambat') ||
+                        ds.label.includes('Perlu Perhatian')
+                      return (
+                        <div key={a.id} style={S.schedItem(ds.border, ds.bg)}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 12,
+                            }}
+                          >
+                            <div style={S.schedDate}>
+                              <span
+                                style={{
+                                  fontSize: 16,
+                                  fontWeight: 800,
+                                  color: isOverdue ? '#dc2626' : '#0f172a',
+                                }}
+                              >
+                                {due.getDate()}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 9,
+                                  fontWeight: 700,
+                                  color: '#94a3b8',
+                                  textTransform: 'uppercase' as const,
+                                }}
+                              >
+                                {due.toLocaleDateString('id-ID', {
+                                  month: 'short',
+                                })}
+                              </span>
+                            </div>
+                            <div>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 6,
+                                  flexWrap: 'wrap' as const,
+                                }}
+                              >
+                                <h3
+                                  style={{
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                    color: '#0f172a',
+                                    margin: 0,
+                                  }}
+                                >
+                                  {a.title}
+                                </h3>
+                                <span
+                                  style={S.schedBadge(
+                                    ds.color,
+                                    ds.bg,
+                                    ds.border,
+                                  )}
+                                >
+                                  {ds.label}
+                                </span>
+                              </div>
+                              <p
+                                style={{
+                                  fontSize: 11,
+                                  color: '#94a3b8',
+                                  margin: '2px 0 0',
+                                }}
+                              >
+                                {subjects.find(
+                                  (s) =>
+                                    a.materialId &&
+                                    moduleCache[a.materialId]?.subjectId ===
+                                      s.id,
+                                )?.shortName ?? 'Umum'}{' '}
+                                • {getChildName(a.childId)}
+                              </p>
+                            </div>
+                          </div>
+                          <div
+                            style={{ display: 'flex', gap: 6, flexShrink: 0 }}
+                          >
+                            {isOverdue ? (
+                              <button
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: '#dc2626',
+                                  background: '#fee2e2',
+                                  padding: '6px 14px',
+                                  borderRadius: 10,
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                }}
+                                onClick={() =>
+                                  navigate(`/modul/${a.materialId}`)
+                                }
+                              >
+                                Bantu {childName.split(' ')[0]} Mulai
+                              </button>
+                            ) : (
+                              <button
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  color: '#475569',
+                                  background: '#f1f5f9',
+                                  padding: '6px 14px',
+                                  borderRadius: 10,
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                }}
+                                onClick={() =>
+                                  alert(
+                                    'Pengingat WhatsApp akan dikirim saat fitur tersedia.',
+                                  )
+                                }
+                              >
+                                Atur Pengingat WA
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </section>
+            </div>
+
+            {/* RIGHT */}
+            <aside style={S.rightCol}>
+              {/* Performance Summary */}
+              <section style={S.perfCard}>
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    width: 176,
+                    height: 176,
+                    borderRadius: '50%',
+                    background: 'rgba(91,77,255,0.2)',
+                    filter: 'blur(60px)',
+                  }}
+                />
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 16,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 800,
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase' as const,
+                        color: '#C4B5FD',
+                      }}
+                    >
+                      Ringkasan Performa
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: '3px 10px',
+                        borderRadius: 999,
+                        background: 'rgba(79,70,229,0.6)',
+                        color: '#C7D2FE',
+                        border: '1px solid rgba(91,77,255,0.3)',
+                      }}
+                    >
+                      Bulan Ini
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 20,
+                      margin: '20px 0',
+                    }}
+                  >
+                    <div style={S.radialProgress(overallAvgScore)}>
+                      <div style={S.radialInner}>
+                        <span
+                          style={{
+                            fontSize: 24,
+                            fontWeight: 900,
+                            color: '#fff',
+                            lineHeight: 1,
+                          }}
+                        >
+                          {overallAvgScore}%
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 9,
+                            fontWeight: 600,
+                            color: '#C4B5FD',
+                            textTransform: 'uppercase' as const,
+                            marginTop: 2,
+                          }}
+                        >
+                          Rata Skor
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <div
                         style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: '#FCD34D',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 6,
+                          gap: 4,
+                          marginBottom: 4,
                         }}
                       >
-                        <span>{icon}</span> {label}
-                      </span>
-                      <span style={{ fontWeight: 700, color: '#fff' }}>
-                        {val}
-                      </span>
+                        🏆 Top{' '}
+                        {children.length > 0
+                          ? Math.max(5, 20 - totalModulesCompleted)
+                          : 15}
+                        % Se-Kelas
+                      </div>
+                      <h4
+                        style={{
+                          fontSize: 15,
+                          fontWeight: 700,
+                          color: '#fff',
+                          margin: '0 0 4px',
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        Perkembangan Sangat Baik!
+                      </h4>
+                      <p
+                        style={{
+                          fontSize: 12,
+                          color: '#C7D2FE',
+                          margin: 0,
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {childName} konsisten berlatih terutama di materi hitung
+                        cepat.
+                      </p>
                     </div>
-                  ))}
+                  </div>
+                  <div
+                    style={{
+                      borderTop: '1px solid rgba(79,70,229,0.6)',
+                      paddingTop: 12,
+                      marginTop: 8,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                    }}
+                  >
+                    {[
+                      [
+                        '📚',
+                        'Total Modul Tuntas:',
+                        `${totalModulesCompleted} Modul`,
+                      ],
+                      ['⏱️', 'Durasi Pekan Ini:', '3.5 Jam'],
+                      [
+                        '🎯',
+                        'Kuis Nilai Sempurna:',
+                        `${Math.min(totalModulesCompleted * 2, 6)} Kali`,
+                      ],
+                    ].map(([icon, label, val]) => (
+                      <div
+                        key={String(label)}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          fontSize: 12,
+                          color: '#C7D2FE',
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                          }}
+                        >
+                          <span>{icon}</span> {label}
+                        </span>
+                        <span style={{ fontWeight: 700, color: '#fff' }}>
+                          {val}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    style={{
+                      width: '100%',
+                      marginTop: 20,
+                      padding: '12px 0',
+                      borderRadius: 12,
+                      background: '#fff',
+                      color: '#1E1B4B',
+                      border: 'none',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    }}
+                    onClick={() => {
+                      setViewMode('reports')
+                    }}
+                  >
+                    <svg
+                      width='16'
+                      height='16'
+                      fill='none'
+                      stroke='currentColor'
+                      strokeWidth='2.2'
+                      viewBox='0 0 24 24'
+                    >
+                      <path
+                        d='M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                      />
+                    </svg>
+                    Unduh Laporan Rapor Lengkap (PDF)
+                  </button>
                 </div>
-                <button
+              </section>
+
+              {/* Recent Activity */}
+              <section style={S.card}>
+                <div
                   style={{
-                    width: '100%',
-                    marginTop: 20,
-                    padding: '12px 0',
-                    borderRadius: 12,
-                    background: '#fff',
-                    color: '#1E1B4B',
-                    border: 'none',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer',
                     display: 'flex',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                  }}
-                  onClick={() => {
-                    setViewMode('reports')
+                    marginBottom: 12,
                   }}
                 >
-                  <svg
-                    width='16'
-                    height='16'
-                    fill='none'
-                    stroke='currentColor'
-                    strokeWidth='2.2'
-                    viewBox='0 0 24 24'
+                  <h3
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      margin: 0,
+                    }}
                   >
-                    <path
-                      d='M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                    />
-                  </svg>
-                  Unduh Laporan Rapor Lengkap (PDF)
-                </button>
-              </div>
-            </section>
+                    Aktivitas Belajar Terkini
+                  </h3>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: '#5B4DFF',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => setViewMode('reports')}
+                  >
+                    Lihat Semua
+                  </span>
+                </div>
+                <div
+                  style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+                >
+                  {recentActivities.length === 0 ? (
+                    <p
+                      style={{
+                        color: '#94a3b8',
+                        fontSize: 13,
+                        textAlign: 'center',
+                        padding: 12,
+                      }}
+                    >
+                      Belum ada aktivitas
+                    </p>
+                  ) : (
+                    recentActivities.map((a) => (
+                      <div key={a.id} style={S.actItem}>
+                        <div
+                          style={S.actIcon(
+                            a.isCompleted
+                              ? '#d1fae5'
+                              : a.isInProgress
+                                ? '#F5F3FF'
+                                : '#FEF2F2',
+                            a.isCompleted
+                              ? '#059669'
+                              : a.isInProgress
+                                ? '#5B4DFF'
+                                : '#dc2626',
+                          )}
+                        >
+                          {a.isCompleted ? '✅' : a.isInProgress ? '👁️' : '⚠️'}
+                        </div>
+                        <div>
+                          <p
+                            style={{
+                              fontSize: 12,
+                              color: '#334155',
+                              margin: 0,
+                            }}
+                          >
+                            {getChildName(a.childId)}{' '}
+                            {a.isCompleted
+                              ? 'menyelesaikan'
+                              : a.isInProgress
+                                ? 'mengerjakan'
+                                : 'ditugaskan'}{' '}
+                            <strong>{a.title}</strong>
+                          </p>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              color: '#94a3b8',
+                              fontWeight: 600,
+                              marginTop: 2,
+                              display: 'block',
+                            }}
+                          >
+                            {a.createdAt
+                              ? new Date(a.createdAt).toLocaleDateString(
+                                  'id-ID',
+                                  { day: 'numeric', month: 'short' },
+                                )
+                              : ''}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
 
-            {/* Recent Activity */}
-            <section style={S.card}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 12,
-                }}
-              >
+              {/* Quick Actions */}
+              <section style={S.card}>
                 <h3
                   style={{
                     fontSize: 15,
                     fontWeight: 700,
                     color: '#0f172a',
-                    margin: 0,
+                    margin: '0 0 12px',
                   }}
                 >
-                  Aktivitas Belajar Terkini
+                  Aksi Cepat Pendamping
                 </h3>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#5B4DFF',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => setViewMode('reports')}
-                >
-                  Lihat Semua
-                </span>
-              </div>
-              <div
-                style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
-              >
-                {recentActivities.length === 0 ? (
-                  <p
-                    style={{
-                      color: '#94a3b8',
-                      fontSize: 13,
-                      textAlign: 'center',
-                      padding: 12,
-                    }}
-                  >
-                    Belum ada aktivitas
-                  </p>
-                ) : (
-                  recentActivities.map((a) => (
-                    <div key={a.id} style={S.actItem}>
-                      <div
-                        style={S.actIcon(
-                          a.isCompleted
-                            ? '#d1fae5'
-                            : a.isInProgress
-                              ? '#F5F3FF'
-                              : '#FEF2F2',
-                          a.isCompleted
-                            ? '#059669'
-                            : a.isInProgress
-                              ? '#5B4DFF'
-                              : '#dc2626',
-                        )}
-                      >
-                        {a.isCompleted ? '✅' : a.isInProgress ? '👁️' : '⚠️'}
-                      </div>
-                      <div>
-                        <p
-                          style={{ fontSize: 12, color: '#334155', margin: 0 }}
-                        >
-                          {getChildName(a.childId)}{' '}
-                          {a.isCompleted
-                            ? 'menyelesaikan'
-                            : a.isInProgress
-                              ? 'mengerjakan'
-                              : 'ditugaskan'}{' '}
-                          <strong>{a.title}</strong>
-                        </p>
-                        <span
-                          style={{
-                            fontSize: 10,
-                            color: '#94a3b8',
-                            fontWeight: 600,
-                            marginTop: 2,
-                            display: 'block',
-                          }}
-                        >
-                          {a.createdAt
-                            ? new Date(a.createdAt).toLocaleDateString(
-                                'id-ID',
-                                { day: 'numeric', month: 'short' },
-                              )
-                            : ''}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
+                <div style={S.quickGrid}>
+                  {[
+                    {
+                      icon: '📅',
+                      label: 'Atur Jadwal',
+                      sub: 'Target harian',
+                      color: '#5B4DFF',
+                      action: () => setViewMode('schedule'),
+                    },
+                    {
+                      icon: '📊',
+                      label: 'Analitik Skor',
+                      sub: 'Grafik detail',
+                      color: '#6366F1',
+                      action: () => setViewMode('reports'),
+                    },
+                    {
+                      icon: '🔒',
+                      label: 'Batas Waktu',
+                      sub: 'Screen time',
+                      color: '#d97706',
+                      action: () =>
+                        alert('Fitur screen time limit segera hadir.'),
+                    },
+                    {
+                      icon: '💬',
+                      label: 'Konsultasi',
+                      sub: 'Tanya guru',
+                      color: '#059669',
+                      action: () => setViewMode('modules'),
+                    },
+                  ].map((q) => (
+                    <button key={q.label} style={S.quickBtn} onClick={q.action}>
+                      <div style={S.quickIcon(q.color)}>{q.icon}</div>
+                      <span style={{ fontWeight: 700, color: '#0f172a' }}>
+                        {q.label}
+                      </span>
+                      <span style={{ fontSize: 10, color: '#94a3b8' }}>
+                        {q.sub}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            </aside>
+          </div>
+        )}
 
-            {/* Quick Actions */}
-            <section style={S.card}>
-              <h3
-                style={{
-                  fontSize: 15,
-                  fontWeight: 700,
-                  color: '#0f172a',
-                  margin: '0 0 12px',
-                }}
-              >
-                Aksi Cepat Pendamping
-              </h3>
-              <div style={S.quickGrid}>
-                {[
-                  {
-                    icon: '📅',
-                    label: 'Atur Jadwal',
-                    sub: 'Target harian',
-                    color: '#5B4DFF',
-                    action: () => setViewMode('schedule'),
-                  },
-                  {
-                    icon: '📊',
-                    label: 'Analitik Skor',
-                    sub: 'Grafik detail',
-                    color: '#6366F1',
-                    action: () => setViewMode('reports'),
-                  },
-                  {
-                    icon: '🔒',
-                    label: 'Batas Waktu',
-                    sub: 'Screen time',
-                    color: '#d97706',
-                    action: () =>
-                      alert('Fitur screen time limit segera hadir.'),
-                  },
-                  {
-                    icon: '💬',
-                    label: 'Konsultasi',
-                    sub: 'Tanya guru',
-                    color: '#059669',
-                    action: () => setViewMode('modules'),
-                  },
-                ].map((q) => (
-                  <button key={q.label} style={S.quickBtn} onClick={q.action}>
-                    <div style={S.quickIcon(q.color)}>{q.icon}</div>
-                    <span style={{ fontWeight: 700, color: '#0f172a' }}>
-                      {q.label}
-                    </span>
-                    <span style={{ fontSize: 10, color: '#94a3b8' }}>
-                      {q.sub}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </section>
-          </aside>
-        </div>
+        {/* Modul Belajar */}
+        {viewMode === 'modules' && (
+          <ModulBelajar />
+          // <section style={S.card}>
+          //   <div style={S.cardHeader}>
+          //     <div>
+          //       <h2 style={S.sectionTitle}>📖 Modul Belajar</h2>
+          //       <p style={S.sectionSub}>
+          //         Pilih mata pelajaran dan lihat modul yang tersedia untuk{' '}
+          //         {childName}.
+          //       </p>
+          //     </div>
+
+          //     <button
+          //       style={S.btnPrimary}
+          //       onClick={() => setShowAssignModal(true)}
+          //     >
+          //       + Tugaskan Modul
+          //     </button>
+          //   </div>
+
+          //   {/* Pilih Anak */}
+          //   <label style={{ display: 'block', marginBottom: 16 }}>
+          //     <span
+          //       style={{
+          //         display: 'block',
+          //         fontSize: 12,
+          //         fontWeight: 700,
+          //         marginBottom: 6,
+          //       }}
+          //     >
+          //       Anak
+          //     </span>
+
+          //     <select
+          //       value={selectedChildId}
+          //       onChange={(e) => {
+          //         setSelectedChildId(e.target.value)
+          //         setSelectedSubjectId('')
+          //       }}
+          //       style={S.select}
+          //     >
+          //       <option value=''>-- Pilih Anak --</option>
+
+          //       {children.map((child) => (
+          //         <option key={child.id} value={child.id}>
+          //           {child.name} — Kelas {child.grade}
+          //         </option>
+          //       ))}
+          //     </select>
+          //   </label>
+
+          //   {/* Mata Pelajaran */}
+          //   {selectedChildId && (
+          //     <label style={{ display: 'block', marginBottom: 20 }}>
+          //       <span
+          //         style={{
+          //           display: 'block',
+          //           fontSize: 12,
+          //           fontWeight: 700,
+          //           marginBottom: 6,
+          //         }}
+          //       >
+          //         Mata Pelajaran
+          //       </span>
+
+          //       <select
+          //         value={selectedSubjectId}
+          //         onChange={(e) => setSelectedSubjectId(e.target.value)}
+          //         style={S.select}
+          //       >
+          //         <option value=''>-- Pilih Mata Pelajaran --</option>
+
+          //         {subjects.map((subject) => (
+          //           <option key={subject.id} value={subject.id}>
+          //             {subject.icon} {subject.shortName}
+          //           </option>
+          //         ))}
+          //       </select>
+          //     </label>
+          //   )}
+
+          //   {/* Modules */}
+          //   {selectedChildId && selectedSubjectId && (
+          //     <div
+          //       style={{
+          //         display: 'grid',
+          //         gridTemplateColumns: 'repeat(2, 1fr)',
+          //         gap: 16,
+          //       }}
+          //     >
+          //       {availableModules.length === 0 ? (
+          //         <div
+          //           style={{
+          //             gridColumn: '1 / -1',
+          //             padding: 40,
+          //             textAlign: 'center',
+          //             color: '#94a3b8',
+          //           }}
+          //         >
+          //           Belum ada modul untuk mata pelajaran ini.
+          //         </div>
+          //       ) : (
+          //         availableModules.map((module) => (
+          //           <div
+          //             key={module.id}
+          //             style={{
+          //               border: '1px solid #e2e8f0',
+          //               borderRadius: 16,
+          //               padding: 20,
+          //               background: '#fff',
+          //             }}
+          //           >
+          //             <div style={{ fontSize: 28, marginBottom: 10 }}>📖</div>
+
+          //             <h3
+          //               style={{
+          //                 margin: '0 0 6px',
+          //                 fontSize: 15,
+          //                 fontWeight: 700,
+          //                 color: '#0f172a',
+          //               }}
+          //             >
+          //               {module.title}
+          //             </h3>
+
+          //             <p
+          //               style={{
+          //                 margin: '0 0 16px',
+          //                 fontSize: 12,
+          //                 color: '#94a3b8',
+          //               }}
+          //             >
+          //               Modul pembelajaran untuk {childName}
+          //             </p>
+
+          //             <button
+          //               style={S.btnSecondary}
+          //               onClick={() => navigate(`/modul/${module.id}`)}
+          //             >
+          //               Lihat Modul →
+          //             </button>
+          //           </div>
+          //         ))
+          //       )}
+          //     </div>
+          //   )}
+          // </section>
+        )}
       </main>
 
       {/* ── FAB ── */}
