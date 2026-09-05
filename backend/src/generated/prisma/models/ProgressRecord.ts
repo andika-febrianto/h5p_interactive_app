@@ -482,10 +482,6 @@ export type ProgressRecordUncheckedUpdateManyWithoutUserNestedInput = {
   deleteMany?: Prisma.ProgressRecordScalarWhereInput | Prisma.ProgressRecordScalarWhereInput[]
 }
 
-export type BoolFieldUpdateOperationsInput = {
-  set?: boolean
-}
-
 export type ProgressRecordCreateWithoutUserInput = {
   clientId: string
   moduleId: string

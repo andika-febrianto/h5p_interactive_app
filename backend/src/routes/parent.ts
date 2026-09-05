@@ -28,6 +28,7 @@ parentRouter.get('/children', requireRole('PARENT'), async (req, res, next) => {
             semester: true,
             birthDate: true,
             gender: true,
+            isActive: true,
           },
         },
       },
@@ -60,11 +61,9 @@ parentRouter.post(
       const parsed = addChildSchema.safeParse(req.body)
 
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({
-            error: parsed.error.issues[0]?.message ?? 'Data tidak valid',
-          })
+        res.status(400).json({
+          error: parsed.error.issues[0]?.message ?? 'Data tidak valid',
+        })
         return
       }
 
@@ -371,11 +370,9 @@ parentRouter.post(
 
       const parsed = readingProgressSchema.safeParse(req.body)
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({
-            error: parsed.error.issues[0]?.message ?? 'Data tidak valid',
-          })
+        res.status(400).json({
+          error: parsed.error.issues[0]?.message ?? 'Data tidak valid',
+        })
         return
       }
 
@@ -464,11 +461,9 @@ parentRouter.post(
       const parsed = createAssignmentSchema.safeParse(req.body)
 
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({
-            error: parsed.error.issues[0]?.message ?? 'Data tidak valid',
-          })
+        res.status(400).json({
+          error: parsed.error.issues[0]?.message ?? 'Data tidak valid',
+        })
         return
       }
 
@@ -590,11 +585,9 @@ parentRouter.put(
       const parsed = updateAssignmentSchema.safeParse(req.body)
 
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({
-            error: parsed.error.issues[0]?.message ?? 'Data tidak valid',
-          })
+        res.status(400).json({
+          error: parsed.error.issues[0]?.message ?? 'Data tidak valid',
+        })
         return
       }
 
@@ -883,6 +876,104 @@ parentRouter.put('/notifications/:id/read', async (req, res, next) => {
   }
 })
 
+// PUT /api/parent/children/:id - Update a child's profile (name, email, grade, semester, active status)
+
+const updateChildSchema = z.object({
+  name: z.string().trim().min(2, 'Nama minimal 2 karakter').optional(),
+  email: z.string().trim().toLowerCase().email('Email tidak valid').optional(),
+  grade: z.number().int().min(1).max(6).optional(),
+  semester: z.number().int().min(1).max(2).optional(),
+  isActive: z.boolean().optional(),
+})
+
+parentRouter.put(
+  '/children/:id',
+  requireRole('PARENT'),
+  async (req, res, next) => {
+    try {
+      const parentId = req.auth!.userId
+      const { id: childId } = req.params
+
+      //Verify the child is linked to this parent
+      const relationship = await prisma.parentChild.findUnique({
+        where: { parentId_childId: { parentId, childId } },
+      })
+
+      if (!relationship) {
+        res.status(404).json({
+          error: 'Murid tidak terhubung dengan akun Anda.',
+        })
+      }
+      const parsed = updateChildSchema.safeParse(req.body)
+      if (!parsed.success) {
+        res.status(400).json({
+          error: parsed.error.issues[3]?.message ?? 'Data tidak valid',
+        })
+        return
+      }
+      const { name, email, grade, semester, isActive } = parsed.data
+
+      if (
+        name === undefined &&
+        email === undefined &&
+        grade === undefined &&
+        semester === undefined &&
+        isActive === undefined
+      ) {
+        res.status(400).json({ error: 'Tidak ada data untuk diperbaharui' })
+        return
+      }
+      // If changing email, make sure it's not already taken by someone else
+      if (email !== undefined) {
+        const existingUser = await prisma.user.findUnique({ where: { email } })
+        if (existingUser && existingUser.id !== childId) {
+          res.status(409).json({ error: 'Email sudah terdaftar' })
+          return
+        }
+      }
+      const updateData: Record<string, unknown> = {}
+      if (name !== undefined) updateData.name = name
+      if (email !== undefined) updateData.email = email
+      if (grade !== undefined) updateData.grade = grade
+      if (semester !== undefined) updateData.semester = semester
+      if (isActive !== undefined) updateData.isActive = isActive
+
+      const updatedChild = await prisma.user.update({
+        where: { id: childId },
+        data: updateData,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          grade: true,
+          semester: true,
+          birthDate: true,
+          gender: true,
+          isActive: true,
+        },
+      })
+      // Notify parent when a child account is deactivated/reactivated
+      if (isActive !== undefined) {
+        await prisma.notification.create({
+          data: {
+            userId: parentId,
+            type: isActive
+              ? 'child_account_activated'
+              : 'child_account_deactivated',
+            title: isActive
+              ? '🔓 Akun Anak Diaktifkan Kembali'
+              : '🔒 Akun Anak Dinonaktifkan',
+            message: isActive
+              ? `Akun belajar ${updatedChild.name} telah diaktifkan kembali.`
+              : `Akun belajar ${updatedChild.name} telah dinonaktifkan.`,
+          },
+        })
+      }
+      res.json(updatedChild)
+    } catch (error) {}
+  },
+)
+
 // PUT /api/parent/notifications/read-all - Mark all notifications as read
 parentRouter.put('/notifications/read-all', async (req, res, next) => {
   try {
@@ -959,11 +1050,9 @@ parentRouter.post(
 
       const parsed = askQuestionSchema.safeParse(req.body)
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({
-            error: parsed.error.issues[0]?.message ?? 'Data tidak valid',
-          })
+        res.status(400).json({
+          error: parsed.error.issues[0]?.message ?? 'Data tidak valid',
+        })
         return
       }
 
@@ -1021,11 +1110,9 @@ parentRouter.put(
 
       const parsed = replyQuestionSchema.safeParse(req.body)
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({
-            error: parsed.error.issues[0]?.message ?? 'Data tidak valid',
-          })
+        res.status(400).json({
+          error: parsed.error.issues[0]?.message ?? 'Data tidak valid',
+        })
         return
       }
 

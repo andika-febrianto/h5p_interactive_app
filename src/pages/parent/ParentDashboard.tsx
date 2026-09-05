@@ -23,6 +23,8 @@ import {
   type Subject,
   type FrameProgress,
   type Question,
+  updateChild,
+  deleteChild,
 } from '../../lib/api'
 import { ApiError } from '../../lib/api'
 import { grades, semesters } from '../../data/grades'
@@ -761,6 +763,22 @@ export default function ParentDashboard() {
   //Profile Dropdown
   const [isProfileOpen, setIsProfileOpen] = useState(false)
 
+  // Manage profiles
+  const [showManageProfiles, setShowManageProfiles] = useState(false)
+  const [editingChild, setEditingChild] = useState<ChildInfo | null>(null)
+  const [editChildForm, setEditChildForm] = useState({
+    name: '',
+    email: '',
+    grade: 1,
+    semester: 1,
+  })
+  const [editChildSubmitting, setEditChildSubmitting] = useState(false)
+  const [editChildError, setEditChildError] = useState<string | null>(null)
+  const [togglingChildId, setTogglingChildId] = useState<string | null>(null)
+  const [deletingChildId, setDeletingChildId] = useState<string | null>(null)
+  const [deleteConfirmChild, setDeleteConfirmChild] =
+    useState<ChildInfo | null>(null)
+
   // ── Data Loading ──
   useEffect(() => {
     fetchChildren()
@@ -1161,6 +1179,106 @@ export default function ParentDashboard() {
     { key: 'schedule', label: 'Jadwal & Tugas', icon: '📅' },
   ] as const
 
+  const childNamesText =
+    children.length > 0
+      ? children.map((c) => c.name.split(' ')[0]).join(' & ')
+      : 'anak Anda'
+
+  const childPoints = (child: ChildInfo) => {
+    const completed = assignments.filter(
+      (a) => a.childId === child.id && a.status === 'completed',
+    ).length
+    return completed * 10 + 20
+  }
+
+  const childStatusText = (child: ChildInfo, active: boolean) => {
+    const ca = assignments.filter((a) => a.childId === child.id)
+    const hasCompletedAny = ca.some((a) => a.status === 'completed')
+    if (active) {
+      return ca.some((a) => a.status !== 'completed')
+        ? 'Modul Aktif'
+        : 'Belum Ada Modul'
+    }
+    return hasCompletedAny ? 'Selesai Hari Ini ✓' : 'Modul Aktif'
+  }
+
+  const openEditChild = (child: ChildInfo) => {
+    setEditingChild(child)
+    setEditChildForm({
+      name: child.name,
+      email: child.email ?? '',
+      grade: child.grade ?? 1,
+      semester: child.semester ?? 1,
+    })
+    setEditChildError(null)
+  }
+
+  const handleUpdateChild = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingChild) return
+    setEditChildError(null)
+    setEditChildSubmitting(true)
+    try {
+      const updated = await updateChild(editingChild.id, {
+        name: editChildForm.name,
+        email: editChildForm.email,
+        grade: editChildForm.grade,
+        semester: editChildForm.semester,
+      })
+      setChildren((prev) =>
+        prev.map((c) => (c.id === updated.id ? updated : c)),
+      )
+      setEditingChild(null)
+    } catch (err) {
+      setEditChildError(
+        err instanceof ApiError ? err.message : 'Gagal memperbarui profil.',
+      )
+    } finally {
+      setEditChildSubmitting(false)
+    }
+  }
+
+  const handleToggleActive = async (child: ChildInfo) => {
+    setTogglingChildId(child.id)
+    try {
+      const updated = await updateChild(child.id, {
+        isActive: child.isActive === false ? true : false,
+      })
+      setChildren((prev) =>
+        prev.map((c) => (c.id === updated.id ? updated : c)),
+      )
+    } catch (err) {
+      alert(
+        err instanceof ApiError
+          ? err.message
+          : 'Gagal mengubah status akun anak.',
+      )
+    } finally {
+      setTogglingChildId(null)
+    }
+  }
+
+  const handleDeleteChild = async (child: ChildInfo) => {
+    setDeletingChildId(child.id)
+    try {
+      await deleteChild(child.id)
+      setChildren((prev) => {
+        const next = prev.filter((c) => c.id !== child.id)
+        setSelectedChildIdx((idx) =>
+          Math.min(idx, Math.max(next.length - 1, 0)),
+        )
+        return next
+      })
+      setDeleteConfirmChild(null)
+    } catch (err) {
+      alert(
+        err instanceof ApiError ? err.message : 'Gagal menghapus akun anak.',
+      )
+    } finally {
+      setDeletingChildId(null)
+    }
+  }
+
   return (
     <div style={S.page}>
       {/* ── HEADER ── */}
@@ -1509,81 +1627,622 @@ export default function ParentDashboard() {
                 Selamat Datang Kembali, {firstName}! 👋
               </h1>
               <p style={S.heroSub}>
-                Pantau kemajuan belajar {childName}, pastikan misi terselesaikan
-                tepat waktu, dan dukung minat belajar dengan mudah hari ini.
+                Pantau kemajuan belajar {childNamesText}, pastikan misi
+                terselesaikan tepat waktu, dan dukung minat belajar dengan mudah
+                hari ini.
               </p>
             </div>
             <div style={S.heroRight}>
-              <div style={S.childCard}>
-                <div style={S.childAvatar}>{childInitial}</div>
-                <div>
-                  <div style={S.childLabel}>Profil Anak</div>
-                  <div style={S.childName}>{childName}</div>
-                  <div style={S.childGrade}>
-                    {childGradeText} • {childSemText}
-                  </div>
-                </div>
-                {children.length > 1 && (
-                  <button
-                    style={{
-                      border: 'none',
-                      background: 'none',
-                      cursor: 'pointer',
-                      padding: 4,
-                      color: '#94a3b8',
-                    }}
-                    onClick={() =>
-                      setSelectedChildIdx((i) => (i + 1) % children.length)
-                    }
-                  >
-                    <svg
-                      width='16'
-                      height='16'
-                      fill='none'
-                      stroke='currentColor'
-                      strokeWidth='2.5'
-                      viewBox='0 0 24 24'
-                    >
-                      <path
-                        d='M19 9l-7 7-7-7'
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                      />
-                    </svg>
-                  </button>
-                )}
-              </div>
-              <div style={S.starCard}>
-                <span style={{ fontSize: 24 }}>⭐</span>
-                <div>
-                  <div style={S.starText}>{totalPoints} Poin Apresiasi</div>
-                  <div style={S.starSub}>Tukar hadiah orang tua</div>
-                </div>
-              </div>
-              <button
-                style={S.manageBtn}
-                // onClick={() => setShowAssignModal(true)}
-                onClick={() => setShowCreateChild(true)}
+              <div
+                style={{ display: 'flex', gap: 12, flexWrap: 'wrap' as const }}
               >
-                <svg
-                  width='14'
-                  height='14'
-                  fill='none'
-                  stroke='currentColor'
-                  strokeWidth='2.5'
-                  viewBox='0 0 24 24'
+                {children.map((c, idx) => {
+                  const active = idx === selectedChildIdx
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => setSelectedChildIdx(idx)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        background: '#fff',
+                        padding: '10px 16px',
+                        borderRadius: 16,
+                        border: active
+                          ? '2px solid #5B4DFF'
+                          : '1px solid #e2e8f0',
+                        boxShadow: active
+                          ? '0 4px 12px rgba(91,77,255,0.15)'
+                          : '0 1px 4px rgba(0,0,0,0.04)',
+                        cursor: 'pointer',
+                        minWidth: 210,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          background: active ? '#5B4DFF' : '#e2e8f0',
+                          color: active ? '#fff' : '#64748b',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 16,
+                          boxShadow: active
+                            ? '0 2px 8px rgba(91,77,255,0.2)'
+                            : 'none',
+                          position: 'relative',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {c.name.charAt(0).toUpperCase()}
+                        {active && (
+                          <span
+                            style={{
+                              position: 'absolute',
+                              top: -2,
+                              right: -2,
+                              width: 10,
+                              height: 10,
+                              borderRadius: '50%',
+                              background: '#10B981',
+                              border: '2px solid #fff',
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 700,
+                              color: '#0f172a',
+                            }}
+                          >
+                            {c.name}
+                          </span>
+                          {active && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                color: '#5B4DFF',
+                                background: '#EEF2FF',
+                                padding: '2px 8px',
+                                borderRadius: 999,
+                                flexShrink: 0,
+                              }}
+                            >
+                              Aktif
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 500,
+                            color: active ? '#5B4DFF' : '#64748b',
+                            marginTop: 1,
+                          }}
+                        >
+                          Kelas {c.grade ?? '?'} SD • Sem. {c.semester ?? '?'}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: '#94a3b8',
+                            marginTop: 2,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            whiteSpace: 'nowrap' as const,
+                          }}
+                        >
+                          <span>⭐{childPoints(c)} Poin</span>
+                          <span>•</span>
+                          <span>{childStatusText(c, active)}</span>
+                        </div>
+                      </div>
+
+                      {!active && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedChildIdx(idx)
+                          }}
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: '#5B4DFF',
+                            background: '#F5F3FF',
+                            border: 'none',
+                            padding: '6px 14px',
+                            borderRadius: 10,
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                          }}
+                        >
+                          Pilih
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column' as const,
+                  gap: 8,
+                }}
+              >
+                <button
+                  style={S.manageBtn}
+                  onClick={() => setShowManageProfiles(true)}
                 >
-                  <path
-                    d='M12 4v16m8-8H4'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                  />
-                </svg>
-                Tambah Profil Anak
-              </button>
+                  <svg
+                    width='14'
+                    height='14'
+                    fill='none'
+                    stroke='currentColor'
+                    strokeWidth='2.5'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      d='M12 4v16m8-8H4'
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                    />
+                  </svg>
+                  Kelola Profil {childName}
+                </button>
+
+                <button
+                  style={{
+                    ...S.manageBtn,
+                    background: '#fff',
+                    color: '#5B4DFF',
+                    border: '1px solid rgba(91,77,255,0.2)',
+                    boxShadow: 'none',
+                  }}
+                  onClick={() => setShowCreateChild(true)}
+                >
+                  <svg
+                    width='14'
+                    height='14'
+                    fill='none'
+                    stroke='currentColor'
+                    strokeWidth='2.5'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      d='M12 4v16m8-8H4'
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                    />
+                  </svg>
+                  Tambah Anak
+                </button>
+              </div>
             </div>
           </div>
         </section>
+
+        {/* ── MANAGE PROFILES MODAL ── */}
+        {showManageProfiles && (
+          <div
+            style={S.modalOverlay}
+            onClick={() => setShowManageProfiles(false)}
+          >
+            <div style={S.modalBox} onClick={(e) => e.stopPropagation()}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 16,
+                }}
+              >
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
+                  👨‍👩‍👧‍👦 Kelola Profil Anak
+                </h3>
+                <button
+                  onClick={() => setShowManageProfiles(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: 20,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div
+                style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
+              >
+                {children.length === 0 && (
+                  <p
+                    style={{
+                      color: '#94a3b8',
+                      fontSize: 13,
+                      textAlign: 'center',
+                      padding: 20,
+                    }}
+                  >
+                    Belum ada profil anak.
+                  </p>
+                )}
+                {children.map((c) => {
+                  const active = c.isActive !== false
+                  return (
+                    <div
+                      key={c.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        padding: '12px 14px',
+                        borderRadius: 14,
+                        border: '1px solid #e2e8f0',
+                        background: active ? '#fff' : '#f8fafc',
+                        opacity: active ? 1 : 0.7,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          background: active ? '#5B4DFF' : '#94a3b8',
+                          color: '#fff',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 15,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {c.name.charAt(0).toUpperCase()}
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: '#0f172a',
+                            }}
+                          >
+                            {c.name}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: active ? '#059669' : '#94a3b8',
+                              background: active ? '#d1fae5' : '#f1f5f9',
+                              padding: '2px 8px',
+                              borderRadius: 999,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {active ? 'Aktif' : 'Nonaktif'}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: '#94a3b8',
+                            marginTop: 2,
+                          }}
+                        >
+                          Kelas {c.grade ?? '?'} SD • Sem. {c.semester ?? '?'}
+                          {c.email ? ` • ${c.email}` : ''}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        <button
+                          title='Edit'
+                          onClick={() => openEditChild(c)}
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 8,
+                            border: '1px solid #e2e8f0',
+                            background: '#fff',
+                            cursor: 'pointer',
+                            fontSize: 13,
+                          }}
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          title={active ? 'Nonaktifkan' : 'Aktifkan'}
+                          onClick={() => handleToggleActive(c)}
+                          disabled={togglingChildId === c.id}
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 8,
+                            border: '1px solid #e2e8f0',
+                            background: '#fff',
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            opacity: togglingChildId === c.id ? 0.5 : 1,
+                          }}
+                        >
+                          {active ? '🔒' : '🔓'}
+                        </button>
+                        <button
+                          title='Hapus'
+                          onClick={() => setDeleteConfirmChild(c)}
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 8,
+                            border: '1px solid #fecaca',
+                            background: '#fef2f2',
+                            color: '#dc2626',
+                            cursor: 'pointer',
+                            fontSize: 13,
+                          }}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <button
+                style={{ ...S.btnPrimary, marginTop: 16 }}
+                onClick={() => {
+                  setShowManageProfiles(false)
+                  setShowCreateChild(true)
+                }}
+              >
+                + Tambah Anak
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── EDIT CHILD MODAL ── */}
+        {editingChild && (
+          <div style={S.modalOverlay} onClick={() => setEditingChild(null)}>
+            <div style={S.modalBox} onClick={(e) => e.stopPropagation()}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 16,
+                }}
+              >
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
+                  ✏️ Edit Profil Anak
+                </h3>
+                <button
+                  onClick={() => setEditingChild(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: 20,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+              <form onSubmit={handleUpdateChild}>
+                <label style={{ display: 'block', marginBottom: 12 }}>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      display: 'block',
+                      marginBottom: 4,
+                    }}
+                  >
+                    Nama Lengkap Anak
+                  </span>
+                  <input
+                    type='text'
+                    value={editChildForm.name}
+                    onChange={(e) =>
+                      setEditChildForm((p) => ({ ...p, name: e.target.value }))
+                    }
+                    required
+                    style={S.input}
+                  />
+                </label>
+                <label style={{ display: 'block', marginBottom: 12 }}>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      display: 'block',
+                      marginBottom: 4,
+                    }}
+                  >
+                    Email
+                  </span>
+                  <input
+                    type='email'
+                    value={editChildForm.email}
+                    onChange={(e) =>
+                      setEditChildForm((p) => ({ ...p, email: e.target.value }))
+                    }
+                    required
+                    style={S.input}
+                  />
+                </label>
+                <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                  <label style={{ flex: 1 }}>
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        display: 'block',
+                        marginBottom: 4,
+                      }}
+                    >
+                      Kelas
+                    </span>
+                    <select
+                      value={editChildForm.grade}
+                      onChange={(e) =>
+                        setEditChildForm((p) => ({
+                          ...p,
+                          grade: Number(e.target.value),
+                        }))
+                      }
+                      style={S.select}
+                    >
+                      {grades.map((g) => (
+                        <option key={g.level} value={g.level}>
+                          {g.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label style={{ flex: 1 }}>
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        display: 'block',
+                        marginBottom: 4,
+                      }}
+                    >
+                      Semester
+                    </span>
+                    <select
+                      value={editChildForm.semester}
+                      onChange={(e) =>
+                        setEditChildForm((p) => ({
+                          ...p,
+                          semester: Number(e.target.value),
+                        }))
+                      }
+                      style={S.select}
+                    >
+                      {semesters.map((s) => (
+                        <option key={s.value} value={s.value}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                {editChildError && (
+                  <p
+                    style={{
+                      color: '#dc2626',
+                      fontSize: 13,
+                      margin: '0 0 8px',
+                    }}
+                  >
+                    {editChildError}
+                  </p>
+                )}
+                <button
+                  type='submit'
+                  disabled={editChildSubmitting}
+                  style={{
+                    ...S.btnPrimary,
+                    opacity: editChildSubmitting ? 0.6 : 1,
+                  }}
+                >
+                  {editChildSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ── DELETE CONFIRM MODAL ── */}
+        {deleteConfirmChild && (
+          <div
+            style={S.modalOverlay}
+            onClick={() => setDeleteConfirmChild(null)}
+          >
+            <div
+              style={{ ...S.modalBox, maxWidth: 400 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 700 }}>
+                Hapus Profil {deleteConfirmChild.name}?
+              </h3>
+              <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 20px' }}>
+                Tindakan ini tidak dapat dibatalkan. Seluruh riwayat tugas dan
+                progres belajar {deleteConfirmChild.name} akan ikut terhapus.
+              </p>
+              <div
+                style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}
+              >
+                <button
+                  onClick={() => setDeleteConfirmChild(null)}
+                  style={{
+                    padding: '10px 20px',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 10,
+                    background: '#fff',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: 13,
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={() => handleDeleteChild(deleteConfirmChild)}
+                  disabled={deletingChildId === deleteConfirmChild.id}
+                  style={{
+                    padding: '10px 20px',
+                    border: 'none',
+                    borderRadius: 10,
+                    background: '#dc2626',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: 13,
+                    opacity:
+                      deletingChildId === deleteConfirmChild.id ? 0.6 : 1,
+                  }}
+                >
+                  {deletingChildId === deleteConfirmChild.id
+                    ? 'Menghapus...'
+                    : 'Hapus'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Grid: 8/4 */}
         <div style={S.grid}>
