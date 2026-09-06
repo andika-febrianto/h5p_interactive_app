@@ -871,11 +871,7 @@ export default function ParentDashboard() {
 
   // Fetch all modules for the browse view (Modul Belajar tab)
   useEffect(() => {
-    if (
-      viewMode !== 'modules' ||
-      !selectedChild?.grade ||
-      !selectedChild?.semester
-    ) {
+    if (viewMode !== 'modules' || !selectedChild?.grade || !selectedChild?.semester) {
       return
     }
     setBrowseLoading(true)
