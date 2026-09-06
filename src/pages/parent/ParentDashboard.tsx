@@ -2357,6 +2357,139 @@ export default function ParentDashboard() {
                   </div>
                 </div>
 
+                {selectedChild && activeAssignments.length > 0
+                  ? (() => {
+                      const mainAssignment = activeAssignments[0]
+                      const comp = getAssignmentCompletion(mainAssignment)
+
+                      return (
+                        <>
+                          <div style={S.progressCard}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-start',
+                                marginBottom: 16,
+                              }}
+                            >
+                              <div>
+                                <p
+                                  style={{
+                                    fontSize: 12,
+                                    color: '#94a3b8',
+                                    margin: 0,
+                                  }}
+                                >
+                                  Materi Utama Saat Ini:
+                                </p>
+
+                                <h3
+                                  style={{
+                                    fontSize: 16,
+                                    fontWeight: 700,
+                                    color: '#0f172a',
+                                    margin: '4px 0 0',
+                                  }}
+                                >
+                                  {mainAssignment.title}
+                                </h3>
+
+                                <p
+                                  style={{
+                                    fontSize: 12,
+                                    color: '#94a3b8',
+                                    margin: '4px 0 0',
+                                  }}
+                                >
+                                  {comp.total} panel ditugaskan
+                                </p>
+                              </div>
+
+                              <div style={{ textAlign: 'right' }}>
+                                <span
+                                  style={{
+                                    fontSize: 28,
+                                    fontWeight: 900,
+                                    color: '#5B4DFF',
+                                  }}
+                                >
+                                  {comp.pct}%
+                                </span>
+
+                                <p
+                                  style={{
+                                    fontSize: 11,
+                                    color: '#94a3b8',
+                                    margin: '2px 0 0',
+                                  }}
+                                >
+                                  {comp.completed} dari {comp.total} selesai
+                                </p>
+                              </div>
+                            </div>
+
+                            <div>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  textTransform: 'uppercase' as const,
+                                  letterSpacing: '0.08em',
+                                  color: '#5B4DFF',
+                                  background: '#F5F3FF',
+                                  padding: '2px 8px',
+                                  borderRadius: 4,
+                                }}
+                              >
+                                Modul Yang Sedang Berjalan
+                              </span>
+
+                              <h2
+                                style={{
+                                  ...S.sectionTitle,
+                                  marginTop: 4,
+                                }}
+                              >
+                                Progress Belajar {childName}
+                              </h2>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                padding: '4px 10px',
+                                background: '#FFFBEB',
+                                color: '#92400E',
+                                borderRadius: 999,
+                                border: '1px solid #FDE68A',
+                              }}
+                            >
+                              Matematika Dasar
+                            </span>
+
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                padding: '4px 10px',
+                                background: '#d1fae5',
+                                color: '#065f46',
+                                borderRadius: 999,
+                                border: '1px solid #a7f3d0',
+                              }}
+                            >
+                              Semester 1
+                            </span>
+                          </div>
+                        </>
+                      )
+                    })()
+                  : null}
+
                 {selectedChild && activeAssignments.length > 0 ? (
                   (() => {
                     const mainAssignment = activeAssignments[0]
