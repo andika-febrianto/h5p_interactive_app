@@ -86,6 +86,20 @@ function getAccent(subject: Subject): string {
   return SUBJECT_COLORS[subject.accent] || subject.accent || C.brand600
 }
 
+const IconProfile: React.FC = () => (
+  <svg width={14} height={14} viewBox='0 0 24 24' fill='currentColor'>
+    <circle cx='12' cy='8' r='4' />
+    <path d='M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8H4z' />
+  </svg>
+)
+
+type HeroMode = 'kelola' | 'tambah'
+
+const heroTabs = [
+  { key: 'kelola', label: 'Kelola Profile' },
+  { key: 'tambah', label: 'Tambah Anak' },
+] as const
+
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -97,6 +111,8 @@ interface ModulBelajarProps {
   modules: ModuleSummary[]
   loading: boolean
   navigate: (path: string) => void
+  setShowManageProfiles: (value: boolean) => void
+  setShowCreateChild: (value: boolean) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -109,6 +125,8 @@ const ModulBelajar: React.FC<ModulBelajarProps> = ({
   modules,
   loading,
   navigate,
+  setShowManageProfiles,
+  setShowCreateChild,
 }) => {
   const [activeSubjectId, setActiveSubjectId] = useState<string | null>(null)
   const [selectedTopicId, setSelectedTopicId] = useState<string>('')
