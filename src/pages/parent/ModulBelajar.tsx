@@ -4,7 +4,9 @@ import {
   type ModuleSummary,
   fetchModule,
 } from '../../lib/api'
-import type { Subject, FrameKind } from '../../types/storyboard'
+import type { Subject, FrameKind, Frame } from '../../types/storyboard'
+import { ProgressProvider } from '../../context/ProgressContext'
+import { ScenePlayer } from '../../components/ScenePlayer'
 
 // ---------------------------------------------------------------------------
 // Design tokens
@@ -71,6 +73,92 @@ function getAccent(subject: Subject): string {
 }
 
 // ---------------------------------------------------------------------------
+// Bahasan mapping — extensible for future items
+// ---------------------------------------------------------------------------
+interface BahasanMapping {
+  id: string
+  title: string
+  type: string
+  typeLabel: string
+  modulePath: string
+}
+
+// Map of frameId → bahasan metadata for the currently selected module
+const BAHASAN_MAP: Record<string, BahasanMapping> = {
+  bc1: {
+    id: 'mengenal-bilangan',
+    title: 'Mengenal Bilangan Cacah sampai 1.000',
+    type: 'materi',
+    typeLabel: 'Materi',
+    modulePath: '/modul/bilangan-cacah-1000',
+  },
+  bc1b: {
+    id: 'baca-buku',
+    title: 'Baca Buku Aslinya (Opsional)',
+    type: 'pdf',
+    typeLabel: 'Dokumen PDF',
+    modulePath: '/modul/bilangan-cacah-1000',
+  },
+  bc2: {
+    id: 'video-bilangan',
+    title: 'Video: Membaca dan Menulis Bilangan',
+    type: 'video',
+    typeLabel: 'Video Interaktif',
+    modulePath: '/modul/bilangan-cacah-1000',
+  },
+  bc3: {
+    id: 'pasangkan-bilangan',
+    title: 'Pasangkan Bilangan dengan Cara Membacanya',
+    type: 'drag-drop',
+    typeLabel: 'Drag & Drop',
+    modulePath: '/modul/bilangan-cacah-1000',
+  },
+  bc4: {
+    id: 'nilai-tempat',
+    title: 'Nilai Tempat: Ratusan, Puluhan, Satuan',
+    type: 'materi',
+    typeLabel: 'Materi',
+    modulePath: '/modul/bilangan-cacah-1000',
+  },
+  bc5: {
+    id: 'tentukan-nilai-tempat',
+    title: 'Tentukan Nilai Tempat Angka 8',
+    type: 'drag-drop',
+    typeLabel: 'Drag & Drop',
+    modulePath: '/modul/bilangan-cacah-1000',
+  },
+  bc5b: {
+    id: 'isian-nilai-tempat',
+    title: 'Isian Singkat: Uraikan Nilai Tempat',
+    type: 'isian',
+    typeLabel: 'Latihan Interaktif',
+    modulePath: '/modul/bilangan-cacah-1000',
+  },
+  bc6: {
+    id: 'membandingkan-bilangan',
+    title: 'Membandingkan dan Mengurutkan Bilangan',
+    type: 'kuis',
+    typeLabel: 'Kuis 10 Soal',
+    modulePath: '/modul/bilangan-cacah-1000',
+  },
+}
+
+// ---------------------------------------------------------------------------
+// Preview Scene Player — renders a single frame in parent-preview mode
+// ---------------------------------------------------------------------------
+function PreviewScenePlayer({
+  frame,
+  onDone,
+}: {
+  frame: Frame
+  onDone: () => void
+}) {
+  // Simple wrapper: render the ScenePlayer with a no-op onDone that returns
+  // the parent to the bahasan selection.
+  return <ScenePlayer frame={frame} onDone={onDone} />
+}
+
+// ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 interface ModulBelajarProps {
@@ -94,6 +182,29 @@ export default function ModulBelajar(props: ModulBelajarProps) {
     Array<{ id: string; kind: FrameKind; title: string; panelNum: string }>
   >([])
   const [topicLoading, setTopicLoading] = useState(false)
+  const [previewFrameId, setPreviewFrameId] = useState<string | null>(null)
+  const [hoveredFrameId, setHoveredFrameId] = useState<string | null>(null)
+  const [previewMod, setPreviewMod] = useState<Frame | null>(null)
+
+  // Load full module data when previewing a frame (single fetch for both the frame and the module metadata)
+  const [fullModule, setFullModule] = useState<import('../../types/storyboard').Module | null>(null)
+  useEffect(() => {
+    if (!previewFrameId || !selectedTopicId) {
+      setPreviewMod(null)
+      setFullModule(null)
+      return
+    }
+    fetchModule(selectedTopicId)
+      .then((mod) => {
+        setFullModule(mod)
+        const frame = mod.frames.find((f) => f.id === previewFrameId)
+        setPreviewMod(frame ?? null)
+      })
+      .catch(() => {
+        setPreviewMod(null)
+        setFullModule(null)
+      })
+  }, [previewFrameId, selectedTopicId])
 
   const activeChild = childrenData[selectedChildIdx] ?? childrenData[0] ?? null
 
@@ -499,20 +610,34 @@ export default function ModulBelajar(props: ModulBelajarProps) {
           ) : (
             topicFrames.map((frame) => {
               const isChecked = selectedFrames.includes(frame.id)
+              const isHovered = hoveredFrameId === frame.id
               return (
                 <div
                   key={frame.id}
-                  onClick={() => toggleFrame(frame.id)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 12,
                     padding: '13px 14px',
                     borderRadius: 10,
-                    backgroundColor: isChecked ? C.brand50 + '80' : 'transparent',
+                    backgroundColor: isChecked ? C.brand50 + '80' : isHovered ? C.brand50 + '40' : 'transparent',
                     cursor: 'pointer',
-                    transition: 'background-color 0.15s',
+                    transition: 'background-color 0.15s, box-shadow 0.15s, transform 0.15s',
+                    boxShadow: isHovered ? '0 1px 4px rgba(91,77,255,0.08)' : 'none',
+                    transform: isHovered ? 'translateY(-1px)' : 'none',
                   }}
+                  onMouseEnter={() => setHoveredFrameId(frame.id)}
+                  onMouseLeave={() => setHoveredFrameId(null)}
+                  onClick={(e) => {
+                    // Toggle checkbox with Ctrl/Cmd+Click or when clicking the checkbox area
+                    if (e.ctrlKey || e.metaKey) {
+                      toggleFrame(frame.id)
+                    } else {
+                      // Click opens preview
+                      setPreviewFrameId(frame.id)
+                    }
+                  }}
+                  onDoubleClick={() => toggleFrame(frame.id)}
                 >
                   <div
                     style={{
@@ -536,8 +661,24 @@ export default function ModulBelajar(props: ModulBelajarProps) {
                   <span style={{ fontSize: 18, flexShrink: 0 }}>{KIND_ICON[frame.kind] ?? '📄'}</span>
                   <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: C.slate800 }}>{frame.title}</span>
                   <span style={{ fontSize: 11, fontWeight: 600, color: C.slate400, flexShrink: 0 }}>
-                    ({KIND_LABEL[frame.kind] ?? frame.kind})
+                    ({BAHASAN_MAP[frame.id]?.typeLabel ?? KIND_LABEL[frame.kind] ?? frame.kind})
                   </span>
+                  {/* Arrow indicator on hover */}
+                  {isHovered && (
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke={C.brand600}
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ flexShrink: 0, marginLeft: 4 }}
+                    >
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                  )}
                 </div>
               )
             })
@@ -592,6 +733,104 @@ export default function ModulBelajar(props: ModulBelajarProps) {
           </div>
         </div>
       </section>
+
+      {/* ── BAHASAN PREVIEW PANEL ── */}
+      {previewFrameId && previewMod && fullModule && (
+        <section
+          style={{
+            gridColumn: 'span 7 / span 7',
+            backgroundColor: C.white,
+            borderRadius: 20,
+            border: '1px solid ' + C.slate100,
+            padding: 0,
+            boxShadow: '0 4px 20px -4px rgba(0,0,0,0.04)',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Preview Header */}
+          <div
+            style={{
+              padding: '20px 28px',
+              borderBottom: '1px solid ' + C.slate100,
+              display: 'flex',
+              flexDirection: 'column' as const,
+              gap: 8,
+            }}
+          >
+            {/* Back button + preview badge */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <button
+                onClick={() => {
+                  setPreviewFrameId(null)
+                  setPreviewMod(null)
+                  setFullModule(null)
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: C.brand600,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px 0',
+                  fontFamily: FF,
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                Kembali ke Pengaturan
+              </button>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  color: C.brand600,
+                  background: C.brand50,
+                  border: '1px solid ' + C.brand200,
+                  padding: '4px 12px',
+                  borderRadius: 8,
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase' as const,
+                  fontFamily: FF,
+                }}
+              >
+                👁️ Pratinjau untuk Orang Tua
+              </span>
+            </div>
+            {/* Title + subheading */}
+            <div>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: C.slate900, margin: 0 }}>
+                {previewMod.title}
+              </h3>
+              <p style={{ fontSize: 13, color: C.slate400, margin: '4px 0 0' }}>
+                {fullModule.title} — {fullModule.subtitle}
+              </p>
+            </div>
+          </div>
+
+          {/* Preview Content — renders the actual activity using ScenePlayer */}
+          <div style={{ padding: '0' }}>
+            <ProgressProvider
+              totalFrames={1}
+              moduleId={fullModule.id}
+              disableApi={true}
+            >
+              <PreviewScenePlayer
+                frame={previewMod}
+                onDone={() => {
+                  setPreviewFrameId(null)
+                  setPreviewMod(null)
+                  setFullModule(null)
+                }}
+              />
+            </ProgressProvider>
+          </div>
+        </section>
+      )}
     </div>
   )
 }
