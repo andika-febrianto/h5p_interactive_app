@@ -1,8 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react'
-import {
-  type ChildInfo,
-  type ModuleSummary,
-} from '../../lib/api'
+import { type ChildInfo, type ModuleSummary } from '../../lib/api'
 import type { Subject } from '../../types/storyboard'
 
 // ---------------------------------------------------------------------------
@@ -60,7 +57,7 @@ const KIND_ICON: Record<string, string> = {
 // Inline style object
 // ---------------------------------------------------------------------------
 
-const S: Record<string, React.CSSProperties> = {
+const S = {
   page: {
     backgroundColor: '#F8F9FE',
     color: colors.slate800,
@@ -257,19 +254,41 @@ const S: Record<string, React.CSSProperties> = {
     flexDirection: 'column' as const,
     gap: 8,
   },
+  // manageBtn: {
+  //   fontSize: 12,
+  //   fontWeight: 600,
+  //   color: colors.slate600,
+  //   backgroundColor: colors.white,
+  //   border: `1px solid ${colors.slate200}`,
+  //   padding: '8px 14px',
+  //   borderRadius: 10,
+  //   cursor: 'pointer',
+  //   display: 'flex',
+  //   alignItems: 'center',
+  //   gap: 6,
+  // },
   manageBtn: {
+    padding: '12px 16px',
+    borderRadius: 16,
+    background: '#5B4DFF',
+    color: '#fff',
+    border: 'none',
     fontSize: 12,
-    fontWeight: 600,
-    color: colors.slate600,
-    backgroundColor: colors.white,
-    border: `1px solid ${colors.slate200}`,
-    padding: '8px 14px',
-    borderRadius: 10,
+    fontWeight: 700,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-  },
+    boxShadow: '0 2px 8px rgba(91,77,255,0.2)',
+    transition: 'all 0.2s',
+  } as React.CSSProperties,
+  manageBtns: (active: boolean) =>
+    ({
+      background: active ? '#5B4DFF' : '#fff',
+      color: active ? '#fff' : '#5B4DFF',
+      border: active ? '1px solid rgba(91,77,255,0.2)' : 'none',
+      boxShadow: active ? '0 2px 8px rgba(91,77,255,0.2)' : 'none',
+    }) as React.CSSProperties,
   addChildBtn: {
     fontSize: 12,
     fontWeight: 700,
@@ -601,6 +620,20 @@ const IconPlus: React.FC = () => (
   </svg>
 )
 
+const IconProfile: React.FC = () => (
+  <svg width={14} height={14} viewBox='0 0 24 24' fill='currentColor'>
+    <circle cx='12' cy='8' r='4' />
+    <path d='M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8H4z' />
+  </svg>
+)
+
+type HeroMode = 'kelola' | 'tambah'
+
+const heroTabs = [
+  { key: 'kelola', label: 'Kelola Profile' },
+  { key: 'tambah', label: 'Tambah Anak' },
+] as const
+
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -613,6 +646,8 @@ interface ModulBelajarProps {
   modules: ModuleSummary[]
   loading: boolean
   navigate: (path: string) => void
+  setShowManageProfiles: (value: boolean) => void
+  setShowCreateChild: (value: boolean) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -627,9 +662,12 @@ const ModulBelajar: React.FC<ModulBelajarProps> = ({
   modules,
   loading,
   navigate,
+  setShowManageProfiles,
+  setShowCreateChild,
 }) => {
   const [activeSubjectId, setActiveSubjectId] = useState<string | null>(null)
   const [search, setSearch] = useState<string>('')
+  const [heroMode, setHeroMode] = useState<HeroMode>('kelola')
 
   const activeChild = childrenData[selectedChildIdx] ?? childrenData[0] ?? null
 
@@ -710,9 +748,7 @@ const ModulBelajar: React.FC<ModulBelajarProps> = ({
                       {child.semester ?? '?'}
                     </p>
                     <div style={S.childMetaRow}>
-                      <span
-                        style={{ color: colors.amber, fontWeight: 500 }}
-                      >
+                      <span style={{ color: colors.amber, fontWeight: 500 }}>
                         ★ Modul tersedia
                       </span>
                     </div>
@@ -752,11 +788,57 @@ const ModulBelajar: React.FC<ModulBelajarProps> = ({
             })}
 
             <div style={S.manageColumn}>
-              <button style={S.manageBtn}>
+              {heroTabs.map((h) => (
+                <button
+                  key={h.key}
+                  type='button'
+                  style={{
+                    ...S.manageBtn,
+                    ...S.manageBtns(heroMode === h.key),
+                  }}
+                  onClick={() => {
+                    setHeroMode(h.key)
+
+                    if (h.key === 'kelola') {
+                      setShowManageProfiles(true)
+                      setShowCreateChild(false)
+                    } else {
+                      setShowManageProfiles(false)
+                      setShowCreateChild(true)
+                    }
+                  }}
+                >
+                  {h.key === 'kelola' ? (
+                    <>
+                      <IconProfile /> {`${h.label} ${childrenData[0].name}`}
+                    </>
+                  ) : (
+                    <>
+                      <IconPlus /> {h.label}
+                    </>
+                  )}
+                </button>
+              ))}
+
+              {/* <button
+                style={S.manageBtn}
+                onClick={() => setShowManageProfiles(true)}
+              >
                 <IconPlus />
-                Kelola Profil
+                Kelola Profil {childrenData[0].name}
               </button>
-              <button style={S.addChildBtn}>+ Tambah Anak</button>
+              <button
+                style={{
+                  ...S.manageBtn,
+                  background: '#fff',
+                  color: '#5B4DFF',
+                  border: '1px solid rgba(91,77,255,0.2)',
+                  boxShadow: 'none',
+                }}
+                onClick={() => setShowCreateChild(true)}
+              >
+                + Tambah Anak
+              </button> */}
             </div>
           </div>
         </div>
@@ -885,7 +967,7 @@ const ModulBelajar: React.FC<ModulBelajarProps> = ({
                         >
                           {subjectModules.length} modul
                         </span>
-                        <svg
+                        {/* <svg
                           width='16'
                           height='16'
                           fill='none'
@@ -905,12 +987,12 @@ const ModulBelajar: React.FC<ModulBelajarProps> = ({
                             strokeLinecap='round'
                             strokeLinejoin='round'
                           />
-                        </svg>
+                        </svg> */}
                       </div>
                     </div>
 
                     {/* Expanded module list */}
-                    {isSelected && (
+                    {/* {isSelected && (
                       <div style={S.moduleList}>
                         {subjectModules.map((mod) => (
                           <div
@@ -929,8 +1011,7 @@ const ModulBelajar: React.FC<ModulBelajarProps> = ({
                             <div style={S.moduleInfo}>
                               <div style={S.moduleTitle}>{mod.title}</div>
                               <div style={S.moduleMeta}>
-                                {mod.frameCount} panel ·{' '}
-                                {mod.estimatedMinutes}
+                                {mod.frameCount} panel · {mod.estimatedMinutes}
                               </div>
                             </div>
                             <svg
@@ -950,7 +1031,7 @@ const ModulBelajar: React.FC<ModulBelajarProps> = ({
                           </div>
                         ))}
                       </div>
-                    )}
+                    )} */}
                   </div>
                 )
               })}

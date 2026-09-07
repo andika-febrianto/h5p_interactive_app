@@ -449,7 +449,7 @@ const createAssignmentSchema = z.object({
   description: z.string().optional(),
   materialId: z.string().optional(),
   selectedFrames: z.array(z.string()).optional(),
-  dueDate: z.string().datetime().optional(),
+  dueDate: z.iso.datetime().optional(),
 })
 
 parentRouter.post(
