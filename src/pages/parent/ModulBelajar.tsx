@@ -734,31 +734,159 @@ export default function ModulBelajar(props: ModulBelajarProps) {
         </div>
       </section>
 
-      {/* ── BAHASAN PREVIEW PANEL ── */}
+      {/* ── BAHASAN PREVIEW MODAL ── */}
       {previewFrameId && previewMod && fullModule && (
-        <section
+        <div
           style={{
-            gridColumn: 'span 7 / span 7',
-            backgroundColor: C.white,
-            borderRadius: 20,
-            border: '1px solid ' + C.slate100,
-            padding: 0,
-            boxShadow: '0 4px 20px -4px rgba(0,0,0,0.04)',
-            overflow: 'hidden',
+            position: 'fixed' as const,
+            inset: 0,
+            zIndex: 5000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(15,23,42,0.5)',
+            backdropFilter: 'blur(6px)',
+            padding: 24,
+          }}
+          onClick={() => {
+            setPreviewFrameId(null)
+            setPreviewMod(null)
+            setFullModule(null)
           }}
         >
-          {/* Preview Header */}
           <div
             style={{
-              padding: '20px 28px',
-              borderBottom: '1px solid ' + C.slate100,
+              backgroundColor: C.white,
+              borderRadius: 20,
+              width: '90vw',
+              maxWidth: 1100,
+              maxHeight: '90vh',
               display: 'flex',
               flexDirection: 'column' as const,
-              gap: 8,
+              boxShadow: '0 25px 60px -12px rgba(0,0,0,0.35)',
+              overflow: 'hidden',
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Back button + preview badge */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: '20px 28px',
+                borderBottom: '1px solid ' + C.slate100,
+                display: 'flex',
+                flexDirection: 'column' as const,
+                gap: 8,
+                flexShrink: 0,
+              }}
+            >
+              {/* Close button + preview badge */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <button
+                  onClick={() => {
+                    setPreviewFrameId(null)
+                    setPreviewMod(null)
+                    setFullModule(null)
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: C.brand600,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px 0',
+                    fontFamily: FF,
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                  </svg>
+                  Kembali ke Pengaturan
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      color: C.brand600,
+                      background: C.brand50,
+                      border: '1px solid ' + C.brand200,
+                      padding: '4px 12px',
+                      borderRadius: 8,
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase' as const,
+                      fontFamily: FF,
+                    }}
+                  >
+                    👁️ Pratinjau untuk Orang Tua
+                  </span>
+                  <button
+                    onClick={() => {
+                      setPreviewFrameId(null)
+                      setPreviewMod(null)
+                      setFullModule(null)
+                    }}
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      border: '1px solid ' + C.slate200,
+                      background: C.white,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      color: C.slate500,
+                      fontSize: 18,
+                      flexShrink: 0,
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              {/* Title + subheading */}
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: C.slate900, margin: 0 }}>
+                  {previewMod.title}
+                </h3>
+                <p style={{ fontSize: 13, color: C.slate400, margin: '4px 0 0' }}>
+                  {fullModule.title} — {fullModule.subtitle}
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Content — renders the actual activity using ScenePlayer */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
+              <ProgressProvider
+                totalFrames={1}
+                moduleId={fullModule.id}
+                disableApi={true}
+              >
+                <PreviewScenePlayer
+                  frame={previewMod}
+                  onDone={() => {
+                    setPreviewFrameId(null)
+                    setPreviewMod(null)
+                    setFullModule(null)
+                  }}
+                />
+              </ProgressProvider>
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              style={{
+                padding: '14px 28px',
+                borderTop: '1px solid ' + C.slate100,
+                display: 'flex',
+                justifyContent: 'flex-end',
+                flexShrink: 0,
+              }}
+            >
               <button
                 onClick={() => {
                   setPreviewFrameId(null)
@@ -766,70 +894,22 @@ export default function ModulBelajar(props: ModulBelajarProps) {
                   setFullModule(null)
                 }}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
+                  padding: '10px 24px',
+                  borderRadius: 10,
+                  border: '1px solid ' + C.slate200,
+                  backgroundColor: C.white,
+                  color: C.slate600,
                   fontSize: 13,
                   fontWeight: 600,
-                  color: C.brand600,
-                  background: 'none',
-                  border: 'none',
                   cursor: 'pointer',
-                  padding: '4px 0',
                   fontFamily: FF,
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 12H5M12 19l-7-7 7-7" />
-                </svg>
-                Kembali ke Pengaturan
+                Tutup
               </button>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  color: C.brand600,
-                  background: C.brand50,
-                  border: '1px solid ' + C.brand200,
-                  padding: '4px 12px',
-                  borderRadius: 8,
-                  letterSpacing: '0.05em',
-                  textTransform: 'uppercase' as const,
-                  fontFamily: FF,
-                }}
-              >
-                👁️ Pratinjau untuk Orang Tua
-              </span>
-            </div>
-            {/* Title + subheading */}
-            <div>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: C.slate900, margin: 0 }}>
-                {previewMod.title}
-              </h3>
-              <p style={{ fontSize: 13, color: C.slate400, margin: '4px 0 0' }}>
-                {fullModule.title} — {fullModule.subtitle}
-              </p>
             </div>
           </div>
-
-          {/* Preview Content — renders the actual activity using ScenePlayer */}
-          <div style={{ padding: '0' }}>
-            <ProgressProvider
-              totalFrames={1}
-              moduleId={fullModule.id}
-              disableApi={true}
-            >
-              <PreviewScenePlayer
-                frame={previewMod}
-                onDone={() => {
-                  setPreviewFrameId(null)
-                  setPreviewMod(null)
-                  setFullModule(null)
-                }}
-              />
-            </ProgressProvider>
-          </div>
-        </section>
+        </div>
       )}
     </div>
   )
