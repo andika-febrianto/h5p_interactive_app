@@ -3407,13 +3407,10 @@ export default function ParentDashboard() {
           <ModulBelajar
             childrenData={children}
             selectedChildIdx={selectedChildIdx}
-            onChildChange={setSelectedChildIdx}
             subjects={subjects}
             modules={browseModules}
             loading={browseLoading || childrenLoading}
             navigate={navigate}
-            setShowManageProfiles={setShowManageProfiles}
-            setShowCreateChild={setShowCreateChild}
           />
           // <section style={S.card}>
           //   <div style={S.cardHeader}>
