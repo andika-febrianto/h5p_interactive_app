@@ -47,7 +47,30 @@ const KIND_LABEL: Record<string, string> = {
   shortanswer: 'Isian Singkat',
 }
 
+const IconPlus: React.FC = () => (
+  <svg
+    width={14}
+    height={14}
+    viewBox='0 0 24 24'
+    fill='none'
+    stroke='currentColor'
+    strokeWidth={2}
+    strokeLinecap='round'
+    strokeLinejoin='round'
+  >
+    <path d='M12 4v16m8-8H4' />
+  </svg>
+)
+
+const IconProfile: React.FC = () => (
+  <svg width={14} height={14} viewBox='0 0 24 24' fill='currentColor'>
+    <circle cx='12' cy='8' r='4' />
+    <path d='M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8H4z' />
+  </svg>
+)
+
 type ViewMode = 'overview' | 'modules' | 'reports' | 'schedule'
+type HeroMode = 'kelola' | 'tambah'
 
 // ── Inline Styles ──
 const S = {
@@ -349,6 +372,13 @@ const S = {
     boxShadow: '0 2px 8px rgba(91,77,255,0.2)',
     transition: 'all 0.2s',
   } as React.CSSProperties,
+  manageBtns: (active: boolean) =>
+    ({
+      background: active ? '#5B4DFF' : '#fff',
+      color: active ? '#fff' : '#5B4DFF',
+      border: active ? '1px solid rgba(91,77,255,0.2)' : 'none',
+      boxShadow: active ? '0 2px 8px rgba(91,77,255,0.2)' : 'none',
+    }) as React.CSSProperties,
 
   // Grid
   grid: {
@@ -712,6 +742,7 @@ export default function ParentDashboard() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [viewMode, setViewMode] = useState<ViewMode>('overview')
+  const [heroMode, setHeroMode] = useState<HeroMode>('kelola')
 
   // Children state
   const [children, setChildren] = useState<ChildInfo[]>([])
@@ -871,7 +902,11 @@ export default function ParentDashboard() {
 
   // Fetch all modules for the browse view (Modul Belajar tab)
   useEffect(() => {
-    if (viewMode !== 'modules' || !selectedChild?.grade || !selectedChild?.semester) {
+    if (
+      viewMode !== 'modules' ||
+      !selectedChild?.grade ||
+      !selectedChild?.semester
+    ) {
       return
     }
     setBrowseLoading(true)
@@ -1197,6 +1232,11 @@ export default function ParentDashboard() {
     { key: 'schedule', label: 'Jadwal & Tugas', icon: '📅' },
   ] as const
 
+  const heroTabs = [
+    { key: 'kelola', label: 'Kelola Profile' },
+    { key: 'tambah', label: 'Tambah Anak' },
+  ] as const
+
   const childNamesText =
     children.length > 0
       ? children.map((c) => c.name.split(' ')[0]).join(' & ')
@@ -1275,6 +1315,8 @@ export default function ParentDashboard() {
       setTogglingChildId(null)
     }
   }
+
+  console.log('children', children, subjects, browseModules)
 
   const handleDeleteChild = async (child: ChildInfo) => {
     setDeletingChildId(child.id)
@@ -1811,53 +1853,37 @@ export default function ParentDashboard() {
                     gap: 8,
                   }}
                 >
-                  <button
-                    style={S.manageBtn}
-                    onClick={() => setShowManageProfiles(true)}
-                  >
-                    <svg
-                      width='14'
-                      height='14'
-                      fill='none'
-                      stroke='currentColor'
-                      strokeWidth='2.5'
-                      viewBox='0 0 24 24'
-                    >
-                      <path
-                        d='M12 4v16m8-8H4'
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                      />
-                    </svg>
-                    Kelola Profil {childName}
-                  </button>
+                  {heroTabs.map((h) => (
+                    <button
+                      key={h.key}
+                      type='button'
+                      style={{
+                        ...S.manageBtn,
+                        ...S.manageBtns(heroMode === h.key),
+                      }}
+                      onClick={() => {
+                        setHeroMode(h.key)
 
-                  <button
-                    style={{
-                      ...S.manageBtn,
-                      background: '#fff',
-                      color: '#5B4DFF',
-                      border: '1px solid rgba(91,77,255,0.2)',
-                      boxShadow: 'none',
-                    }}
-                    onClick={() => setShowCreateChild(true)}
-                  >
-                    <svg
-                      width='14'
-                      height='14'
-                      fill='none'
-                      stroke='currentColor'
-                      strokeWidth='2.5'
-                      viewBox='0 0 24 24'
+                        if (h.key === 'kelola') {
+                          setShowManageProfiles(true)
+                          setShowCreateChild(false)
+                        } else {
+                          setShowManageProfiles(false)
+                          setShowCreateChild(true)
+                        }
+                      }}
                     >
-                      <path
-                        d='M12 4v16m8-8H4'
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                      />
-                    </svg>
-                    Tambah Anak
-                  </button>
+                      {h.key === 'kelola' ? (
+                        <>
+                          <IconProfile /> `${h.label} ${childName}`
+                        </>
+                      ) : (
+                        <>
+                          <IconPlus /> {h.label}{' '}
+                        </>
+                      )}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -3376,13 +3402,11 @@ export default function ParentDashboard() {
             </aside>
           </div>
         )}
-
         {/* Modul Belajar */}
         {viewMode === 'modules' && (
           <ModulBelajar
             childrenData={children}
             selectedChildIdx={selectedChildIdx}
-            onChildChange={setSelectedChildIdx}
             subjects={subjects}
             modules={browseModules}
             loading={browseLoading || childrenLoading}
@@ -3552,7 +3576,7 @@ export default function ParentDashboard() {
             strokeLinejoin='round'
           />
         </svg>
-        + Beri Tugas / Modul Baru
+        Beri Tugas / Modul Baru
       </button>
 
       {/* ── FOOTER ── */}
