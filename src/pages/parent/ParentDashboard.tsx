@@ -3409,6 +3409,7 @@ export default function ParentDashboard() {
           <LaporanRapor
             children={children}
             selectedChildIdx={selectedChildIdx}
+            onChildChange={setSelectedChildIdx}
             assignments={assignments}
             subjects={subjects}
             modules={browseModules}
