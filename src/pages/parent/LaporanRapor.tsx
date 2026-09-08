@@ -117,29 +117,16 @@ const WEEKLY_DATA = [
 export default function LaporanRapor(props: LaporanRaporProps) {
   const { children: childrenData, selectedChildIdx, onChildChange, assignments, subjects, modules, moduleCache: _moduleCache, assignmentProgress } = props
   void _moduleCache
-
   const activeChild = childrenData[selectedChildIdx] ?? childrenData[0] ?? null
-  const otherChild = childrenData.find((_, i) => i !== selectedChildIdx) ?? childrenData[1] ?? null
 
   const childName = activeChild?.name?.split(' ')[0] ?? 'Anak'
   const childFullName = activeChild?.name ?? 'Anak'
-  const childInitial = childName.charAt(0).toUpperCase()
   const childGrade = activeChild?.grade ?? null
 
-  const otherChildName = otherChild?.name?.split(' ')[0] ?? ''
-  const otherFullName = otherChild?.name ?? ''
-  const otherInitial = otherChildName.charAt(0).toUpperCase()
-  const otherGrade = otherChild?.grade ?? null
-
-  // ── Real data: filter assignments per child ──
+  // ── Real data: filter assignments for active child ──
   const activeAssignments = useMemo(
     () => assignments.filter((a) => a.childId === activeChild?.id),
     [assignments, activeChild],
-  )
-
-  const otherAssignments = useMemo(
-    () => assignments.filter((a) => a.childId === otherChild?.id),
-    [assignments, otherChild],
   )
 
   // ── Compute stats from real data ──
@@ -148,9 +135,6 @@ export default function LaporanRapor(props: LaporanRaporProps) {
   const inProgressAssignments = activeAssignments.filter((a) => a.status === 'in_progress' || a.status === 'pending').length
   void inProgressAssignments
   const completionPct = totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0
-
-  const otherCompleted = otherAssignments.filter((a) => a.status === 'completed').length
-  const otherTotal = otherAssignments.length
 
   // ── Subject performance from modules ──
   const subjectPerformance = useMemo(() => {
@@ -280,11 +264,7 @@ export default function LaporanRapor(props: LaporanRaporProps) {
     return taskRows.reduce((sum, t) => sum + t.score, 0) / taskRows.length
   }, [taskRows])
 
-  const totalModules = modules.length
-  const completedModules = completedAssignments || Math.round(totalModules * 0.45)
-
   const gradeText = childGrade != null ? `Kelas ${childGrade} SD` : 'SD'
-  const otherGradeText = otherGrade != null ? `Kelas ${otherGrade} SD` : 'SD'
 
   // ── Fallback when no real data ──
   const hasRealData = activeAssignments.length > 0
@@ -374,7 +354,7 @@ export default function LaporanRapor(props: LaporanRaporProps) {
               Laporan & Rapor Belajar Anak
             </h1>
             <p style={{ fontSize: 14, color: C.slate500, margin: 0, lineHeight: 1.6, maxWidth: 540 }}>
-              Pantau grafik performa pemahaman materi, durasi belajar mingguan, serta rekapitulasi nilai tugas harian{otherChildName ? ` ${childName} dan ${otherChildName}` : ` ${childName}`} secara mendalam.
+              Pantau grafik performa pemahaman materi, durasi belajar mingguan, serta rekapitulasi nilai tugas harian {childName} secara mendalam.
             </p>
           </div>
 
@@ -398,79 +378,70 @@ export default function LaporanRapor(props: LaporanRaporProps) {
       </section>
 
       {/* ── STUDENT SWITCHER CARDS ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        {/* Child 1: Active */}
-        <div style={{ background: C.white, borderRadius: 20, padding: 20, border: `2px solid ${C.brand600}`, boxShadow: '0 4px 16px rgba(91,77,255,0.12)', display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 16, background: C.brand600, color: C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, fontFamily: FF }}>{childInitial}</div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <h3 style={{ fontSize: 15, fontWeight: 700, color: C.slate900, margin: 0 }}>{childFullName}</h3>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: C.brand700, background: C.brand50, padding: '2px 8px', borderRadius: 999, border: `1px solid ${C.brand200}` }}>
-                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.brand600 }} />
-                    Aktif Dipantau
-                  </span>
-                </div>
-                <p style={{ fontSize: 11, color: C.slate500, margin: '3px 0 0' }}>{gradeText} • Kurikulum Merdeka</p>
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: C.amber50, border: `1px solid ${C.amber200}`, padding: '5px 12px', borderRadius: 14, color: C.amber700, fontSize: 11, fontWeight: 700 }}>
-              <span>⭐</span>
-              <span>{completedModules} Tugas Selesai</span>
-            </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.slate100}`, fontSize: 11 }}>
-            <div>
-              <span style={{ color: C.slate500, display: 'block' }}>Rata-rata Nilai:</span>
-              <span style={{ fontWeight: 800, color: C.brand600, fontSize: 14 }}>{displayAvgScore.toFixed(1)} / 100</span>
-            </div>
-            <div>
-              <span style={{ color: C.slate500, display: 'block' }}>Tugas Selesai:</span>
-              <span style={{ fontWeight: 800, color: C.emerald600, fontSize: 14 }}>{displayCompleted} / {displayTotal} Tugas</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Child 2: Inactive */}
-        <div onClick={() => onChildChange && otherChild && onChildChange(childrenData.indexOf(otherChild))} style={{ background: 'rgba(255,255,255,0.7)', borderRadius: 20, padding: 20, border: `1px solid ${C.slate200}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between', cursor: onChildChange && otherChild ? 'pointer' : 'default', transition: 'all 0.2s' }}>
-          {otherChild ? (
-            <>
+      <div style={{ display: 'grid', gridTemplateColumns: childrenData.length > 1 ? '1fr 1fr' : '1fr', gap: 16 }}>
+        {childrenData.map((child, idx) => {
+          const isActive = idx === selectedChildIdx
+          const childFirst = child.name?.split(' ')[0] ?? 'Anak'
+          const childLast = child.name ?? 'Anak'
+          const initial = childFirst.charAt(0).toUpperCase()
+          const gradeText2 = child.grade != null ? `Kelas ${child.grade} SD` : 'SD'
+          const childAssignments = assignments.filter((a) => a.childId === child.id)
+          const childComplete = childAssignments.filter((a) => a.status === 'completed').length
+          const childTotal = childAssignments.length
+          return (
+            <div key={child.id} onClick={() => onChildChange && onChildChange(idx)} style={{ background: isActive ? C.white : 'rgba(255,255,255,0.7)', borderRadius: 20, padding: 20, border: isActive ? `2px solid ${C.brand600}` : `1px solid ${C.slate200}`, boxShadow: isActive ? '0 4px 16px rgba(91,77,255,0.12)' : '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between', cursor: 'pointer', transition: 'all 0.2s' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 16, background: '#EEF2FF', color: C.indigo700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, fontFamily: FF }}>{otherInitial}</div>
+                  <div style={{ width: 48, height: 48, borderRadius: 16, background: isActive ? C.brand600 : '#EEF2FF', color: isActive ? C.white : C.indigo700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, fontFamily: FF }}>{initial}</div>
                   <div>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, color: C.slate900, margin: 0 }}>{otherFullName}</h3>
-                    <p style={{ fontSize: 11, color: C.slate500, margin: '3px 0 0' }}>{otherGradeText} • Kurikulum Merdeka</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <h3 style={{ fontSize: 15, fontWeight: 700, color: C.slate900, margin: 0 }}>{childLast}</h3>
+                      {isActive && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: C.brand700, background: C.brand50, padding: '2px 8px', borderRadius: 999, border: `1px solid ${C.brand200}` }}>
+                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.brand600 }} />
+                          Aktif Dipantau
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ fontSize: 11, color: C.slate500, margin: '3px 0 0' }}>{gradeText2} • Kurikulum Merdeka</p>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: C.amber50, border: `1px solid ${C.amber200}`, padding: '5px 12px', borderRadius: 14, color: C.amber700, fontSize: 11, fontWeight: 700 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: isActive ? C.amber50 : 'rgba(255,252,240,0.7)', border: `1px solid ${C.amber200}`, padding: '5px 12px', borderRadius: 14, color: C.amber700, fontSize: 11, fontWeight: 700 }}>
                   <span>⭐</span>
-                  <span>{otherCompleted} Poin</span>
+                  <span>{childComplete} Tugas Selesai</span>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.slate100}`, fontSize: 11 }}>
-                <div style={{ display: 'flex', gap: 16 }}>
+              {isActive ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.slate100}`, fontSize: 11 }}>
                   <div>
-                    <span style={{ color: C.slate400, display: 'block', fontSize: 10 }}>Skor Rata-rata</span>
-                    <span style={{ fontWeight: 700, color: C.slate700, fontSize: 14 }}>{otherTotal > 0 ? Math.round(Math.random() * 10 + 85) : 0} / 100</span>
+                    <span style={{ color: C.slate500, display: 'block' }}>Rata-rata Nilai:</span>
+                    <span style={{ fontWeight: 800, color: C.brand600, fontSize: 14 }}>{childTotal > 0 ? Math.round((childComplete / childTotal) * 100) : 0}%</span>
                   </div>
                   <div>
-                    <span style={{ color: C.slate400, display: 'block', fontSize: 10 }}>Ketuntasan</span>
-                    <span style={{ fontWeight: 700, color: C.slate700, fontSize: 14 }}>{otherCompleted} / {otherTotal || 15} Tugas</span>
+                    <span style={{ color: C.slate500, display: 'block' }}>Tugas Selesai:</span>
+                    <span style={{ fontWeight: 800, color: C.emerald600, fontSize: 14 }}>{childComplete} / {childTotal || 0} Tugas</span>
                   </div>
                 </div>
-                <button style={{ padding: '6px 14px', borderRadius: 10, border: `1px solid #C7D2FE`, color: C.indigo700, background: 'transparent', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: FF, transition: 'all 0.2s' }}>
-                  Lihat Rapor {otherChildName} →
-                </button>
-              </div>
-            </>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: C.slate400, fontSize: 13 }}>
-              Belum ada anak kedua
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.slate100}`, fontSize: 11 }}>
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <div>
+                      <span style={{ color: C.slate400, display: 'block', fontSize: 10 }}>Skor Rata-rata</span>
+                      <span style={{ fontWeight: 700, color: C.slate700, fontSize: 14 }}>{childTotal > 0 ? Math.round((childComplete / childTotal) * 100) : 0}%</span>
+                    </div>
+                    <div>
+                      <span style={{ color: C.slate400, display: 'block', fontSize: 10 }}>Ketuntasan</span>
+                      <span style={{ fontWeight: 700, color: C.slate700, fontSize: 14 }}>{childComplete} / {childTotal || 15} Tugas</span>
+                    </div>
+                  </div>
+                  <button style={{ padding: '6px 14px', borderRadius: 10, border: `1px solid #C7D2FE`, color: C.indigo700, background: 'transparent', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: FF, transition: 'all 0.2s' }}>
+                    Lihat Rapor {childFirst} →
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          )
+        })}
       </div>
 
       {/* ── QUICK STATS METRICS ── */}
