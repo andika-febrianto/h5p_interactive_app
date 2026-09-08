@@ -29,6 +29,7 @@ import {
 import { ApiError } from '../../lib/api'
 import { grades, semesters } from '../../data/grades'
 import ModulBelajar from './ModulBelajar'
+import LaporanRapor from './LaporanRapor'
 
 const KIND_ICON: Record<string, string> = {
   text: '📄',
@@ -3402,6 +3403,20 @@ export default function ParentDashboard() {
             </aside>
           </div>
         )}
+
+        {/* Laporan & Rapor */}
+        {viewMode === 'reports' && (
+          <LaporanRapor
+            children={children}
+            selectedChildIdx={selectedChildIdx}
+            assignments={assignments}
+            subjects={subjects}
+            modules={browseModules}
+            moduleCache={moduleCache}
+            assignmentProgress={assignmentProgress}
+          />
+        )}
+
         {/* Modul Belajar */}
         {viewMode === 'modules' && (
           <ModulBelajar
