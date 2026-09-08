@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import {
   type ChildInfo,
   type ParentAssignment,
@@ -118,6 +118,22 @@ export default function LaporanRapor(props: LaporanRaporProps) {
   const { children: childrenData, selectedChildIdx, onChildChange, assignments, subjects, modules, moduleCache: _moduleCache, assignmentProgress } = props
   void _moduleCache
   const activeChild = childrenData[selectedChildIdx] ?? childrenData[0] ?? null
+
+  // ── Appreciation Stars State ──
+  const [awardedStars, setAwardedStars] = useState<Record<string, boolean>>({})
+  const [starModalOpen, setStarModalOpen] = useState(false)
+  const [toastMsg, setToastMsg] = useState<string | null>(null)
+
+  const getTaskStarred = useCallback((assignmentId: string) => !!awardedStars[assignmentId], [awardedStars])
+  const getTotalStars = useCallback(() => Object.values(awardedStars).filter(Boolean).length, [awardedStars])
+
+  const awardStar = useCallback((assignmentId: string, taskTitle: string) => {
+    if (awardedStars[assignmentId]) return
+    setAwardedStars((prev) => ({ ...prev, [assignmentId]: true }))
+    setStarModalOpen(false)
+    setToastMsg(`⭐ Bintang diberikan untuk: ${taskTitle}`)
+    setTimeout(() => setToastMsg(null), 3000)
+  }, [awardedStars])
 
   const childName = activeChild?.name?.split(' ')[0] ?? 'Anak'
   const childFullName = activeChild?.name ?? 'Anak'
@@ -408,11 +424,11 @@ export default function LaporanRapor(props: LaporanRaporProps) {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: isActive ? C.amber50 : 'rgba(255,252,240,0.7)', border: `1px solid ${C.amber200}`, padding: '5px 12px', borderRadius: 14, color: C.amber700, fontSize: 11, fontWeight: 700 }}>
                   <span>⭐</span>
-                  <span>{childComplete} Tugas Selesai</span>
+                  <span>{isActive ? `${getTotalStars()} Bintang Apresiasi` : `${childComplete} Tugas Selesai`}</span>
                 </div>
               </div>
               {isActive ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.slate100}`, fontSize: 11 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.slate100}`, fontSize: 11 }}>
                   <div>
                     <span style={{ color: C.slate500, display: 'block' }}>Rata-rata Nilai:</span>
                     <span style={{ fontWeight: 800, color: C.brand600, fontSize: 14 }}>{childTotal > 0 ? Math.round((childComplete / childTotal) * 100) : 0}%</span>
@@ -420,6 +436,10 @@ export default function LaporanRapor(props: LaporanRaporProps) {
                   <div>
                     <span style={{ color: C.slate500, display: 'block' }}>Tugas Selesai:</span>
                     <span style={{ fontWeight: 800, color: C.emerald600, fontSize: 14 }}>{childComplete} / {childTotal || 0} Tugas</span>
+                  </div>
+                  <div>
+                    <span style={{ color: C.slate500, display: 'block' }}>⭐ Bintang:</span>
+                    <span style={{ fontWeight: 800, color: C.amber500, fontSize: 14 }}>{getTotalStars()} / {completedAssignments || 0}</span>
                   </div>
                 </div>
               ) : (
@@ -593,6 +613,7 @@ export default function LaporanRapor(props: LaporanRaporProps) {
                 <th style={{ padding: '14px 20px', textAlign: 'left' as const }}>Skor / Nilai</th>
                 <th style={{ padding: '14px 20px', textAlign: 'left' as const }}>Status Penyelesaian</th>
                 <th style={{ padding: '14px 20px', textAlign: 'left' as const, minWidth: 200 }}>Catatan & Rekomendasi</th>
+                <th style={{ padding: '14px 20px', textAlign: 'center' as const }}>Bintang</th>
                 <th style={{ padding: '14px 20px', textAlign: 'right' as const }}>Aksi</th>
               </tr>
             </thead>
@@ -628,6 +649,24 @@ export default function LaporanRapor(props: LaporanRaporProps) {
                     </span>
                   </td>
                   <td style={{ padding: '16px 20px', fontSize: 11, color: task.noteColor, lineHeight: 1.5, minWidth: 200 }}>{task.note}</td>
+                  <td style={{ padding: '16px 20px', textAlign: 'center' as const }}>
+                    {task.status === 'Selesai Sempurna' || task.status === 'Tuntas Tepat Waktu' ? (
+                      getTaskStarred(task.id) ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, fontSize: 10, fontWeight: 600, background: '#FEF3C7', color: '#B45309', border: '1px solid #FDE68A' }}>
+                          ⭐ Diapresiasi
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => awardStar(task.id, task.topic)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, fontSize: 10, fontWeight: 600, background: C.brand50, color: C.brand700, border: `1px solid ${C.brand200}`, cursor: 'pointer', fontFamily: FF, transition: 'all 0.15s' }}
+                        >
+                          ☆ Beri ⭐
+                        </button>
+                      )
+                    ) : (
+                      <span style={{ fontSize: 10, color: C.slate400 }}>—</span>
+                    )}
+                  </td>
                   <td style={{ padding: '16px 20px', textAlign: 'right' as const, whiteSpace: 'nowrap' as const }}>
                     <button style={{ padding: '6px 14px', fontSize: 10, fontWeight: 700, color: task.actionColor, background: task.actionBg, borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: FF, transition: 'all 0.15s' }}>
                       {task.actionText}
@@ -637,7 +676,7 @@ export default function LaporanRapor(props: LaporanRaporProps) {
               ))}
               {displayTasks.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ padding: '40px 20px', textAlign: 'center' as const, color: C.slate400, fontSize: 13 }}>
+                  <td colSpan={8} style={{ padding: '40px 20px', textAlign: 'center' as const, color: C.slate400, fontSize: 13 }}>
                     Belum ada tugas yang diberikan untuk {childName}.
                   </td>
                 </tr>
@@ -666,12 +705,23 @@ export default function LaporanRapor(props: LaporanRaporProps) {
           <div>
             <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px', fontFamily: FF }}>Apresiasi Hasil Belajar Pekan Ini!</h3>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', margin: 0, lineHeight: 1.6, maxWidth: 500 }}>
-              {childName} berhasil mempertahankan rata-rata nilai <strong>{displayAvgScore.toFixed(1)}</strong>. Berikan ia lencana reward atau tetapkan modul tantangan berikutnya untuk menjaga rasa ingin tahunya tetap tinggi.
+              {getTotalStars() > 0 ? (
+                <>🎉 {childName} telah mendapatkan <strong>{getTotalStars()} bintang apresiasi</strong> dari tugas-tugas yang berhasil diselesaikan.</>
+              ) : (
+                <>🌟 Berikan {childName} bintang apresiasi untuk tugas-tugas yang telah diselesaikan dengan baik!</>
+              )}
             </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
+              <div style={{ fontSize: 28, fontWeight: 900, fontFamily: FF }}>⭐ {getTotalStars()}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4 }}>Bintang<br/>Apresiasi</div>
+            </div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
-          <button style={{ padding: '10px 20px', borderRadius: 14, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: C.white, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: FF, transition: 'all 0.2s' }}>
+          <button
+            onClick={() => setStarModalOpen(true)}
+            style={{ padding: '10px 20px', borderRadius: 14, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: C.white, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: FF, transition: 'all 0.2s' }}
+          >
             Beri Bintang Apresiasi ⭐
           </button>
           <button style={{ padding: '10px 20px', borderRadius: 14, background: C.white, color: C.brand700, fontWeight: 800, fontSize: 12, border: 'none', cursor: 'pointer', fontFamily: FF, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', transition: 'all 0.2s' }}>
@@ -679,6 +729,112 @@ export default function LaporanRapor(props: LaporanRaporProps) {
           </button>
         </div>
       </section>
+
+      {/* ── APPRECIATION STAR MODAL ── */}
+      {starModalOpen && (
+        <div
+          onClick={() => setStarModalOpen(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: C.white, borderRadius: 24, width: '90vw', maxWidth: 640, maxHeight: '85vh', display: 'flex', flexDirection: 'column' as const, boxShadow: '0 24px 64px rgba(0,0,0,0.25)', overflow: 'hidden' }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 28px', borderBottom: `1px solid ${C.slate100}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 22 }}>⭐</span>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: C.slate900, margin: 0, fontFamily: FF }}>Berikan Bintang Apresiasi</h3>
+                  <p style={{ fontSize: 12, color: C.slate500, margin: '2px 0 0' }}>Pilih tugas selesai yang ingin kamu apresiasi untuk {childName}.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setStarModalOpen(false)}
+                style={{ width: 32, height: 32, borderRadius: 10, border: `1px solid ${C.slate200}`, background: C.slate50, color: C.slate500, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 28px' }}>
+              {activeAssignments.filter((a) => a.status === 'completed').length === 0 ? (
+                <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: C.slate700, margin: '0 0 6px' }}>Belum ada tugas yang dapat diapresiasi.</p>
+                  <p style={{ fontSize: 12, color: C.slate500, margin: 0 }}>Setelah {childName} menyelesaikan tugas, kamu bisa memberikan bintang apresiasi di sini.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10 }}>
+                  {activeAssignments.filter((a) => a.status === 'completed').map((a) => {
+                    const mod = modules.find((m) => m.id === a.materialId)
+                    const subj = subjects.find((s) => s.id === mod?.subjectId)
+                    const style = getSubjectStyle(mod?.subjectId ?? '', subj?.name ?? '')
+                    const isStarred = getTaskStarred(a.id)
+                    const dateStr = a.createdAt ? new Date(a.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'
+                    const prog = a.materialId ? assignmentProgress[a.materialId] : null
+                    const frameCount = prog ? Object.keys(prog).length : 0
+                    const completedFrames = prog ? Object.values(prog).filter((f) => f.completed).length : 0
+                    const avgAccuracy = prog && frameCount > 0
+                      ? Math.round(Object.values(prog).reduce((s, f) => s + (f.accuracy ?? 0), 0) / frameCount)
+                      : 0
+                    const score = avgAccuracy || 80
+
+                    return (
+                      <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderRadius: 14, background: isStarred ? '#FEF9E7' : C.slate50, border: isStarred ? '1px solid #FDE68A' : `1px solid ${C.slate200}`, transition: 'all 0.2s' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: 12, background: style.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: style.color, fontWeight: 700 }}>{style.icon}</div>
+                          <div>
+                            <div style={{ fontWeight: 700, color: C.slate900, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              {subj?.shortName ?? subj?.name ?? 'Tugas'}
+                              {isStarred && <span style={{ fontSize: 11 }}>⭐</span>}
+                            </div>
+                            <div style={{ fontSize: 11, color: C.slate600, marginTop: 1 }}>{a.title}</div>
+                            <div style={{ fontSize: 10, color: C.slate400, marginTop: 2 }}>{dateStr}{frameCount > 0 ? ` • ${completedFrames}/${frameCount} panel` : ''}</div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ fontSize: 12, fontWeight: 800, color: score >= 90 ? C.emerald700 : score >= 80 ? C.blue700 : C.amber700 }}>{score} / 100</span>
+                          {isStarred ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 14px', borderRadius: 10, fontSize: 11, fontWeight: 700, background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>
+                              ✓ Sudah diapresiasi
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => awardStar(a.id, a.title)}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 14px', borderRadius: 10, fontSize: 11, fontWeight: 700, background: `linear-gradient(135deg, ${C.brand600}, ${C.indigo600})`, color: C.white, border: 'none', cursor: 'pointer', fontFamily: FF, boxShadow: '0 2px 8px rgba(91,77,255,0.3)', transition: 'all 0.2s' }}
+                            >
+                              Berikan ⭐
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ padding: '14px 28px', borderTop: `1px solid ${C.slate100}`, display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setStarModalOpen(false)}
+                style={{ padding: '8px 20px', borderRadius: 10, border: `1px solid ${C.slate200}`, background: C.white, color: C.slate700, fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: FF, transition: 'all 0.15s' }}
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TOAST ── */}
+      {toastMsg && (
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 10000, background: C.slate900, color: C.white, padding: '12px 24px', borderRadius: 14, fontSize: 13, fontWeight: 600, fontFamily: FF, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: 8, animation: 'fadeInUp 0.3s ease' }}>
+          {toastMsg}
+        </div>
+      )}
     </div>
   )
 }
