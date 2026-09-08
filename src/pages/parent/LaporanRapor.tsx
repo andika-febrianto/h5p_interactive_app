@@ -613,7 +613,6 @@ export default function LaporanRapor(props: LaporanRaporProps) {
                 <th style={{ padding: '14px 20px', textAlign: 'left' as const }}>Skor / Nilai</th>
                 <th style={{ padding: '14px 20px', textAlign: 'left' as const }}>Status Penyelesaian</th>
                 <th style={{ padding: '14px 20px', textAlign: 'left' as const, minWidth: 200 }}>Catatan & Rekomendasi</th>
-                <th style={{ padding: '14px 20px', textAlign: 'center' as const }}>Bintang</th>
                 <th style={{ padding: '14px 20px', textAlign: 'right' as const }}>Aksi</th>
               </tr>
             </thead>
@@ -649,34 +648,32 @@ export default function LaporanRapor(props: LaporanRaporProps) {
                     </span>
                   </td>
                   <td style={{ padding: '16px 20px', fontSize: 11, color: task.noteColor, lineHeight: 1.5, minWidth: 200 }}>{task.note}</td>
-                  <td style={{ padding: '16px 20px', textAlign: 'center' as const }}>
-                    {task.status === 'Selesai Sempurna' || task.status === 'Tuntas Tepat Waktu' ? (
-                      getTaskStarred(task.id) ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, fontSize: 10, fontWeight: 600, background: '#FEF3C7', color: '#B45309', border: '1px solid #FDE68A' }}>
-                          ⭐ Diapresiasi
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => awardStar(task.id, task.topic)}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, fontSize: 10, fontWeight: 600, background: C.brand50, color: C.brand700, border: `1px solid ${C.brand200}`, cursor: 'pointer', fontFamily: FF, transition: 'all 0.15s' }}
-                        >
-                          ☆ Beri ⭐
-                        </button>
-                      )
-                    ) : (
-                      <span style={{ fontSize: 10, color: C.slate400 }}>—</span>
-                    )}
-                  </td>
                   <td style={{ padding: '16px 20px', textAlign: 'right' as const, whiteSpace: 'nowrap' as const }}>
-                    <button style={{ padding: '6px 14px', fontSize: 10, fontWeight: 700, color: task.actionColor, background: task.actionBg, borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: FF, transition: 'all 0.15s' }}>
-                      {task.actionText}
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+                      <button style={{ padding: '6px 14px', fontSize: 10, fontWeight: 700, color: task.actionColor, background: task.actionBg, borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: FF, transition: 'all 0.15s' }}>
+                        {task.actionText}
+                      </button>
+                      {task.status === 'Selesai Sempurna' || task.status === 'Tuntas Tepat Waktu' ? (
+                        getTaskStarred(task.id) ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, fontSize: 10, fontWeight: 700, background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>
+                            ⭐ Diapresiasi
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => awardStar(task.id, task.topic)}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, fontSize: 10, fontWeight: 700, background: `linear-gradient(135deg, ${C.brand600}, ${C.indigo600})`, color: C.white, border: 'none', cursor: 'pointer', fontFamily: FF, boxShadow: '0 2px 6px rgba(91,77,255,0.25)', transition: 'all 0.15s' }}
+                          >
+                            Beri ⭐
+                          </button>
+                        )
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}
               {displayTasks.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={{ padding: '40px 20px', textAlign: 'center' as const, color: C.slate400, fontSize: 13 }}>
+                  <td colSpan={7} style={{ padding: '40px 20px', textAlign: 'center' as const, color: C.slate400, fontSize: 13 }}>
                     Belum ada tugas yang diberikan untuk {childName}.
                   </td>
                 </tr>
