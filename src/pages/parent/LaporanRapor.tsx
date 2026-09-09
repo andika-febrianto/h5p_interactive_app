@@ -660,10 +660,10 @@ export default function LaporanRapor(props: LaporanRaporProps) {
                           </span>
                         ) : (
                           <button
-                            onClick={() => awardStar(task.id, task.topic)}
+                            onClick={() => setStarModalOpen(true)}
                             style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, fontSize: 10, fontWeight: 700, background: `linear-gradient(135deg, ${C.brand600}, ${C.indigo600})`, color: C.white, border: 'none', cursor: 'pointer', fontFamily: FF, boxShadow: '0 2px 6px rgba(91,77,255,0.25)', transition: 'all 0.15s' }}
                           >
-                            Beri ⭐
+                            Beri Bintang Apresiasi
                           </button>
                         )
                       ) : null}
