@@ -2673,41 +2673,51 @@ export default function ParentDashboard() {
                           {/* Action menu */}
                           <div data-action-menu style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
                             <button
-                              onClick={() =>
+                              onClick={(e) => {
+                                e.stopPropagation()
                                 setMenuOpenId(menuOpenId === a.id ? null : a.id)
-                              }
+                              }}
                               style={{
-                                background: 'none',
-                                border: 'none',
+                                background: '#f8fafc',
+                                border: '1px solid #e2e8f0',
                                 cursor: 'pointer',
-                                padding: '4px 8px',
-                                fontSize: 18,
-                                color: '#94a3b8',
-                                borderRadius: 6,
+                                padding: '6px 10px',
+                                fontSize: 16,
+                                color: '#475569',
+                                borderRadius: 8,
                                 lineHeight: 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
                               }}
                               onMouseEnter={(e) => {
                                 e.currentTarget.style.background = '#f1f5f9'
+                                e.currentTarget.style.borderColor = '#cbd5e1'
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'none'
+                                e.currentTarget.style.background = '#f8fafc'
+                                e.currentTarget.style.borderColor = '#e2e8f0'
                               }}
                             >
-                              ⋯
+                              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <circle cx="12" cy="5" r="1.5" />
+                                <circle cx="12" cy="12" r="1.5" />
+                                <circle cx="12" cy="19" r="1.5" />
+                              </svg>
                             </button>
                             {menuOpenId === a.id && (
                               <div
                                 style={{
                                   position: 'absolute',
-                                  top: '100%',
+                                  top: 36,
                                   right: 0,
                                   background: '#fff',
                                   border: '1px solid #e2e8f0',
                                   borderRadius: 12,
                                   boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
                                   minWidth: 180,
-                                  overflow: 'hidden',
-                                  zIndex: 20,
+                                  overflow: 'visible',
+                                  zIndex: 9999,
                                 }}
                               >
                                 <button
