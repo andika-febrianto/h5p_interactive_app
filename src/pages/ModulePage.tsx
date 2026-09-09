@@ -6,7 +6,7 @@ import {
   useSearchParams,
 } from 'react-router-dom'
 import { ProgressProvider, useProgress } from '../context/ProgressContext'
-import { fetchModule, fetchChildAssignments, ApiError } from '../lib/api'
+import { fetchModule, fetchChildAssignments, fetchAssignments, ApiError } from '../lib/api'
 import { Sidebar } from '../components/Sidebar'
 import { ScenePlayer } from '../components/ScenePlayer'
 import { SummaryScreen } from '../components/SummaryScreen'
@@ -206,10 +206,11 @@ export default function ModulePage() {
       })
   }, [moduleId])
 
-  // If there's an assignment ID, fetch child's assignments to get selectedFrames
+  // If there's an assignment ID, fetch assignments to get selectedFrames
   useEffect(() => {
     if (!assignmentId || !user?.id) return
-    fetchChildAssignments(user.id)
+    const fetcher = user.role === 'PARENT' ? fetchAssignments() : fetchChildAssignments(user.id)
+    fetcher
       .then((assignments) => {
         const a = assignments.find((x) => x.id === assignmentId)
         if (a?.selectedFrames && a.selectedFrames.length > 0) {
@@ -217,7 +218,7 @@ export default function ModulePage() {
         }
       })
       .catch(() => {})
-  }, [assignmentId, user?.id])
+  }, [assignmentId, user?.id, user?.role])
 
   if (notFound) {
     return (
