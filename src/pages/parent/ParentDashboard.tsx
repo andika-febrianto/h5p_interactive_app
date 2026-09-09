@@ -2722,7 +2722,7 @@ export default function ParentDashboard() {
                                 {comp.total} panel ditugaskan
                               </p>
                               <button
-                                onClick={() => a.materialId && navigate('/modul/' + a.materialId)}
+                                onClick={() => a.materialId && navigate('/modul/' + a.materialId + '?assignment=' + a.id)}
                                 style={{
                                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                                   padding: '8px 16px', borderRadius: 12, fontSize: 12, fontWeight: 700,
@@ -3073,7 +3073,7 @@ export default function ParentDashboard() {
                                   cursor: 'pointer',
                                 }}
                                 onClick={() =>
-                                  navigate(`/modul/${a.materialId}`)
+                                  navigate(`/modul/${a.materialId}?assignment=${a.id}`)
                                 }
                               >
                                 Bantu {childName.split(' ')[0]} Mulai
