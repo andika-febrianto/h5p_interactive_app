@@ -2582,397 +2582,201 @@ export default function ParentDashboard() {
             <div style={S.leftCol}>
               {/* Progress Belajar */}
               <section style={S.card}>
-                <div style={S.cardHeader}>
-                  <div
-                    style={{ display: 'flex', alignItems: 'center', gap: 12 }}
-                  >
-                    <div
-                      style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 16,
-                        background: '#F5F3FF',
-                        border: '1px solid #EDE9FE',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#5B4DFF',
-                      }}
-                    >
-                      <svg
-                        width='24'
-                        height='24'
-                        fill='none'
-                        stroke='currentColor'
-                        strokeWidth='2'
-                        viewBox='0 0 24 24'
-                      >
-                        <path
-                          d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                        />
-                      </svg>
+              {/* Progress Belajar */}
+              <section style={{ background: '#fff', borderRadius: 24, border: '1px solid rgba(226,232,240,0.8)', padding: '24px 32px 28px', boxShadow: '0 4px 20px -2px rgba(15,23,42,0.05), 0 2px 6px -1px rgba(15,23,42,0.02)' }}>
+                {/* ── Header ── */}
+                <header style={{ display: 'flex', flexDirection: 'row' as const, alignItems: 'center', justifyContent: 'space-between', gap: 20, paddingBottom: 24, borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap' as const }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 16, background: 'rgba(238,242,255,0.8)', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 0 4px rgba(238,242,255,0.4)' }}>
+                      <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     </div>
                     <div>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          textTransform: 'uppercase' as const,
-                          letterSpacing: '0.08em',
-                          color: '#5B4DFF',
-                          background: '#F5F3FF',
-                          padding: '2px 8px',
-                          borderRadius: 4,
-                        }}
-                      >
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 10px', borderRadius: 6, background: 'rgba(238,242,255,0.8)', color: '#4F46E5', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 4 }}>
                         Modul Yang Sedang Berjalan
-                      </span>
-                      <h2 style={{ ...S.sectionTitle, marginTop: 4 }}>
+                      </div>
+                      <h2 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.01em' }}>
                         Progress Belajar {childName}
                       </h2>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        padding: '4px 10px',
-                        background: '#FFFBEB',
-                        color: '#92400E',
-                        borderRadius: 999,
-                        border: '1px solid #FDE68A',
-                      }}
-                    >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
+                    <span style={{ padding: '6px 16px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: 'rgba(255,251,235,0.9)', color: '#92400E', border: '1px solid rgba(253,230,138,0.8)', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
                       Matematika Dasar
                     </span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        padding: '4px 10px',
-                        background: '#d1fae5',
-                        color: '#065f46',
-                        borderRadius: 999,
-                        border: '1px solid #a7f3d0',
-                      }}
-                    >
+                    <span style={{ padding: '6px 16px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: 'rgba(209,250,229,0.5)', color: '#065f46', border: '1px solid rgba(167,243,208,0.8)', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
                       Semester 1
                     </span>
                   </div>
-                </div>
+                </header>
 
-                {selectedChild && activeAssignments.length > 0
-                  ? activeAssignments.map((a) => {
-                      const comp = getAssignmentCompletion(a)
-                      const statusLabel = deadlineStatus(a)
-                      return (
-                        <div key={a.id} style={{ ...S.progressCard, position: 'relative' }}>
-                          {/* Action menu */}
-                          <div data-action-menu style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setMenuOpenId(menuOpenId === a.id ? null : a.id)
-                              }}
-                              style={{
-                                background: '#f8fafc',
-                                border: '1px solid #e2e8f0',
-                                cursor: 'pointer',
-                                padding: '6px 10px',
-                                fontSize: 16,
-                                color: '#475569',
-                                borderRadius: 8,
-                                lineHeight: 1,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = '#f1f5f9'
-                                e.currentTarget.style.borderColor = '#cbd5e1'
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = '#f8fafc'
-                                e.currentTarget.style.borderColor = '#e2e8f0'
-                              }}
-                            >
-                              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <circle cx="12" cy="5" r="1.5" />
-                                <circle cx="12" cy="12" r="1.5" />
-                                <circle cx="12" cy="19" r="1.5" />
-                              </svg>
-                            </button>
-                            {menuOpenId === a.id && (
-                              <div
-                                style={{
-                                  position: 'absolute',
-                                  top: 36,
-                                  right: 0,
-                                  background: '#fff',
-                                  border: '1px solid #e2e8f0',
-                                  borderRadius: 12,
-                                  boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                                  minWidth: 180,
-                                  overflow: 'visible',
-                                  zIndex: 9999,
-                                }}
-                              >
-                                <button
-                                  onClick={() => {
-                                    setMenuOpenId(null)
-                                    setEditingAssignment(a)
-                                    setEditTitle(a.title)
-                                    setEditDescription(a.description ?? '')
-                                    setEditNotes(a.notes ?? '')
-                                    setEditDueDate(
-                                      a.dueDate
-                                        ? new Date(a.dueDate).toISOString().split('T')[0]
-                                        : '',
-                                    )
-                                  }}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8,
-                                    width: '100%',
-                                    padding: '10px 14px',
-                                    border: 'none',
-                                    background: 'none',
-                                    cursor: 'pointer',
-                                    fontSize: 13,
-                                    fontWeight: 600,
-                                    color: '#5B4DFF',
-                                    textAlign: 'left',
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = '#F5F3FF'
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = 'none'
-                                  }}
-                                >
-                                  ✏️ Edit Tugas
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setMenuOpenId(null)
-                                    setDeleteTarget(a)
-                                    setDeleteError(null)
-                                  }}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8,
-                                    width: '100%',
-                                    padding: '10px 14px',
-                                    border: 'none',
-                                    background: 'none',
-                                    cursor: 'pointer',
-                                    fontSize: 13,
-                                    fontWeight: 600,
-                                    color: '#DC2626',
-                                    textAlign: 'left',
-                                    borderTop: '1px solid #f1f5f9',
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = '#FEF2F2'
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = 'none'
-                                  }}
-                                >
-                                  🗑️ Hapus Tugas
-                                </button>
+                {/* ── Active Task Cards ── */}
+                <div style={{ marginTop: 24 }}>
+                  {selectedChild && activeAssignments.length > 0
+                    ? activeAssignments.map((a) => {
+                        const comp = getAssignmentCompletion(a)
+                        const statusLabel = deadlineStatus(a)
+                        return (
+                          <div key={a.id} style={{ position: 'relative', background: '#FBFBFE', borderRadius: 16, border: '1px solid rgba(238,242,255,0.8)', padding: '20px 24px', marginBottom: 16, transition: 'border-color 0.2s' }}>
+                            {/* Task Header */}
+                            <div style={{ display: 'flex', flexDirection: 'row' as const, justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap' as const, alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                                  <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: 0, lineHeight: 1.3 }}>
+                                    {a.title}
+                                  </h3>
+                                  <span style={{ padding: '2px 10px', borderRadius: 999, fontSize: 12, fontWeight: 500, color: statusLabel.color, background: statusLabel.bg, border: '1px solid ' + statusLabel.border }}>
+                                    {statusLabel.label}
+                                  </span>
+                                </div>
+                                {a.dueDate && (
+                                  <p style={{ fontSize: 13, color: '#64748b', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span>📅</span>
+                                    <span>Deadline: <strong style={{ color: '#334155', fontWeight: 600 }}>{new Date(a.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</strong></span>
+                                  </p>
+                                )}
                               </div>
-                            )}
-                          </div>
 
-                          <div
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'flex-start',
-                              marginBottom: 12,
-                            }}
-                          >
-                            <div style={{ flex: 1, paddingRight: 32 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                <p
-                                  style={{
-                                    fontSize: 16,
-                                    fontWeight: 700,
-                                    color: '#0f172a',
-                                    margin: 0,
-                                  }}
-                                >
-                                  {a.title}
-                                </p>
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    color: statusLabel.color,
-                                    background: statusLabel.bg,
-                                    padding: '2px 8px',
-                                    borderRadius: 999,
-                                    border: '1px solid ' + statusLabel.border,
-                                  }}
-                                >
-                                  {statusLabel.label}
-                                </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                                {/* Progress Percentage */}
+                                <div style={{ textAlign: 'right' }}>
+                                  <span style={{ fontSize: 28, fontWeight: 800, color: '#4F46E5', letterSpacing: '-0.02em' }}>{comp.pct}%</span>
+                                  <span style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' as const, marginTop: -2 }}>Selesai</span>
+                                </div>
+
+                                {/* Action Menu */}
+                                <div data-action-menu style={{ position: 'relative' }}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setMenuOpenId(menuOpenId === a.id ? null : a.id)
+                                    }}
+                                    style={{
+                                      width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      borderRadius: 12, color: '#64748b', background: '#fff', border: '1px solid #e2e8f0',
+                                      cursor: 'pointer', padding: 0,
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1' }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e2e8f0' }}
+                                    title="Opsi Tugas"
+                                  >
+                                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                      <circle cx="12" cy="5" fill="currentColor" r="1.5" />
+                                      <circle cx="12" cy="12" fill="currentColor" r="1.5" />
+                                      <circle cx="12" cy="19" fill="currentColor" r="1.5" />
+                                    </svg>
+                                  </button>
+                                  {menuOpenId === a.id && (
+                                    <div style={{
+                                      position: 'absolute', top: 48, right: 0, width: 192, background: '#fff',
+                                      border: '1px solid rgba(226,232,240,0.9)', borderRadius: 16, padding: '6px 0',
+                                      boxShadow: '0 12px 30px -4px rgba(15,23,42,0.12), 0 4px 8px -2px rgba(15,23,42,0.04)',
+                                      zIndex: 9999,
+                                    }}>
+                                      <button
+                                        onClick={() => {
+                                          setMenuOpenId(null)
+                                          setEditingAssignment(a)
+                                          setEditTitle(a.title)
+                                          setEditDescription(a.description ?? '')
+                                          setEditNotes(a.notes ?? '')
+                                          setEditDueDate(a.dueDate ? new Date(a.dueDate).toISOString().split('T')[0] : '')
+                                        }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#334155', textAlign: 'left' as const }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#4F46E5' }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#334155' }}
+                                      >
+                                        <span style={{ fontSize: 16 }}>✏️</span>
+                                        <span>Edit Tugas</span>
+                                      </button>
+                                      <div style={{ margin: '4px 12px', borderTop: '1px solid #f1f5f9' }} />
+                                      <button
+                                        onClick={() => {
+                                          setMenuOpenId(null)
+                                          setDeleteTarget(a)
+                                          setDeleteError(null)
+                                        }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#e11d48', textAlign: 'left' as const }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(254,242,242,0.8)' }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+                                      >
+                                        <span style={{ fontSize: 16 }}>🗑️</span>
+                                        <span>Hapus Tugas</span>
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                              {a.dueDate && (
-                                <p
-                                  style={{
-                                    fontSize: 12,
-                                    color: '#94a3b8',
-                                    margin: '2px 0 0',
-                                  }}
-                                >
-                                  📅 Deadline: {new Date(a.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                </p>
-                              )}
                             </div>
-                            <div style={{ textAlign: 'right', minWidth: 60 }}>
-                              <span
-                                style={{
-                                  fontSize: 28,
-                                  fontWeight: 900,
-                                  color: '#5B4DFF',
-                                }}
-                              >
-                                {comp.pct}%
-                              </span>
-                              <p
-                                style={{
-                                  fontSize: 11,
-                                  color: '#94a3b8',
-                                  margin: '2px 0 0',
-                                }}
-                              >
-                                {comp.completed}/{comp.total} selesai
+
+                            {/* Progress Bar */}
+                            <div style={{ marginTop: 20, marginBottom: 16 }}>
+                              <div style={{ width: '100%', background: '#f1f5f9', borderRadius: 999, height: 10, overflow: 'hidden', padding: 2, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)' }}>
+                                <div style={{ width: comp.pct + '%', background: 'linear-gradient(90deg, #6366F1, #4F46E5)', height: '100%', borderRadius: 999, transition: 'width 0.7s ease', boxShadow: '0 1px 3px rgba(99,102,241,0.3)' }} />
+                              </div>
+                            </div>
+
+                            {/* Sub-info & Action */}
+                            <div style={{ display: 'flex', flexDirection: 'row' as const, justifyContent: 'space-between', alignItems: 'center', paddingTop: 4 }}>
+                              <p style={{ fontSize: 12, fontWeight: 500, color: '#94a3b8', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#cbd5e1' }} />
+                                {comp.total} panel ditugaskan
                               </p>
-                            </div>
-                          </div>
-
-                          <div style={S.progressBar}>
-                            <div style={S.progressBarInner(comp.pct)} />
-                          </div>
-
-                          <div
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              marginTop: 12,
-                              paddingTop: 12,
-                              borderTop: '1px solid rgba(226,232,240,0.5)',
-                            }}
-                          >
-                            <span style={{ fontSize: 12, color: '#94a3b8' }}>
-                              {comp.total} panel ditugaskan
-                            </span>
-                            <div style={{ display: 'flex', gap: 8 }}>
                               <button
-                                style={S.btnSecondary}
-                                onClick={() =>
-                                  a.materialId && navigate('/modul/' + a.materialId)
-                                }
+                                onClick={() => a.materialId && navigate('/modul/' + a.materialId)}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                  padding: '8px 16px', borderRadius: 12, fontSize: 12, fontWeight: 700,
+                                  color: '#334155', background: '#fff', border: '1px solid #e2e8f0',
+                                  cursor: 'pointer',
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.color = '#4F46E5' }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#334155' }}
                               >
                                 Lihat Detail
-                              </button>
-                              <button
-                                style={{
-                                  ...S.btnSecondary,
-                                  background: '#5B4DFF',
-                                  color: '#fff',
-                                  border: 'none',
-                                }}
-                                onClick={() =>
-                                  a.materialId && navigate('/modul/' + a.materialId)
-                                }
-                              >
-                                Mulai Belajar
+                                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" /></svg>
                               </button>
                             </div>
                           </div>
-                        </div>
-                      )
-                    })
-                  : (
-                    <div
-                      style={{
-                        padding: 40,
-                        textAlign: 'center',
-                        color: '#94a3b8',
-                        fontSize: 13,
-                      }}
-                    >
-                      {childrenLoading
-                        ? 'Memuat data...'
-                        : 'Belum ada modul yang sedang berjalan. Klik "+ Beri Tugas" untuk membuat tugas baru.'}
-                    </div>
-                  )}
+                        )
+                      })
+                    : (
+                      <div style={{ padding: 48, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                        {childrenLoading
+                          ? 'Memuat data...'
+                          : 'Belum ada modul yang sedang berjalan. Klik "+ Beri Tugas" untuk membuat tugas baru.'}
+                      </div>
+                    )
+                  }
+                </div>
 
-                <div style={S.subjectChips}>
+                {/* ── Subject Quick Stats ── */}
+                <footer style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
                   {subjects.slice(0, 3).map((s) => {
                     const sAssignments = assignments.filter(
-                      (a) =>
-                        a.materialId &&
-                        moduleCache[a.materialId]?.subjectId === s.id,
+                      (a) => a.materialId && moduleCache[a.materialId]?.subjectId === s.id,
                     )
-                    const pct =
-                      sAssignments.length > 0
-                        ? Math.round(
-                            sAssignments.reduce(
-                              (sum, a) => sum + getAssignmentCompletion(a).pct,
-                              0,
-                            ) / sAssignments.length,
-                          )
-                        : 0
+                    const pct = sAssignments.length > 0
+                      ? Math.round(sAssignments.reduce((sum, a) => sum + getAssignmentCompletion(a).pct, 0) / sAssignments.length)
+                      : 0
+                    const isActive = pct > 0
                     return (
-                      <div key={s.id} style={S.subjectChip}>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                          }}
-                        >
-                          <span
-                            style={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: '50%',
-                              background: s.accent,
-                            }}
-                          />
-                          <span
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 600,
-                              color: '#334155',
-                            }}
-                          >
-                            {s.shortName}
-                          </span>
+                      <div key={s.id} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '12px 16px', borderRadius: 16,
+                        background: isActive ? 'rgba(238,242,255,0.4)' : 'rgba(248,250,252,0.7)',
+                        border: '1px solid ' + (isActive ? 'rgba(224,231,255,0.8)' : 'rgba(226,232,240,0.7)'),
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.accent, boxShadow: '0 0 0 4px ' + s.accent + '20' }} />
+                          <span style={{ fontSize: 12, fontWeight: 600, color: isActive ? '#1e293b' : '#64748b' }}>{s.shortName}</span>
                         </div>
-                        <span
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: s.accent,
-                          }}
-                        >
-                          {pct}% Selesai
-                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: isActive ? '#4F46E5' : '#94a3b8' }}>{pct}% Selesai</span>
                       </div>
                     )
                   })}
-                </div>
+                </footer>
+              </section>
+
               </section>
 
               {/* Weekly Chart */}
