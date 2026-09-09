@@ -25,10 +25,17 @@ import {
   type Question,
   updateChild,
   deleteChild,
+  fetchNotifications,
+  fetchUnreadCount,
+  markNotificationRead,
+  markAllNotificationsRead,
+  type Notification,
 } from '../../lib/api'
 import { ApiError } from '../../lib/api'
 import { grades, semesters } from '../../data/grades'
 import ModulBelajar from './ModulBelajar'
+import LaporanRapor from './LaporanRapor'
+import JadwalTugas from './JadwalTugas'
 
 const KIND_ICON: Record<string, string> = {
   text: '📄',
@@ -797,6 +804,12 @@ export default function ParentDashboard() {
   //Profile Dropdown
   const [isProfileOpen, setIsProfileOpen] = useState(false)
 
+  // Notifications
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
+
   // Manage profiles
   const [showManageProfiles, setShowManageProfiles] = useState(false)
   const [editingChild, setEditingChild] = useState<ChildInfo | null>(null)
@@ -825,6 +838,13 @@ export default function ParentDashboard() {
     checkDeadlines().catch(() => {})
     generateWeeklyReport().catch(() => {})
     generateMonthlyReport().catch(() => {})
+  }, [])
+
+  // Load notifications
+  useEffect(() => {
+    fetchUnreadCount()
+      .then((r) => setUnreadCount(r.count))
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -1195,15 +1215,7 @@ export default function ParentDashboard() {
   const activeAssignments = assignments.filter(
     (a) => a.status !== 'completed' && a.childId === (selectedChild?.id ?? ''),
   )
-  const overdueCount = activeAssignments.filter((a) => {
-    if (!a.dueDate) return false
-    return new Date(a.dueDate).getTime() < Date.now()
-  }).length
-  const bellCount =
-    overdueCount ||
-    (assignments.filter((a) => a.status === 'pending').length > 0
-      ? Math.min(assignments.filter((a) => a.status === 'pending').length, 3)
-      : 0)
+  const bellCount = unreadCount
 
   const barData = [
     { day: 'Sen', min: 30, h: 55, active: true, peak: false },
@@ -1394,23 +1406,304 @@ export default function ParentDashboard() {
                 />
               </svg>
             </button> */}
-            <button style={S.bellBtn}>
-              <svg
-                width='20'
-                height='20'
-                fill='none'
-                stroke='currentColor'
-                strokeWidth='2'
-                viewBox='0 0 24 24'
+            <div style={{ position: 'relative' }}>
+              <button
+                style={S.bellBtn}
+                onClick={() => {
+                  const next = !showNotifications
+                  setShowNotifications(next)
+                  if (next) {
+                    setNotificationsLoading(true)
+                    fetchNotifications()
+                      .then(setNotifications)
+                      .catch(() => setNotifications([]))
+                      .finally(() => setNotificationsLoading(false))
+                  }
+                }}
               >
-                <path
-                  d='M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                />
-              </svg>
-              {bellCount > 0 && <span style={S.bellBadge}>{bellCount}</span>}
-            </button>
+                <svg
+                  width='20'
+                  height='20'
+                  fill='none'
+                  stroke='currentColor'
+                  strokeWidth='2'
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    d='M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9'
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                  />
+                </svg>
+                {bellCount > 0 && <span style={S.bellBadge}>{bellCount}</span>}
+              </button>
+
+              {/* ── Notification Dropdown ── */}
+              {showNotifications && (
+                <>
+                  {/* Backdrop */}
+                  <div
+                    style={{
+                      position: 'fixed',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      zIndex: 99,
+                    }}
+                    onClick={() => setShowNotifications(false)}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      right: 0,
+                      width: 380,
+                      maxHeight: 480,
+                      background: '#fff',
+                      borderRadius: 20,
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+                      zIndex: 100,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {/* Header */}
+                    <div
+                      style={{
+                        padding: '16px 20px',
+                        borderBottom: '1px solid #f1f5f9',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 15,
+                            fontWeight: 800,
+                            color: '#0f172a',
+                          }}
+                        >
+                          Notifikasi
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: '#94a3b8',
+                            marginTop: 2,
+                          }}
+                        >
+                          {unreadCount > 0
+                            ? `${unreadCount} belum dibaca`
+                            : 'Semua sudah dibaca'}
+                        </div>
+                      </div>
+                      {unreadCount > 0 && (
+                        <button
+                          type='button'
+                          onClick={async () => {
+                            await markAllNotificationsRead().catch(() => {})
+                            setNotifications((prev) =>
+                              prev.map((n) => ({ ...n, read: true })),
+                            )
+                            setUnreadCount(0)
+                          }}
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: '#5B4DFF',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '4px 8px',
+                            borderRadius: 8,
+                            fontFamily:
+                              '"Plus Jakarta Sans", system-ui, sans-serif',
+                          }}
+                        >
+                          Tandai semua dibaca
+                        </button>
+                      )}
+                    </div>
+
+                    {/* List */}
+                    <div
+                      style={{
+                        maxHeight: 400,
+                        overflowY: 'auto',
+                      }}
+                    >
+                      {notificationsLoading ? (
+                        <div
+                          style={{
+                            padding: 32,
+                            textAlign: 'center',
+                            color: '#94a3b8',
+                            fontSize: 13,
+                          }}
+                        >
+                          Memuat notifikasi...
+                        </div>
+                      ) : notifications.length === 0 ? (
+                        <div style={{ padding: 32, textAlign: 'center' }}>
+                          <div style={{ fontSize: 36, marginBottom: 8 }}>
+                            🔔
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 600,
+                              color: '#475569',
+                            }}
+                          >
+                            Belum ada notifikasi
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: '#94a3b8',
+                              marginTop: 4,
+                            }}
+                          >
+                            Notifikasi akan muncul di sini
+                          </div>
+                        </div>
+                      ) : (
+                        notifications.slice(0, 20).map((notif) => {
+                          const isUnread = !notif.read
+                          const notifIcon =
+                            notif.type === 'overdue'
+                              ? '⚠️'
+                              : notif.type === 'completed'
+                                ? '✅'
+                                : notif.type === 'deadline'
+                                  ? '📅'
+                                  : notif.type === 'reminder'
+                                    ? '⏰'
+                                    : notif.type === 'score'
+                                      ? '📊'
+                                      : '🔔'
+                          return (
+                            <div
+                              key={notif.id}
+                              onClick={async () => {
+                                if (isUnread) {
+                                  await markNotificationRead(notif.id).catch(
+                                    () => {},
+                                  )
+                                  setNotifications((prev) =>
+                                    prev.map((n) =>
+                                      n.id === notif.id
+                                        ? { ...n, read: true }
+                                        : n,
+                                    ),
+                                  )
+                                  setUnreadCount((c) => Math.max(0, c - 1))
+                                }
+                              }}
+                              style={{
+                                padding: '14px 20px',
+                                borderBottom: '1px solid #f8fafc',
+                                background: isUnread ? '#f8f9ff' : '#fff',
+                                cursor: 'pointer',
+                                transition: 'background 0.15s',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#f1f5f9'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = isUnread
+                                  ? '#f8f9ff'
+                                  : '#fff'
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'flex-start',
+                                  gap: 12,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: 10,
+                                    background: isUnread
+                                      ? '#EEF2FF'
+                                      : '#f1f5f9',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: 16,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {notifIcon}
+                                </div>
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <div
+                                    style={{
+                                      fontSize: 13,
+                                      fontWeight: isUnread ? 700 : 600,
+                                      color: '#0f172a',
+                                      lineHeight: 1.4,
+                                    }}
+                                  >
+                                    {notif.title}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: 12,
+                                      color: '#64748b',
+                                      marginTop: 2,
+                                      lineHeight: 1.4,
+                                    }}
+                                  >
+                                    {notif.message}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: 11,
+                                      color: '#94a3b8',
+                                      marginTop: 4,
+                                    }}
+                                  >
+                                    {new Date(
+                                      notif.createdAt,
+                                    ).toLocaleDateString('id-ID', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })}
+                                  </div>
+                                </div>
+                                {isUnread && (
+                                  <div
+                                    style={{
+                                      width: 8,
+                                      height: 8,
+                                      borderRadius: '50%',
+                                      background: '#5B4DFF',
+                                      flexShrink: 0,
+                                      marginTop: 6,
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
             {/* <div style={S.divider} /> */}
             {/* <div style={S.profileArea} onClick={() => setShowCreateChild(true)}>
               <div style={S.avatar}>
@@ -3402,6 +3695,21 @@ export default function ParentDashboard() {
             </aside>
           </div>
         )}
+
+        {/* Laporan & Rapor */}
+        {viewMode === 'reports' && (
+          <LaporanRapor
+            children={children}
+            selectedChildIdx={selectedChildIdx}
+            onChildChange={setSelectedChildIdx}
+            assignments={assignments}
+            subjects={subjects}
+            modules={browseModules}
+            moduleCache={moduleCache}
+            assignmentProgress={assignmentProgress}
+          />
+        )}
+
         {/* Modul Belajar */}
         {viewMode === 'modules' && (
           <ModulBelajar
@@ -3557,6 +3865,20 @@ export default function ParentDashboard() {
           //     </div>
           //   )}
           // </section>
+        )}
+
+        {/* Jadwal & Tugas */}
+        {viewMode === 'schedule' && (
+          <JadwalTugas
+            children={children}
+            selectedChildIdx={selectedChildIdx}
+            onChildChange={setSelectedChildIdx}
+            assignments={assignments}
+            subjects={subjects}
+            modules={browseModules}
+            moduleCache={moduleCache}
+            assignmentProgress={assignmentProgress}
+          />
         )}
       </main>
 
