@@ -806,7 +806,9 @@ export default function ParentDashboard() {
   const [editSuccess, setEditSuccess] = useState(false)
 
   // Delete confirmation state
-  const [deleteTarget, setDeleteTarget] = useState<ParentAssignment | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<ParentAssignment | null>(
+    null,
+  )
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
@@ -979,19 +981,18 @@ export default function ParentDashboard() {
 
   // ── Handlers ──
   const handleCreateChild = async (e: React.FormEvent) => {
-
-  // Close action menu on outside click
-  useEffect(() => {
-    if (!menuOpenId) return
-    const handler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (!target.closest('[data-action-menu]')) {
-        setMenuOpenId(null)
+    // Close action menu on outside click
+    useEffect(() => {
+      if (!menuOpenId) return
+      const handler = (e: MouseEvent) => {
+        const target = e.target as HTMLElement
+        if (!target.closest('[data-action-menu]')) {
+          setMenuOpenId(null)
+        }
       }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [menuOpenId])
+      document.addEventListener('mousedown', handler)
+      return () => document.removeEventListener('mousedown', handler)
+    }, [menuOpenId])
 
     e.preventDefault()
     setChildError(null)
@@ -1534,11 +1535,25 @@ export default function ParentDashboard() {
                       }}
                     >
                       <div>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: '#0f172a' }}>
+                        <div
+                          style={{
+                            fontSize: 15,
+                            fontWeight: 800,
+                            color: '#0f172a',
+                          }}
+                        >
                           Notifikasi
                         </div>
-                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-                          {unreadCount > 0 ? `${unreadCount} belum dibaca` : 'Semua sudah dibaca'}
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: '#94a3b8',
+                            marginTop: 2,
+                          }}
+                        >
+                          {unreadCount > 0
+                            ? `${unreadCount} belum dibaca`
+                            : 'Semua sudah dibaca'}
                         </div>
                       </div>
                       {unreadCount > 0 && (
@@ -1546,7 +1561,9 @@ export default function ParentDashboard() {
                           type='button'
                           onClick={async () => {
                             await markAllNotificationsRead().catch(() => {})
-                            setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+                            setNotifications((prev) =>
+                              prev.map((n) => ({ ...n, read: true })),
+                            )
                             setUnreadCount(0)
                           }}
                           style={{
@@ -1558,7 +1575,8 @@ export default function ParentDashboard() {
                             cursor: 'pointer',
                             padding: '4px 8px',
                             borderRadius: 8,
-                            fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
+                            fontFamily:
+                              '"Plus Jakarta Sans", system-ui, sans-serif',
                           }}
                         >
                           Tandai semua dibaca
@@ -1574,16 +1592,37 @@ export default function ParentDashboard() {
                       }}
                     >
                       {notificationsLoading ? (
-                        <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                        <div
+                          style={{
+                            padding: 32,
+                            textAlign: 'center',
+                            color: '#94a3b8',
+                            fontSize: 13,
+                          }}
+                        >
                           Memuat notifikasi...
                         </div>
                       ) : notifications.length === 0 ? (
                         <div style={{ padding: 32, textAlign: 'center' }}>
-                          <div style={{ fontSize: 36, marginBottom: 8 }}>🔔</div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>
+                          <div style={{ fontSize: 36, marginBottom: 8 }}>
+                            🔔
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 600,
+                              color: '#475569',
+                            }}
+                          >
                             Belum ada notifikasi
                           </div>
-                          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: '#94a3b8',
+                              marginTop: 4,
+                            }}
+                          >
                             Notifikasi akan muncul di sini
                           </div>
                         </div>
@@ -1591,20 +1630,31 @@ export default function ParentDashboard() {
                         notifications.slice(0, 20).map((notif) => {
                           const isUnread = !notif.read
                           const notifIcon =
-                            notif.type === 'overdue' ? '⚠️'
-                            : notif.type === 'completed' ? '✅'
-                            : notif.type === 'deadline' ? '📅'
-                            : notif.type === 'reminder' ? '⏰'
-                            : notif.type === 'score' ? '📊'
-                            : '🔔'
+                            notif.type === 'overdue'
+                              ? '⚠️'
+                              : notif.type === 'completed'
+                                ? '✅'
+                                : notif.type === 'deadline'
+                                  ? '📅'
+                                  : notif.type === 'reminder'
+                                    ? '⏰'
+                                    : notif.type === 'score'
+                                      ? '📊'
+                                      : '🔔'
                           return (
                             <div
                               key={notif.id}
                               onClick={async () => {
                                 if (isUnread) {
-                                  await markNotificationRead(notif.id).catch(() => {})
+                                  await markNotificationRead(notif.id).catch(
+                                    () => {},
+                                  )
                                   setNotifications((prev) =>
-                                    prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
+                                    prev.map((n) =>
+                                      n.id === notif.id
+                                        ? { ...n, read: true }
+                                        : n,
+                                    ),
                                   )
                                   setUnreadCount((c) => Math.max(0, c - 1))
                                 }
@@ -1620,16 +1670,26 @@ export default function ParentDashboard() {
                                 e.currentTarget.style.background = '#f1f5f9'
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.background = isUnread ? '#f8f9ff' : '#fff'
+                                e.currentTarget.style.background = isUnread
+                                  ? '#f8f9ff'
+                                  : '#fff'
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'flex-start',
+                                  gap: 12,
+                                }}
+                              >
                                 <div
                                   style={{
                                     width: 36,
                                     height: 36,
                                     borderRadius: 10,
-                                    background: isUnread ? '#EEF2FF' : '#f1f5f9',
+                                    background: isUnread
+                                      ? '#EEF2FF'
+                                      : '#f1f5f9',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -1660,8 +1720,16 @@ export default function ParentDashboard() {
                                   >
                                     {notif.message}
                                   </div>
-                                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                                    {new Date(notif.createdAt).toLocaleDateString('id-ID', {
+                                  <div
+                                    style={{
+                                      fontSize: 11,
+                                      color: '#94a3b8',
+                                      marginTop: 4,
+                                    }}
+                                  >
+                                    {new Date(
+                                      notif.createdAt,
+                                    ).toLocaleDateString('id-ID', {
                                       day: 'numeric',
                                       month: 'short',
                                       year: 'numeric',
@@ -2156,7 +2224,7 @@ export default function ParentDashboard() {
                     >
                       {h.key === 'kelola' ? (
                         <>
-                          <IconProfile /> `${h.label} ${childName}`
+                          <IconProfile /> {h.label} {childName}
                         </>
                       ) : (
                         <>
@@ -2582,122 +2650,431 @@ export default function ParentDashboard() {
             <div style={S.leftCol}>
               {/* Progress Belajar */}
               <section style={S.card}>
-              {/* Progress Belajar */}
-              <section style={{ background: '#fff', borderRadius: 24, border: '1px solid rgba(226,232,240,0.8)', padding: '24px 32px 28px', boxShadow: '0 4px 20px -2px rgba(15,23,42,0.05), 0 2px 6px -1px rgba(15,23,42,0.02)' }}>
-                {/* ── Header ── */}
-                <header style={{ display: 'flex', flexDirection: 'row' as const, alignItems: 'center', justifyContent: 'space-between', gap: 20, paddingBottom: 24, borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap' as const }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{ width: 48, height: 48, borderRadius: 16, background: 'rgba(238,242,255,0.8)', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 0 4px rgba(238,242,255,0.4)' }}>
-                      <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                    </div>
-                    <div>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 10px', borderRadius: 6, background: 'rgba(238,242,255,0.8)', color: '#4F46E5', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 4 }}>
-                        Modul Yang Sedang Berjalan
+                {/* Progress Belajar */}
+                <section
+                  style={{
+                    background: '#fff',
+                    borderRadius: 24,
+                    border: '1px solid rgba(226,232,240,0.8)',
+                    padding: '24px 32px 28px',
+                    boxShadow:
+                      '0 4px 20px -2px rgba(15,23,42,0.05), 0 2px 6px -1px rgba(15,23,42,0.02)',
+                  }}
+                >
+                  {/* ── Header ── */}
+                  <header
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row' as const,
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 20,
+                      paddingBottom: 24,
+                      borderBottom: '1px solid #f1f5f9',
+                      flexWrap: 'wrap' as const,
+                    }}
+                  >
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: 14 }}
+                    >
+                      <div
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 16,
+                          background: 'rgba(238,242,255,0.8)',
+                          color: '#4F46E5',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          boxShadow: '0 0 0 4px rgba(238,242,255,0.4)',
+                        }}
+                      >
+                        <svg
+                          width='24'
+                          height='24'
+                          fill='none'
+                          stroke='currentColor'
+                          strokeWidth='2'
+                          viewBox='0 0 24 24'
+                        >
+                          <path
+                            d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
+                            strokeLinecap='round'
+                            strokeLinejoin='round'
+                          />
+                        </svg>
                       </div>
-                      <h2 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.01em' }}>
-                        Progress Belajar {childName}
-                      </h2>
+                      <div>
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            padding: '2px 10px',
+                            borderRadius: 6,
+                            background: 'rgba(238,242,255,0.8)',
+                            color: '#4F46E5',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: '0.08em',
+                            textTransform: 'uppercase' as const,
+                            marginBottom: 4,
+                          }}
+                        >
+                          Modul Yang Sedang Berjalan
+                        </div>
+                        <h2
+                          style={{
+                            fontSize: 20,
+                            fontWeight: 700,
+                            color: '#0f172a',
+                            margin: 0,
+                            letterSpacing: '-0.01em',
+                          }}
+                        >
+                          Progress Belajar {childName}
+                        </h2>
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
-                    <span style={{ padding: '6px 16px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: 'rgba(255,251,235,0.9)', color: '#92400E', border: '1px solid rgba(253,230,138,0.8)', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
-                      Matematika Dasar
-                    </span>
-                    <span style={{ padding: '6px 16px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: 'rgba(209,250,229,0.5)', color: '#065f46', border: '1px solid rgba(167,243,208,0.8)', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
-                      Semester 1
-                    </span>
-                  </div>
-                </header>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        flexWrap: 'wrap' as const,
+                      }}
+                    >
+                      <span
+                        style={{
+                          padding: '6px 16px',
+                          borderRadius: 999,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          background: 'rgba(255,251,235,0.9)',
+                          color: '#92400E',
+                          border: '1px solid rgba(253,230,138,0.8)',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                        }}
+                      >
+                        Matematika Dasar
+                      </span>
+                      <span
+                        style={{
+                          padding: '6px 16px',
+                          borderRadius: 999,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          background: 'rgba(209,250,229,0.5)',
+                          color: '#065f46',
+                          border: '1px solid rgba(167,243,208,0.8)',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                        }}
+                      >
+                        Semester 1
+                      </span>
+                    </div>
+                  </header>
 
-                {/* ── Active Task Cards ── */}
-                <div style={{ marginTop: 24 }}>
-                  {selectedChild && activeAssignments.length > 0
-                    ? activeAssignments.map((a) => {
+                  {/* ── Active Task Cards ── */}
+                  <div style={{ marginTop: 24 }}>
+                    {selectedChild && activeAssignments.length > 0 ? (
+                      activeAssignments.map((a) => {
+                        console.log('xyz', a)
+
                         const comp = getAssignmentCompletion(a)
                         const statusLabel = deadlineStatus(a)
                         return (
-                          <div key={a.id} style={{ position: 'relative', background: '#FBFBFE', borderRadius: 16, border: '1px solid rgba(238,242,255,0.8)', padding: '20px 24px', marginBottom: 16, transition: 'border-color 0.2s' }}>
+                          <div
+                            key={a.id}
+                            style={{
+                              position: 'relative',
+                              background: '#FBFBFE',
+                              borderRadius: 16,
+                              border: '1px solid rgba(238,242,255,0.8)',
+                              padding: '20px 24px',
+                              marginBottom: 16,
+                              transition: 'border-color 0.2s',
+                            }}
+                          >
                             {/* Task Header */}
-                            <div style={{ display: 'flex', flexDirection: 'row' as const, justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'row' as const,
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-start',
+                                gap: 16,
+                              }}
+                            >
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ display: 'flex', flexWrap: 'wrap' as const, alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                                  <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: 0, lineHeight: 1.3 }}>
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    flexWrap: 'wrap' as const,
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    marginBottom: 6,
+                                  }}
+                                >
+                                  <h3
+                                    style={{
+                                      fontSize: 18,
+                                      fontWeight: 700,
+                                      color: '#0f172a',
+                                      margin: 0,
+                                      lineHeight: 1.3,
+                                    }}
+                                  >
                                     {a.title}
                                   </h3>
-                                  <span style={{ padding: '2px 10px', borderRadius: 999, fontSize: 12, fontWeight: 500, color: statusLabel.color, background: statusLabel.bg, border: '1px solid ' + statusLabel.border }}>
+                                  <span
+                                    style={{
+                                      padding: '2px 10px',
+                                      borderRadius: 999,
+                                      fontSize: 12,
+                                      fontWeight: 500,
+                                      color: statusLabel.color,
+                                      background: statusLabel.bg,
+                                      border: '1px solid ' + statusLabel.border,
+                                    }}
+                                  >
                                     {statusLabel.label}
                                   </span>
                                 </div>
                                 {a.dueDate && (
-                                  <p style={{ fontSize: 13, color: '#64748b', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <p
+                                    style={{
+                                      fontSize: 13,
+                                      color: '#64748b',
+                                      margin: 0,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 6,
+                                    }}
+                                  >
                                     <span>📅</span>
-                                    <span>Deadline: <strong style={{ color: '#334155', fontWeight: 600 }}>{new Date(a.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</strong></span>
+                                    <span>
+                                      Deadline:{' '}
+                                      <strong
+                                        style={{
+                                          color: '#334155',
+                                          fontWeight: 600,
+                                        }}
+                                      >
+                                        {new Date(a.dueDate).toLocaleDateString(
+                                          'id-ID',
+                                          {
+                                            day: 'numeric',
+                                            month: 'short',
+                                            year: 'numeric',
+                                          },
+                                        )}
+                                      </strong>
+                                    </span>
                                   </p>
                                 )}
                               </div>
 
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 12,
+                                  flexShrink: 0,
+                                }}
+                              >
                                 {/* Progress Percentage */}
                                 <div style={{ textAlign: 'right' }}>
-                                  <span style={{ fontSize: 28, fontWeight: 800, color: '#4F46E5', letterSpacing: '-0.02em' }}>{comp.pct}%</span>
-                                  <span style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' as const, marginTop: -2 }}>Selesai</span>
+                                  <span
+                                    style={{
+                                      fontSize: 28,
+                                      fontWeight: 800,
+                                      color: '#4F46E5',
+                                      letterSpacing: '-0.02em',
+                                    }}
+                                  >
+                                    {comp.pct}%
+                                  </span>
+                                  <span
+                                    style={{
+                                      display: 'block',
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      color: '#94a3b8',
+                                      textTransform: 'uppercase' as const,
+                                      marginTop: -2,
+                                    }}
+                                  >
+                                    Selesai
+                                  </span>
                                 </div>
 
                                 {/* Action Menu */}
-                                <div data-action-menu style={{ position: 'relative' }}>
+                                <div
+                                  data-action-menu
+                                  style={{ position: 'relative' }}
+                                >
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      setMenuOpenId(menuOpenId === a.id ? null : a.id)
+                                      setMenuOpenId(
+                                        menuOpenId === a.id ? null : a.id,
+                                      )
                                     }}
                                     style={{
-                                      width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                      borderRadius: 12, color: '#64748b', background: '#fff', border: '1px solid #e2e8f0',
-                                      cursor: 'pointer', padding: 0,
+                                      width: 40,
+                                      height: 40,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      borderRadius: 12,
+                                      color: '#64748b',
+                                      background: '#fff',
+                                      border: '1px solid #e2e8f0',
+                                      cursor: 'pointer',
+                                      padding: 0,
                                     }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1' }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e2e8f0' }}
-                                    title="Opsi Tugas"
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background =
+                                        '#f8fafc'
+                                      e.currentTarget.style.borderColor =
+                                        '#cbd5e1'
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = '#fff'
+                                      e.currentTarget.style.borderColor =
+                                        '#e2e8f0'
+                                    }}
+                                    title='Opsi Tugas'
                                   >
-                                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                      <circle cx="12" cy="5" fill="currentColor" r="1.5" />
-                                      <circle cx="12" cy="12" fill="currentColor" r="1.5" />
-                                      <circle cx="12" cy="19" fill="currentColor" r="1.5" />
+                                    <svg
+                                      width='20'
+                                      height='20'
+                                      fill='none'
+                                      stroke='currentColor'
+                                      strokeWidth='2'
+                                      viewBox='0 0 24 24'
+                                    >
+                                      <circle
+                                        cx='12'
+                                        cy='5'
+                                        fill='currentColor'
+                                        r='1.5'
+                                      />
+                                      <circle
+                                        cx='12'
+                                        cy='12'
+                                        fill='currentColor'
+                                        r='1.5'
+                                      />
+                                      <circle
+                                        cx='12'
+                                        cy='19'
+                                        fill='currentColor'
+                                        r='1.5'
+                                      />
                                     </svg>
                                   </button>
                                   {menuOpenId === a.id && (
-                                    <div style={{
-                                      position: 'absolute', top: 48, right: 0, width: 192, background: '#fff',
-                                      border: '1px solid rgba(226,232,240,0.9)', borderRadius: 16, padding: '6px 0',
-                                      boxShadow: '0 12px 30px -4px rgba(15,23,42,0.12), 0 4px 8px -2px rgba(15,23,42,0.04)',
-                                      zIndex: 9999,
-                                    }}>
+                                    <div
+                                      style={{
+                                        position: 'absolute',
+                                        top: 48,
+                                        right: 0,
+                                        width: 192,
+                                        background: '#fff',
+                                        border:
+                                          '1px solid rgba(226,232,240,0.9)',
+                                        borderRadius: 16,
+                                        padding: '6px 0',
+                                        boxShadow:
+                                          '0 12px 30px -4px rgba(15,23,42,0.12), 0 4px 8px -2px rgba(15,23,42,0.04)',
+                                        zIndex: 9999,
+                                      }}
+                                    >
                                       <button
                                         onClick={() => {
                                           setMenuOpenId(null)
                                           setEditingAssignment(a)
                                           setEditTitle(a.title)
-                                          setEditDescription(a.description ?? '')
+                                          setEditDescription(
+                                            a.description ?? '',
+                                          )
                                           setEditNotes(a.notes ?? '')
-                                          setEditDueDate(a.dueDate ? new Date(a.dueDate).toISOString().split('T')[0] : '')
+                                          setEditDueDate(
+                                            a.dueDate
+                                              ? new Date(a.dueDate)
+                                                  .toISOString()
+                                                  .split('T')[0]
+                                              : '',
+                                          )
                                         }}
-                                        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#334155', textAlign: 'left' as const }}
-                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#4F46E5' }}
-                                        onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#334155' }}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 10,
+                                          width: '100%',
+                                          padding: '10px 16px',
+                                          border: 'none',
+                                          background: 'none',
+                                          cursor: 'pointer',
+                                          fontSize: 13,
+                                          fontWeight: 600,
+                                          color: '#334155',
+                                          textAlign: 'left' as const,
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          e.currentTarget.style.background =
+                                            '#f8fafc'
+                                          e.currentTarget.style.color =
+                                            '#4F46E5'
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.style.background =
+                                            'none'
+                                          e.currentTarget.style.color =
+                                            '#334155'
+                                        }}
                                       >
                                         <span style={{ fontSize: 16 }}>✏️</span>
                                         <span>Edit Tugas</span>
                                       </button>
-                                      <div style={{ margin: '4px 12px', borderTop: '1px solid #f1f5f9' }} />
+                                      <div
+                                        style={{
+                                          margin: '4px 12px',
+                                          borderTop: '1px solid #f1f5f9',
+                                        }}
+                                      />
                                       <button
                                         onClick={() => {
                                           setMenuOpenId(null)
                                           setDeleteTarget(a)
                                           setDeleteError(null)
                                         }}
-                                        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#e11d48', textAlign: 'left' as const }}
-                                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(254,242,242,0.8)' }}
-                                        onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 10,
+                                          width: '100%',
+                                          padding: '10px 16px',
+                                          border: 'none',
+                                          background: 'none',
+                                          cursor: 'pointer',
+                                          fontSize: 13,
+                                          fontWeight: 600,
+                                          color: '#e11d48',
+                                          textAlign: 'left' as const,
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          e.currentTarget.style.background =
+                                            'rgba(254,242,242,0.8)'
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.style.background =
+                                            'none'
+                                        }}
                                       >
                                         <span style={{ fontSize: 16 }}>🗑️</span>
                                         <span>Hapus Tugas</span>
@@ -2710,73 +3087,219 @@ export default function ParentDashboard() {
 
                             {/* Progress Bar */}
                             <div style={{ marginTop: 20, marginBottom: 16 }}>
-                              <div style={{ width: '100%', background: '#f1f5f9', borderRadius: 999, height: 10, overflow: 'hidden', padding: 2, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)' }}>
-                                <div style={{ width: comp.pct + '%', background: 'linear-gradient(90deg, #6366F1, #4F46E5)', height: '100%', borderRadius: 999, transition: 'width 0.7s ease', boxShadow: '0 1px 3px rgba(99,102,241,0.3)' }} />
+                              <div
+                                style={{
+                                  width: '100%',
+                                  background: '#f1f5f9',
+                                  borderRadius: 999,
+                                  height: 10,
+                                  overflow: 'hidden',
+                                  padding: 2,
+                                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)',
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: comp.pct + '%',
+                                    background:
+                                      'linear-gradient(90deg, #6366F1, #4F46E5)',
+                                    height: '100%',
+                                    borderRadius: 999,
+                                    transition: 'width 0.7s ease',
+                                    boxShadow: '0 1px 3px rgba(99,102,241,0.3)',
+                                  }}
+                                />
                               </div>
                             </div>
 
                             {/* Sub-info & Action */}
-                            <div style={{ display: 'flex', flexDirection: 'row' as const, justifyContent: 'space-between', alignItems: 'center', paddingTop: 4 }}>
-                              <p style={{ fontSize: 12, fontWeight: 500, color: '#94a3b8', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#cbd5e1' }} />
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'row' as const,
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                paddingTop: 4,
+                              }}
+                            >
+                              <p
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: 500,
+                                  color: '#94a3b8',
+                                  margin: 0,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 6,
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    width: 5,
+                                    height: 5,
+                                    borderRadius: '50%',
+                                    background: '#cbd5e1',
+                                  }}
+                                />
                                 {comp.total} panel ditugaskan
                               </p>
                               <button
-                                onClick={() => a.materialId && navigate('/modul/' + a.materialId + '?assignment=' + a.id)}
+                                onClick={() =>
+                                  a.materialId &&
+                                  navigate(
+                                    '/modul/' +
+                                      a.materialId +
+                                      '?assignment=' +
+                                      a.id,
+                                  )
+                                }
                                 style={{
-                                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                                  padding: '8px 16px', borderRadius: 12, fontSize: 12, fontWeight: 700,
-                                  color: '#334155', background: '#fff', border: '1px solid #e2e8f0',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 6,
+                                  padding: '8px 16px',
+                                  borderRadius: 12,
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  color: '#334155',
+                                  background: '#fff',
+                                  border: '1px solid #e2e8f0',
                                   cursor: 'pointer',
                                 }}
-                                onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.color = '#4F46E5' }}
-                                onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#334155' }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = '#f8fafc'
+                                  e.currentTarget.style.borderColor = '#cbd5e1'
+                                  e.currentTarget.style.color = '#4F46E5'
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = '#fff'
+                                  e.currentTarget.style.borderColor = '#e2e8f0'
+                                  e.currentTarget.style.color = '#334155'
+                                }}
                               >
                                 Lihat Detail
-                                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                <svg
+                                  width='14'
+                                  height='14'
+                                  fill='none'
+                                  stroke='currentColor'
+                                  strokeWidth='2'
+                                  viewBox='0 0 24 24'
+                                >
+                                  <path
+                                    d='M9 5l7 7-7 7'
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                  />
+                                </svg>
                               </button>
                             </div>
                           </div>
                         )
                       })
-                    : (
-                      <div style={{ padding: 48, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                    ) : (
+                      <div
+                        style={{
+                          padding: 48,
+                          textAlign: 'center',
+                          color: '#94a3b8',
+                          fontSize: 13,
+                        }}
+                      >
                         {childrenLoading
                           ? 'Memuat data...'
                           : 'Belum ada modul yang sedang berjalan. Klik "+ Beri Tugas" untuk membuat tugas baru.'}
                       </div>
-                    )
-                  }
-                </div>
+                    )}
+                  </div>
 
-                {/* ── Subject Quick Stats ── */}
-                <footer style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
-                  {subjects.slice(0, 3).map((s) => {
-                    const sAssignments = assignments.filter(
-                      (a) => a.materialId && moduleCache[a.materialId]?.subjectId === s.id,
-                    )
-                    const pct = sAssignments.length > 0
-                      ? Math.round(sAssignments.reduce((sum, a) => sum + getAssignmentCompletion(a).pct, 0) / sAssignments.length)
-                      : 0
-                    const isActive = pct > 0
-                    return (
-                      <div key={s.id} style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '12px 16px', borderRadius: 16,
-                        background: isActive ? 'rgba(238,242,255,0.4)' : 'rgba(248,250,252,0.7)',
-                        border: '1px solid ' + (isActive ? 'rgba(224,231,255,0.8)' : 'rgba(226,232,240,0.7)'),
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.accent, boxShadow: '0 0 0 4px ' + s.accent + '20' }} />
-                          <span style={{ fontSize: 12, fontWeight: 600, color: isActive ? '#1e293b' : '#64748b' }}>{s.shortName}</span>
+                  {/* ── Subject Quick Stats ── */}
+                  <footer
+                    style={{
+                      marginTop: 8,
+                      display: 'grid',
+                      gridTemplateColumns:
+                        'repeat(auto-fit, minmax(180px, 1fr))',
+                      gap: 10,
+                    }}
+                  >
+                    {subjects.slice(0, 3).map((s) => {
+                      const sAssignments = assignments.filter(
+                        (a) =>
+                          a.materialId &&
+                          moduleCache[a.materialId]?.subjectId === s.id,
+                      )
+                      const pct =
+                        sAssignments.length > 0
+                          ? Math.round(
+                              sAssignments.reduce(
+                                (sum, a) =>
+                                  sum + getAssignmentCompletion(a).pct,
+                                0,
+                              ) / sAssignments.length,
+                            )
+                          : 0
+                      const isActive = pct > 0
+                      return (
+                        <div
+                          key={s.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px 16px',
+                            borderRadius: 16,
+                            background: isActive
+                              ? 'rgba(238,242,255,0.4)'
+                              : 'rgba(248,250,252,0.7)',
+                            border:
+                              '1px solid ' +
+                              (isActive
+                                ? 'rgba(224,231,255,0.8)'
+                                : 'rgba(226,232,240,0.7)'),
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 10,
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                background: s.accent,
+                                boxShadow: '0 0 0 4px ' + s.accent + '20',
+                              }}
+                            />
+                            <span
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 600,
+                                color: isActive ? '#1e293b' : '#64748b',
+                              }}
+                            >
+                              {s.shortName}
+                            </span>
+                          </div>
+                          <span
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: isActive ? '#4F46E5' : '#94a3b8',
+                            }}
+                          >
+                            {pct}% Selesai
+                          </span>
                         </div>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: isActive ? '#4F46E5' : '#94a3b8' }}>{pct}% Selesai</span>
-                      </div>
-                    )
-                  })}
-                </footer>
-              </section>
-
+                      )
+                    })}
+                  </footer>
+                </section>
               </section>
 
               {/* Weekly Chart */}
@@ -3073,7 +3596,9 @@ export default function ParentDashboard() {
                                   cursor: 'pointer',
                                 }}
                                 onClick={() =>
-                                  navigate(`/modul/${a.materialId}?assignment=${a.id}`)
+                                  navigate(
+                                    `/modul/${a.materialId}?assignment=${a.id}`,
+                                  )
                                 }
                               >
                                 Bantu {childName.split(' ')[0]} Mulai
@@ -4334,7 +4859,11 @@ export default function ParentDashboard() {
                   opacity: editSaving ? 0.6 : 1,
                 }}
               >
-                {editSuccess ? '✓ Tersimpan!' : editSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                {editSuccess
+                  ? '✓ Tersimpan!'
+                  : editSaving
+                    ? 'Menyimpan...'
+                    : 'Simpan Perubahan'}
               </button>
             </div>
           </div>
@@ -4343,7 +4872,13 @@ export default function ParentDashboard() {
 
       {/* Delete confirmation modal */}
       {deleteTarget && (
-        <div style={S.modalOverlay} onClick={() => { setDeleteTarget(null); setDeleteError(null) }}>
+        <div
+          style={S.modalOverlay}
+          onClick={() => {
+            setDeleteTarget(null)
+            setDeleteError(null)
+          }}
+        >
           <div style={S.modalBox} onClick={(e) => e.stopPropagation()}>
             <div
               style={{
@@ -4357,7 +4892,10 @@ export default function ParentDashboard() {
                 🗑️ Hapus Tugas?
               </h3>
               <button
-                onClick={() => { setDeleteTarget(null); setDeleteError(null) }}
+                onClick={() => {
+                  setDeleteTarget(null)
+                  setDeleteError(null)
+                }}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -4368,14 +4906,36 @@ export default function ParentDashboard() {
                 ✕
               </button>
             </div>
-            <p style={{ fontSize: 14, color: '#334155', margin: '0 0 8px', lineHeight: 1.6 }}>
+            <p
+              style={{
+                fontSize: 14,
+                color: '#334155',
+                margin: '0 0 8px',
+                lineHeight: 1.6,
+              }}
+            >
               Apakah Anda yakin ingin menghapus tugas{' '}
               <strong>"{deleteTarget.title}"</strong>?
             </p>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 8px', lineHeight: 1.5 }}>
-              Tugas ini akan dihapus dari daftar belajar {selectedChild?.name ?? 'anak'}.
+            <p
+              style={{
+                fontSize: 13,
+                color: '#64748b',
+                margin: '0 0 8px',
+                lineHeight: 1.5,
+              }}
+            >
+              Tugas ini akan dihapus dari daftar belajar{' '}
+              {selectedChild?.name ?? 'anak'}.
             </p>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px', lineHeight: 1.5 }}>
+            <p
+              style={{
+                fontSize: 13,
+                color: '#64748b',
+                margin: '0 0 16px',
+                lineHeight: 1.5,
+              }}
+            >
               Data yang hanya terkait dengan tugas ini juga akan dibersihkan.
             </p>
             <div
@@ -4387,7 +4947,14 @@ export default function ParentDashboard() {
                 marginBottom: 16,
               }}
             >
-              <p style={{ fontSize: 12, color: '#166534', margin: 0, fontWeight: 600 }}>
+              <p
+                style={{
+                  fontSize: 12,
+                  color: '#166534',
+                  margin: 0,
+                  fontWeight: 600,
+                }}
+              >
                 ✅ Progress belajar {selectedChild?.name ?? 'anak'} tetap aman.
               </p>
             </div>
@@ -4416,7 +4983,10 @@ export default function ParentDashboard() {
             >
               <button
                 type='button'
-                onClick={() => { setDeleteTarget(null); setDeleteError(null) }}
+                onClick={() => {
+                  setDeleteTarget(null)
+                  setDeleteError(null)
+                }}
                 disabled={deleting}
                 style={{
                   padding: '10px 20px',
