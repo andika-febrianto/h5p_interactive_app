@@ -797,9 +797,21 @@ export default function ParentDashboard() {
   const [editingAssignment, setEditingAssignment] =
     useState<ParentAssignment | null>(null)
   const [editDueDate, setEditDueDate] = useState('')
+  const [editTitle, setEditTitle] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editNotes, setEditNotes] = useState('')
   const [editSelectedFrames] = useState<string[]>([])
   const [editModule] = useState<Module | null>(null)
   const [editSaving, setEditSaving] = useState(false)
+  const [editSuccess, setEditSuccess] = useState(false)
+
+  // Delete confirmation state
+  const [deleteTarget, setDeleteTarget] = useState<ParentAssignment | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  // Action menu state
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
 
   //Profile Dropdown
   const [isProfileOpen, setIsProfileOpen] = useState(false)
@@ -967,6 +979,20 @@ export default function ParentDashboard() {
 
   // ── Handlers ──
   const handleCreateChild = async (e: React.FormEvent) => {
+
+  // Close action menu on outside click
+  useEffect(() => {
+    if (!menuOpenId) return
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-action-menu]')) {
+        setMenuOpenId(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [menuOpenId])
+
     e.preventDefault()
     setChildError(null)
     setChildSubmitting(true)
@@ -1081,7 +1107,10 @@ export default function ParentDashboard() {
     setEditSaving(true)
     try {
       await updateAssignment(editingAssignment.id, {
+        title: editTitle || editingAssignment.title,
+        description: editDescription || undefined,
         dueDate: editDueDate || undefined,
+        notes: editNotes || undefined,
         status: editingAssignment.status,
       })
       setAssignments((prev) =>
@@ -1089,18 +1118,44 @@ export default function ParentDashboard() {
           a.id === editingAssignment.id
             ? {
                 ...a,
+                title: editTitle || a.title,
+                description: editDescription || a.description,
                 dueDate: editDueDate
                   ? new Date(editDueDate).toISOString()
                   : a.dueDate,
+                notes: editNotes || a.notes,
               }
             : a,
         ),
       )
-      setEditingAssignment(null)
+      setEditSuccess(true)
+      setTimeout(() => {
+        setEditingAssignment(null)
+        setEditSuccess(false)
+      }, 1200)
     } catch {
       /* silently */
     } finally {
       setEditSaving(false)
+    }
+  }
+
+  const handleDeleteAssignment = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteAssignment(deleteTarget.id)
+      setAssignments((prev) => prev.filter((a) => a.id !== deleteTarget.id))
+      setDeleteTarget(null)
+    } catch (err) {
+      setDeleteError(
+        err instanceof ApiError
+          ? err.message
+          : 'Gagal menghapus tugas. Silakan coba lagi.',
+      )
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -2742,128 +2797,248 @@ export default function ParentDashboard() {
                     })()
                   : null}
 
-                {selectedChild && activeAssignments.length > 0 ? (
-                  (() => {
-                    const mainAssignment = activeAssignments[0]
-                    const comp = getAssignmentCompletion(mainAssignment)
-                    return (
-                      <div style={S.progressCard}>
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'flex-start',
-                            marginBottom: 16,
-                          }}
-                        >
-                          <div>
-                            <p
-                              style={{
-                                fontSize: 12,
-                                color: '#94a3b8',
-                                margin: 0,
-                              }}
-                            >
-                              Materi Utama Saat Ini:
-                            </p>
-                            <h3
-                              style={{
-                                fontSize: 16,
-                                fontWeight: 700,
-                                color: '#0f172a',
-                                margin: '4px 0 0',
-                              }}
-                            >
-                              {mainAssignment.title}
-                            </h3>
-                            <p
-                              style={{
-                                fontSize: 12,
-                                color: '#94a3b8',
-                                margin: '4px 0 0',
-                              }}
-                            >
-                              {comp.total} panel ditugaskan
-                            </p>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <span
-                              style={{
-                                fontSize: 28,
-                                fontWeight: 900,
-                                color: '#5B4DFF',
-                              }}
-                            >
-                              {comp.pct}%
-                            </span>
-                            <p
-                              style={{
-                                fontSize: 11,
-                                color: '#94a3b8',
-                                margin: '2px 0 0',
-                              }}
-                            >
-                              {comp.completed} dari {comp.total} selesai
-                            </p>
-                          </div>
-                        </div>
-                        <div style={S.progressBar}>
-                          <div style={S.progressBarInner(comp.pct)} />
-                        </div>
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginTop: 12,
-                            paddingTop: 12,
-                            borderTop: '1px solid rgba(226,232,240,0.5)',
-                          }}
-                        >
-                          <span style={{ fontSize: 12, color: '#94a3b8' }}>
-                            Kuis latihan lulus: {totalModulesCompleted}x
-                          </span>
-                          <div style={{ display: 'flex', gap: 8 }}>
+                {selectedChild && activeAssignments.length > 0
+                  ? activeAssignments.map((a) => {
+                      const comp = getAssignmentCompletion(a)
+                      const statusLabel = deadlineStatus(a)
+                      return (
+                        <div key={a.id} style={{ ...S.progressCard, position: 'relative' }}>
+                          {/* Action menu */}
+                          <div data-action-menu style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
                             <button
-                              style={S.btnSecondary}
                               onClick={() =>
-                                navigate(`/modul/${mainAssignment.materialId}`)
+                                setMenuOpenId(menuOpenId === a.id ? null : a.id)
                               }
-                            >
-                              Lihat Detail Materi
-                            </button>
-                            <button
                               style={{
-                                ...S.btnSecondary,
-                                background: '#5B4DFF',
-                                color: '#fff',
+                                background: 'none',
                                 border: 'none',
+                                cursor: 'pointer',
+                                padding: '4px 8px',
+                                fontSize: 18,
+                                color: '#94a3b8',
+                                borderRadius: 6,
+                                lineHeight: 1,
                               }}
-                              onClick={() =>
-                                navigate(`/modul/${mainAssignment.materialId}`)
-                              }
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#f1f5f9'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'none'
+                              }}
                             >
-                              Uji Pemahaman Anak
+                              ⋯
                             </button>
+                            {menuOpenId === a.id && (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: '100%',
+                                  right: 0,
+                                  background: '#fff',
+                                  border: '1px solid #e2e8f0',
+                                  borderRadius: 12,
+                                  boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                                  minWidth: 180,
+                                  overflow: 'hidden',
+                                  zIndex: 20,
+                                }}
+                              >
+                                <button
+                                  onClick={() => {
+                                    setMenuOpenId(null)
+                                    setEditingAssignment(a)
+                                    setEditTitle(a.title)
+                                    setEditDescription(a.description ?? '')
+                                    setEditNotes(a.notes ?? '')
+                                    setEditDueDate(
+                                      a.dueDate
+                                        ? new Date(a.dueDate).toISOString().split('T')[0]
+                                        : '',
+                                    )
+                                  }}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    width: '100%',
+                                    padding: '10px 14px',
+                                    border: 'none',
+                                    background: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: 13,
+                                    fontWeight: 600,
+                                    color: '#5B4DFF',
+                                    textAlign: 'left',
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = '#F5F3FF'
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'none'
+                                  }}
+                                >
+                                  ✏️ Edit Tugas
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setMenuOpenId(null)
+                                    setDeleteTarget(a)
+                                    setDeleteError(null)
+                                  }}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    width: '100%',
+                                    padding: '10px 14px',
+                                    border: 'none',
+                                    background: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: 13,
+                                    fontWeight: 600,
+                                    color: '#DC2626',
+                                    textAlign: 'left',
+                                    borderTop: '1px solid #f1f5f9',
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = '#FEF2F2'
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'none'
+                                  }}
+                                >
+                                  🗑️ Hapus Tugas
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'flex-start',
+                              marginBottom: 12,
+                            }}
+                          >
+                            <div style={{ flex: 1, paddingRight: 32 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <p
+                                  style={{
+                                    fontSize: 16,
+                                    fontWeight: 700,
+                                    color: '#0f172a',
+                                    margin: 0,
+                                  }}
+                                >
+                                  {a.title}
+                                </p>
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    color: statusLabel.color,
+                                    background: statusLabel.bg,
+                                    padding: '2px 8px',
+                                    borderRadius: 999,
+                                    border: '1px solid ' + statusLabel.border,
+                                  }}
+                                >
+                                  {statusLabel.label}
+                                </span>
+                              </div>
+                              {a.dueDate && (
+                                <p
+                                  style={{
+                                    fontSize: 12,
+                                    color: '#94a3b8',
+                                    margin: '2px 0 0',
+                                  }}
+                                >
+                                  📅 Deadline: {new Date(a.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </p>
+                              )}
+                            </div>
+                            <div style={{ textAlign: 'right', minWidth: 60 }}>
+                              <span
+                                style={{
+                                  fontSize: 28,
+                                  fontWeight: 900,
+                                  color: '#5B4DFF',
+                                }}
+                              >
+                                {comp.pct}%
+                              </span>
+                              <p
+                                style={{
+                                  fontSize: 11,
+                                  color: '#94a3b8',
+                                  margin: '2px 0 0',
+                                }}
+                              >
+                                {comp.completed}/{comp.total} selesai
+                              </p>
+                            </div>
+                          </div>
+
+                          <div style={S.progressBar}>
+                            <div style={S.progressBarInner(comp.pct)} />
+                          </div>
+
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              marginTop: 12,
+                              paddingTop: 12,
+                              borderTop: '1px solid rgba(226,232,240,0.5)',
+                            }}
+                          >
+                            <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                              {comp.total} panel ditugaskan
+                            </span>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <button
+                                style={S.btnSecondary}
+                                onClick={() =>
+                                  a.materialId && navigate('/modul/' + a.materialId)
+                                }
+                              >
+                                Lihat Detail
+                              </button>
+                              <button
+                                style={{
+                                  ...S.btnSecondary,
+                                  background: '#5B4DFF',
+                                  color: '#fff',
+                                  border: 'none',
+                                }}
+                                onClick={() =>
+                                  a.materialId && navigate('/modul/' + a.materialId)
+                                }
+                              >
+                                Mulai Belajar
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )
-                  })()
-                ) : (
-                  <div
-                    style={{
-                      padding: 40,
-                      textAlign: 'center',
-                      color: '#94a3b8',
-                      fontSize: 13,
-                    }}
-                  >
-                    {childrenLoading
-                      ? 'Memuat data...'
-                      : 'Belum ada modul aktif. Klik "+ Beri Tugas" untuk membuat tugas baru.'}
-                  </div>
-                )}
+                      )
+                    })
+                  : (
+                    <div
+                      style={{
+                        padding: 40,
+                        textAlign: 'center',
+                        color: '#94a3b8',
+                        fontSize: 13,
+                      }}
+                    >
+                      {childrenLoading
+                        ? 'Memuat data...'
+                        : 'Belum ada modul yang sedang berjalan. Klik "+ Beri Tugas" untuk membuat tugas baru.'}
+                    </div>
+                  )}
 
                 <div style={S.subjectChips}>
                   {subjects.slice(0, 3).map((s) => {
@@ -4322,12 +4497,48 @@ export default function ParentDashboard() {
                 ✕
               </button>
             </div>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 4px' }}>
-              Judul
-            </p>
-            <p style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>
-              {editingAssignment.title}
-            </p>
+            <label style={{ display: 'block', marginBottom: 12 }}>
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: 'block',
+                  marginBottom: 4,
+                }}
+              >
+                📝 Judul Tugas
+              </span>
+              <input
+                type='text'
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder='Judul tugas'
+                style={S.input}
+              />
+            </label>
+            <label style={{ display: 'block', marginBottom: 12 }}>
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: 'block',
+                  marginBottom: 4,
+                }}
+              >
+                📋 Deskripsi
+              </span>
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder='Deskripsi tugas (opsional)'
+                rows={2}
+                style={{
+                  ...S.input,
+                  resize: 'vertical' as const,
+                  fontFamily: 'inherit',
+                }}
+              />
+            </label>
             <label style={{ display: 'block', marginBottom: 12 }}>
               <span
                 style={{
@@ -4344,6 +4555,29 @@ export default function ParentDashboard() {
                 value={editDueDate}
                 onChange={(e) => setEditDueDate(e.target.value)}
                 style={S.input}
+              />
+            </label>
+            <label style={{ display: 'block', marginBottom: 12 }}>
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: 'block',
+                  marginBottom: 4,
+                }}
+              >
+                📌 Catatan (opsional)
+              </span>
+              <textarea
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                placeholder='Catatan untuk anak...'
+                rows={2}
+                style={{
+                  ...S.input,
+                  resize: 'vertical' as const,
+                  fontFamily: 'inherit',
+                }}
               />
             </label>
             {editModule && editSelectedFrames.length > 0 && (
@@ -4419,7 +4653,120 @@ export default function ParentDashboard() {
                   opacity: editSaving ? 0.6 : 1,
                 }}
               >
-                {editSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                {editSuccess ? '✓ Tersimpan!' : editSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteTarget && (
+        <div style={S.modalOverlay} onClick={() => { setDeleteTarget(null); setDeleteError(null) }}>
+          <div style={S.modalBox} onClick={(e) => e.stopPropagation()}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
+                🗑️ Hapus Tugas?
+              </h3>
+              <button
+                onClick={() => { setDeleteTarget(null); setDeleteError(null) }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: 20,
+                  cursor: 'pointer',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <p style={{ fontSize: 14, color: '#334155', margin: '0 0 8px', lineHeight: 1.6 }}>
+              Apakah Anda yakin ingin menghapus tugas{' '}
+              <strong>"{deleteTarget.title}"</strong>?
+            </p>
+            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 8px', lineHeight: 1.5 }}>
+              Tugas ini akan dihapus dari daftar belajar {selectedChild?.name ?? 'anak'}.
+            </p>
+            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px', lineHeight: 1.5 }}>
+              Data yang hanya terkait dengan tugas ini juga akan dibersihkan.
+            </p>
+            <div
+              style={{
+                background: '#F0FDF4',
+                border: '1px solid #BBF7D0',
+                borderRadius: 10,
+                padding: '10px 14px',
+                marginBottom: 16,
+              }}
+            >
+              <p style={{ fontSize: 12, color: '#166534', margin: 0, fontWeight: 600 }}>
+                ✅ Progress belajar {selectedChild?.name ?? 'anak'} tetap aman.
+              </p>
+            </div>
+            {deleteError && (
+              <div
+                style={{
+                  background: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  marginBottom: 16,
+                }}
+              >
+                <p style={{ fontSize: 12, color: '#DC2626', margin: 0 }}>
+                  {deleteError}
+                </p>
+              </div>
+            )}
+            <div
+              style={{
+                display: 'flex',
+                gap: 10,
+                justifyContent: 'flex-end',
+                marginTop: 16,
+              }}
+            >
+              <button
+                type='button'
+                onClick={() => { setDeleteTarget(null); setDeleteError(null) }}
+                disabled={deleting}
+                style={{
+                  padding: '10px 20px',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 10,
+                  background: '#fff',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  opacity: deleting ? 0.6 : 1,
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type='button'
+                onClick={handleDeleteAssignment}
+                disabled={deleting}
+                style={{
+                  padding: '10px 20px',
+                  border: 'none',
+                  borderRadius: 10,
+                  background: '#DC2626',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  opacity: deleting ? 0.6 : 1,
+                }}
+              >
+                {deleting ? 'Menghapus...' : 'Hapus Tugas'}
               </button>
             </div>
           </div>
