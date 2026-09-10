@@ -32,8 +32,8 @@ const roles = [
 ]
 
 export function RequireAuth({
-  onLogin,
-  onRegister,
+  onLogin: _onLogin,
+  onRegister: _onRegister,
   onGoogleLogin,
   onBackHome,
   children,

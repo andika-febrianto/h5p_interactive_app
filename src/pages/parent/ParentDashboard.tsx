@@ -1239,7 +1239,6 @@ export default function ParentDashboard() {
   const totalModulesCompleted = assignments.filter(
     (a) => a.status === 'completed',
   ).length
-  const totalPoints = totalModulesCompleted * 10 + children.length * 20
   const overallAvgScore = (() => {
     const pcts = assignments
       .map((a) => getAssignmentCompletion(a).pct)
@@ -1301,13 +1300,6 @@ export default function ParentDashboard() {
 
   const firstName = user?.name?.split(' ')[0] ?? 'Orang Tua'
   const childName = selectedChild?.name ?? 'Anak'
-  const childInitial = childName.charAt(0).toUpperCase()
-  const childGradeText = selectedChild
-    ? `Kelas ${selectedChild.grade ?? '?'} SD`
-    : ''
-  const childSemText = selectedChild
-    ? `Sem. ${selectedChild.semester ?? '?'}`
-    : ''
 
   const activeAssignments = assignments.filter(
     (a) => a.status !== 'completed' && a.childId === (selectedChild?.id ?? ''),
