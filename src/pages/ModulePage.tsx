@@ -6,7 +6,12 @@ import {
   useSearchParams,
 } from 'react-router-dom'
 import { ProgressProvider, useProgress } from '../context/ProgressContext'
-import { fetchModule, fetchChildAssignments, fetchAssignments, ApiError } from '../lib/api'
+import {
+  fetchModule,
+  fetchChildAssignments,
+  fetchAssignments,
+  ApiError,
+} from '../lib/api'
 import { Sidebar } from '../components/Sidebar'
 import { ScenePlayer } from '../components/ScenePlayer'
 import { SummaryScreen } from '../components/SummaryScreen'
@@ -46,6 +51,8 @@ function ModuleRunner({
     // If this is a child completing a parent assignment, go back to child dashboard
     if (user?.role === 'STUDENT' && assignmentId) {
       navigate('/anak')
+    } else if (user?.role === 'PARENT' && assignmentId) {
+      navigate('/orangtua')
     } else {
       navigate(
         `/kelas/${mod.grade}/semester/${mod.semester}/mapel/${mod.subjectId}`,
@@ -209,7 +216,10 @@ export default function ModulePage() {
   // If there's an assignment ID, fetch assignments to get selectedFrames
   useEffect(() => {
     if (!assignmentId || !user?.id) return
-    const fetcher = user.role === 'PARENT' ? fetchAssignments() : fetchChildAssignments(user.id)
+    const fetcher =
+      user.role === 'PARENT'
+        ? fetchAssignments()
+        : fetchChildAssignments(user.id)
     fetcher
       .then((assignments) => {
         const a = assignments.find((x) => x.id === assignmentId)
@@ -221,9 +231,13 @@ export default function ModulePage() {
   }, [assignmentId, user?.id, user?.role])
 
   if (notFound) {
-    return (
-      <Navigate to={user?.role === 'STUDENT' ? '/anak' : '/kelas'} replace />
-    )
+    const userRole =
+      user?.role === 'STUDENT'
+        ? '/anak'
+        : user?.role === 'PARENT'
+          ? '/orangtua'
+          : '/kelas'
+    return <Navigate to={userRole} replace />
   }
 
   if (locked) {

@@ -1,40 +1,40 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import { RequireRole } from './components/RequireRole';
-import { RequireAuth } from './components/RequireAuth';
-import Landing from './pages/Landing';
-import Pricing from './pages/Pricing';
-import Subscription from './pages/Subscription';
-import GradeSelect from './pages/GradeSelect';
-import SemesterSelect from './pages/SemesterSelect';
-import SubjectSelect from './pages/SubjectSelect';
-import ModuleList from './pages/ModuleList';
-import ModulePage from './pages/ModulePage';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import TeacherReport from './pages/TeacherReport';
-import SessionManager from './pages/SessionManager';
-import TeacherDashboard from './pages/teacher/TeacherDashboard';
-import SubjectManager from './pages/teacher/SubjectManager';
-import ModuleManager from './pages/teacher/ModuleManager';
-import ModuleEditor from './pages/teacher/ModuleEditor';
-import ParentDashboard from './pages/parent/ParentDashboard';
-import ChildDashboard from './pages/child/ChildDashboard';
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
+import { RequireRole } from './components/RequireRole'
+import { RequireAuth } from './components/RequireAuth'
+import Landing from './pages/Landing'
+import Pricing from './pages/Pricing'
+import Subscription from './pages/Subscription'
+import GradeSelect from './pages/GradeSelect'
+import SemesterSelect from './pages/SemesterSelect'
+import SubjectSelect from './pages/SubjectSelect'
+import ModuleList from './pages/ModuleList'
+import ModulePage from './pages/ModulePage'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import TeacherReport from './pages/TeacherReport'
+import SessionManager from './pages/SessionManager'
+import TeacherDashboard from './pages/teacher/TeacherDashboard'
+import SubjectManager from './pages/teacher/SubjectManager'
+import ModuleManager from './pages/teacher/ModuleManager'
+import ModuleEditor from './pages/teacher/ModuleEditor'
+import ParentDashboard from './pages/parent/ParentDashboard'
+import ChildDashboard from './pages/child/ChildDashboard'
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/harga" element={<Pricing />} />
-          <Route path="/masuk" element={<Login />} />
-          <Route path="/daftar" element={<Register />} />
+          <Route path='/' element={<Landing />} />
+          <Route path='/harga' element={<Pricing />} />
+          <Route path='/masuk' element={<Login />} />
+          <Route path='/daftar' element={<Register />} />
 
           {/* The whole learning flow (kelas -> semester -> mapel -> modul)
               requires being logged in as either a teacher or a student. */}
           <Route
-            path="/kelas"
+            path='/kelas'
             element={
               <RequireAuth>
                 <GradeSelect />
@@ -42,7 +42,7 @@ export default function App() {
             }
           />
           <Route
-            path="/kelas/:grade"
+            path='/kelas/:grade'
             element={
               <RequireAuth>
                 <SemesterSelect />
@@ -50,7 +50,7 @@ export default function App() {
             }
           />
           <Route
-            path="/kelas/:grade/semester/:semester"
+            path='/kelas/:grade/semester/:semester'
             element={
               <RequireAuth>
                 <SubjectSelect />
@@ -58,7 +58,7 @@ export default function App() {
             }
           />
           <Route
-            path="/kelas/:grade/semester/:semester/mapel/:subjectId"
+            path='/kelas/:grade/semester/:semester/mapel/:subjectId'
             element={
               <RequireAuth>
                 <ModuleList />
@@ -66,7 +66,7 @@ export default function App() {
             }
           />
           <Route
-            path="/modul/:moduleId"
+            path='/modul/:moduleId'
             element={
               <RequireAuth>
                 <ModulePage />
@@ -74,10 +74,10 @@ export default function App() {
             }
           />
 
-          <Route path="/guru/laporan" element={<TeacherReport />} />
-          <Route path="/akun/sesi" element={<SessionManager />} />
+          <Route path='/guru/laporan' element={<TeacherReport />} />
+          <Route path='/akun/sesi' element={<SessionManager />} />
           <Route
-            path="/akun/langganan"
+            path='/akun/langganan'
             element={
               <RequireAuth>
                 <Subscription />
@@ -85,33 +85,33 @@ export default function App() {
             }
           />
           <Route
-            path="/guru"
+            path='/guru'
             element={
-              <RequireRole role="TEACHER">
+              <RequireRole role='TEACHER'>
                 <TeacherDashboard />
               </RequireRole>
             }
           />
           <Route
-            path="/guru/mapel"
+            path='/guru/mapel'
             element={
-              <RequireRole role="TEACHER">
+              <RequireRole role='TEACHER'>
                 <SubjectManager />
               </RequireRole>
             }
           />
           <Route
-            path="/guru/modul"
+            path='/guru/modul'
             element={
-              <RequireRole role="TEACHER">
+              <RequireRole role='TEACHER'>
                 <ModuleManager />
               </RequireRole>
             }
           />
           <Route
-            path="/guru/modul/:moduleId"
+            path='/guru/modul/:moduleId'
             element={
-              <RequireRole role="TEACHER">
+              <RequireRole role='TEACHER'>
                 <ModuleEditor />
               </RequireRole>
             }
@@ -119,9 +119,9 @@ export default function App() {
 
           {/* Parent routes */}
           <Route
-            path="/orangtua"
+            path='/orangtua'
             element={
-              <RequireRole role="PARENT">
+              <RequireRole role='PARENT'>
                 <ParentDashboard />
               </RequireRole>
             }
@@ -129,7 +129,7 @@ export default function App() {
 
           {/* Child dashboard */}
           <Route
-            path="/anak"
+            path='/anak'
             element={
               <RequireAuth>
                 <ChildDashboard />
@@ -139,5 +139,5 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
-  );
+  )
 }

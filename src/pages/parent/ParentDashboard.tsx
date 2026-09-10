@@ -1187,6 +1187,18 @@ export default function ParentDashboard() {
       const fp = getFrameProgress(a.materialId, fid)
       if (fp?.completed) completed++
     })
+
+    console.log('ASSIGNMENT DEBUG', {
+      assignmentId: a.id,
+      title: a.title,
+      materialId: a.materialId,
+      selectedFrames: a.selectedFrames,
+      frameProgress: a.selectedFrames.map((fid) => ({
+        frameSlug: fid,
+        progress: getFrameProgress(a.materialId, fid),
+      })),
+    })
+
     return {
       completed,
       total,
@@ -3230,6 +3242,8 @@ export default function ParentDashboard() {
                           a.materialId &&
                           moduleCache[a.materialId]?.subjectId === s.id,
                       )
+                      console.log('xfdfdsa', sAssignments)
+
                       const pct =
                         sAssignments.length > 0
                           ? Math.round(
@@ -3240,6 +3254,7 @@ export default function ParentDashboard() {
                               ) / sAssignments.length,
                             )
                           : 0
+
                       const isActive = pct > 0
                       return (
                         <div
