@@ -410,7 +410,8 @@ export const ModelName = {
   ReadingProgress: 'ReadingProgress',
   ParentAssignment: 'ParentAssignment',
   Notification: 'Notification',
-  Question: 'Question'
+  Question: 'Question',
+  AssignmentProgress: 'AssignmentProgress'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -426,7 +427,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "subject" | "module" | "frame" | "progressRecord" | "plan" | "subscription" | "payment" | "parentChild" | "readingProgress" | "parentAssignment" | "notification" | "question"
+    modelProps: "user" | "session" | "subject" | "module" | "frame" | "progressRecord" | "plan" | "subscription" | "payment" | "parentChild" | "readingProgress" | "parentAssignment" | "notification" | "question" | "assignmentProgress"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1466,6 +1467,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AssignmentProgress: {
+      payload: Prisma.$AssignmentProgressPayload<ExtArgs>
+      fields: Prisma.AssignmentProgressFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AssignmentProgressFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssignmentProgressPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AssignmentProgressFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssignmentProgressPayload>
+        }
+        findFirst: {
+          args: Prisma.AssignmentProgressFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssignmentProgressPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AssignmentProgressFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssignmentProgressPayload>
+        }
+        findMany: {
+          args: Prisma.AssignmentProgressFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssignmentProgressPayload>[]
+        }
+        create: {
+          args: Prisma.AssignmentProgressCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssignmentProgressPayload>
+        }
+        createMany: {
+          args: Prisma.AssignmentProgressCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AssignmentProgressCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssignmentProgressPayload>[]
+        }
+        delete: {
+          args: Prisma.AssignmentProgressDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssignmentProgressPayload>
+        }
+        update: {
+          args: Prisma.AssignmentProgressUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssignmentProgressPayload>
+        }
+        deleteMany: {
+          args: Prisma.AssignmentProgressDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AssignmentProgressUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AssignmentProgressUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssignmentProgressPayload>[]
+        }
+        upsert: {
+          args: Prisma.AssignmentProgressUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssignmentProgressPayload>
+        }
+        aggregate: {
+          args: Prisma.AssignmentProgressAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAssignmentProgress>
+        }
+        groupBy: {
+          args: Prisma.AssignmentProgressGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AssignmentProgressGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AssignmentProgressCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AssignmentProgressCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1707,6 +1782,19 @@ export const QuestionScalarFieldEnum = {
 } as const
 
 export type QuestionScalarFieldEnum = (typeof QuestionScalarFieldEnum)[keyof typeof QuestionScalarFieldEnum]
+
+
+export const AssignmentProgressScalarFieldEnum = {
+  assignmentId: 'assignmentId',
+  frameSlug: 'frameSlug',
+  completed: 'completed',
+  correct: 'correct',
+  total: 'total',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AssignmentProgressScalarFieldEnum = (typeof AssignmentProgressScalarFieldEnum)[keyof typeof AssignmentProgressScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2046,6 +2134,7 @@ export type GlobalOmitConfig = {
   parentAssignment?: Prisma.ParentAssignmentOmit
   notification?: Prisma.NotificationOmit
   question?: Prisma.QuestionOmit
+  assignmentProgress?: Prisma.AssignmentProgressOmit
 }
 
 /* Types for Logging */

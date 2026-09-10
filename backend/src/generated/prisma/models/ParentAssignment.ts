@@ -238,6 +238,7 @@ export type ParentAssignmentWhereInput = {
   child?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   notifications?: Prisma.NotificationListRelationFilter
   questions?: Prisma.QuestionListRelationFilter
+  progress?: Prisma.AssignmentProgressListRelationFilter
 }
 
 export type ParentAssignmentOrderByWithRelationInput = {
@@ -257,6 +258,7 @@ export type ParentAssignmentOrderByWithRelationInput = {
   child?: Prisma.UserOrderByWithRelationInput
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
   questions?: Prisma.QuestionOrderByRelationAggregateInput
+  progress?: Prisma.AssignmentProgressOrderByRelationAggregateInput
 }
 
 export type ParentAssignmentWhereUniqueInput = Prisma.AtLeast<{
@@ -279,6 +281,7 @@ export type ParentAssignmentWhereUniqueInput = Prisma.AtLeast<{
   child?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   notifications?: Prisma.NotificationListRelationFilter
   questions?: Prisma.QuestionListRelationFilter
+  progress?: Prisma.AssignmentProgressListRelationFilter
 }, "id">
 
 export type ParentAssignmentOrderByWithAggregationInput = {
@@ -332,6 +335,7 @@ export type ParentAssignmentCreateInput = {
   child: Prisma.UserCreateNestedOneWithoutAssignmentsReceivedInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssignmentInput
   questions?: Prisma.QuestionCreateNestedManyWithoutAssignmentInput
+  progress?: Prisma.AssignmentProgressCreateNestedManyWithoutAssignmentInput
 }
 
 export type ParentAssignmentUncheckedCreateInput = {
@@ -349,6 +353,7 @@ export type ParentAssignmentUncheckedCreateInput = {
   updatedAt?: Date | string
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssignmentInput
   questions?: Prisma.QuestionUncheckedCreateNestedManyWithoutAssignmentInput
+  progress?: Prisma.AssignmentProgressUncheckedCreateNestedManyWithoutAssignmentInput
 }
 
 export type ParentAssignmentUpdateInput = {
@@ -366,6 +371,7 @@ export type ParentAssignmentUpdateInput = {
   child?: Prisma.UserUpdateOneRequiredWithoutAssignmentsReceivedNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssignmentNestedInput
   questions?: Prisma.QuestionUpdateManyWithoutAssignmentNestedInput
+  progress?: Prisma.AssignmentProgressUpdateManyWithoutAssignmentNestedInput
 }
 
 export type ParentAssignmentUncheckedUpdateInput = {
@@ -383,6 +389,7 @@ export type ParentAssignmentUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssignmentNestedInput
   questions?: Prisma.QuestionUncheckedUpdateManyWithoutAssignmentNestedInput
+  progress?: Prisma.AssignmentProgressUncheckedUpdateManyWithoutAssignmentNestedInput
 }
 
 export type ParentAssignmentCreateManyInput = {
@@ -605,6 +612,20 @@ export type ParentAssignmentUpdateOneRequiredWithoutQuestionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ParentAssignmentUpdateToOneWithWhereWithoutQuestionsInput, Prisma.ParentAssignmentUpdateWithoutQuestionsInput>, Prisma.ParentAssignmentUncheckedUpdateWithoutQuestionsInput>
 }
 
+export type ParentAssignmentCreateNestedOneWithoutProgressInput = {
+  create?: Prisma.XOR<Prisma.ParentAssignmentCreateWithoutProgressInput, Prisma.ParentAssignmentUncheckedCreateWithoutProgressInput>
+  connectOrCreate?: Prisma.ParentAssignmentCreateOrConnectWithoutProgressInput
+  connect?: Prisma.ParentAssignmentWhereUniqueInput
+}
+
+export type ParentAssignmentUpdateOneRequiredWithoutProgressNestedInput = {
+  create?: Prisma.XOR<Prisma.ParentAssignmentCreateWithoutProgressInput, Prisma.ParentAssignmentUncheckedCreateWithoutProgressInput>
+  connectOrCreate?: Prisma.ParentAssignmentCreateOrConnectWithoutProgressInput
+  upsert?: Prisma.ParentAssignmentUpsertWithoutProgressInput
+  connect?: Prisma.ParentAssignmentWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ParentAssignmentUpdateToOneWithWhereWithoutProgressInput, Prisma.ParentAssignmentUpdateWithoutProgressInput>, Prisma.ParentAssignmentUncheckedUpdateWithoutProgressInput>
+}
+
 export type ParentAssignmentCreateWithoutParentInput = {
   id?: string
   title: string
@@ -619,6 +640,7 @@ export type ParentAssignmentCreateWithoutParentInput = {
   child: Prisma.UserCreateNestedOneWithoutAssignmentsReceivedInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssignmentInput
   questions?: Prisma.QuestionCreateNestedManyWithoutAssignmentInput
+  progress?: Prisma.AssignmentProgressCreateNestedManyWithoutAssignmentInput
 }
 
 export type ParentAssignmentUncheckedCreateWithoutParentInput = {
@@ -635,6 +657,7 @@ export type ParentAssignmentUncheckedCreateWithoutParentInput = {
   updatedAt?: Date | string
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssignmentInput
   questions?: Prisma.QuestionUncheckedCreateNestedManyWithoutAssignmentInput
+  progress?: Prisma.AssignmentProgressUncheckedCreateNestedManyWithoutAssignmentInput
 }
 
 export type ParentAssignmentCreateOrConnectWithoutParentInput = {
@@ -661,6 +684,7 @@ export type ParentAssignmentCreateWithoutChildInput = {
   parent: Prisma.UserCreateNestedOneWithoutAssignmentsGivenInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssignmentInput
   questions?: Prisma.QuestionCreateNestedManyWithoutAssignmentInput
+  progress?: Prisma.AssignmentProgressCreateNestedManyWithoutAssignmentInput
 }
 
 export type ParentAssignmentUncheckedCreateWithoutChildInput = {
@@ -677,6 +701,7 @@ export type ParentAssignmentUncheckedCreateWithoutChildInput = {
   updatedAt?: Date | string
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssignmentInput
   questions?: Prisma.QuestionUncheckedCreateNestedManyWithoutAssignmentInput
+  progress?: Prisma.AssignmentProgressUncheckedCreateNestedManyWithoutAssignmentInput
 }
 
 export type ParentAssignmentCreateOrConnectWithoutChildInput = {
@@ -753,6 +778,7 @@ export type ParentAssignmentCreateWithoutNotificationsInput = {
   parent: Prisma.UserCreateNestedOneWithoutAssignmentsGivenInput
   child: Prisma.UserCreateNestedOneWithoutAssignmentsReceivedInput
   questions?: Prisma.QuestionCreateNestedManyWithoutAssignmentInput
+  progress?: Prisma.AssignmentProgressCreateNestedManyWithoutAssignmentInput
 }
 
 export type ParentAssignmentUncheckedCreateWithoutNotificationsInput = {
@@ -769,6 +795,7 @@ export type ParentAssignmentUncheckedCreateWithoutNotificationsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   questions?: Prisma.QuestionUncheckedCreateNestedManyWithoutAssignmentInput
+  progress?: Prisma.AssignmentProgressUncheckedCreateNestedManyWithoutAssignmentInput
 }
 
 export type ParentAssignmentCreateOrConnectWithoutNotificationsInput = {
@@ -801,6 +828,7 @@ export type ParentAssignmentUpdateWithoutNotificationsInput = {
   parent?: Prisma.UserUpdateOneRequiredWithoutAssignmentsGivenNestedInput
   child?: Prisma.UserUpdateOneRequiredWithoutAssignmentsReceivedNestedInput
   questions?: Prisma.QuestionUpdateManyWithoutAssignmentNestedInput
+  progress?: Prisma.AssignmentProgressUpdateManyWithoutAssignmentNestedInput
 }
 
 export type ParentAssignmentUncheckedUpdateWithoutNotificationsInput = {
@@ -817,6 +845,7 @@ export type ParentAssignmentUncheckedUpdateWithoutNotificationsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   questions?: Prisma.QuestionUncheckedUpdateManyWithoutAssignmentNestedInput
+  progress?: Prisma.AssignmentProgressUncheckedUpdateManyWithoutAssignmentNestedInput
 }
 
 export type ParentAssignmentCreateWithoutQuestionsInput = {
@@ -833,6 +862,7 @@ export type ParentAssignmentCreateWithoutQuestionsInput = {
   parent: Prisma.UserCreateNestedOneWithoutAssignmentsGivenInput
   child: Prisma.UserCreateNestedOneWithoutAssignmentsReceivedInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssignmentInput
+  progress?: Prisma.AssignmentProgressCreateNestedManyWithoutAssignmentInput
 }
 
 export type ParentAssignmentUncheckedCreateWithoutQuestionsInput = {
@@ -849,6 +879,7 @@ export type ParentAssignmentUncheckedCreateWithoutQuestionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssignmentInput
+  progress?: Prisma.AssignmentProgressUncheckedCreateNestedManyWithoutAssignmentInput
 }
 
 export type ParentAssignmentCreateOrConnectWithoutQuestionsInput = {
@@ -881,6 +912,7 @@ export type ParentAssignmentUpdateWithoutQuestionsInput = {
   parent?: Prisma.UserUpdateOneRequiredWithoutAssignmentsGivenNestedInput
   child?: Prisma.UserUpdateOneRequiredWithoutAssignmentsReceivedNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssignmentNestedInput
+  progress?: Prisma.AssignmentProgressUpdateManyWithoutAssignmentNestedInput
 }
 
 export type ParentAssignmentUncheckedUpdateWithoutQuestionsInput = {
@@ -897,6 +929,91 @@ export type ParentAssignmentUncheckedUpdateWithoutQuestionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssignmentNestedInput
+  progress?: Prisma.AssignmentProgressUncheckedUpdateManyWithoutAssignmentNestedInput
+}
+
+export type ParentAssignmentCreateWithoutProgressInput = {
+  id?: string
+  title: string
+  description?: string | null
+  materialId?: string | null
+  selectedFrames?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dueDate?: Date | string | null
+  status?: string
+  notes?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  parent: Prisma.UserCreateNestedOneWithoutAssignmentsGivenInput
+  child: Prisma.UserCreateNestedOneWithoutAssignmentsReceivedInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutAssignmentInput
+  questions?: Prisma.QuestionCreateNestedManyWithoutAssignmentInput
+}
+
+export type ParentAssignmentUncheckedCreateWithoutProgressInput = {
+  id?: string
+  parentId: string
+  childId: string
+  title: string
+  description?: string | null
+  materialId?: string | null
+  selectedFrames?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dueDate?: Date | string | null
+  status?: string
+  notes?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssignmentInput
+  questions?: Prisma.QuestionUncheckedCreateNestedManyWithoutAssignmentInput
+}
+
+export type ParentAssignmentCreateOrConnectWithoutProgressInput = {
+  where: Prisma.ParentAssignmentWhereUniqueInput
+  create: Prisma.XOR<Prisma.ParentAssignmentCreateWithoutProgressInput, Prisma.ParentAssignmentUncheckedCreateWithoutProgressInput>
+}
+
+export type ParentAssignmentUpsertWithoutProgressInput = {
+  update: Prisma.XOR<Prisma.ParentAssignmentUpdateWithoutProgressInput, Prisma.ParentAssignmentUncheckedUpdateWithoutProgressInput>
+  create: Prisma.XOR<Prisma.ParentAssignmentCreateWithoutProgressInput, Prisma.ParentAssignmentUncheckedCreateWithoutProgressInput>
+  where?: Prisma.ParentAssignmentWhereInput
+}
+
+export type ParentAssignmentUpdateToOneWithWhereWithoutProgressInput = {
+  where?: Prisma.ParentAssignmentWhereInput
+  data: Prisma.XOR<Prisma.ParentAssignmentUpdateWithoutProgressInput, Prisma.ParentAssignmentUncheckedUpdateWithoutProgressInput>
+}
+
+export type ParentAssignmentUpdateWithoutProgressInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  materialId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  selectedFrames?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  parent?: Prisma.UserUpdateOneRequiredWithoutAssignmentsGivenNestedInput
+  child?: Prisma.UserUpdateOneRequiredWithoutAssignmentsReceivedNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutAssignmentNestedInput
+  questions?: Prisma.QuestionUpdateManyWithoutAssignmentNestedInput
+}
+
+export type ParentAssignmentUncheckedUpdateWithoutProgressInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  parentId?: Prisma.StringFieldUpdateOperationsInput | string
+  childId?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  materialId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  selectedFrames?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssignmentNestedInput
+  questions?: Prisma.QuestionUncheckedUpdateManyWithoutAssignmentNestedInput
 }
 
 export type ParentAssignmentCreateManyParentInput = {
@@ -941,6 +1058,7 @@ export type ParentAssignmentUpdateWithoutParentInput = {
   child?: Prisma.UserUpdateOneRequiredWithoutAssignmentsReceivedNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssignmentNestedInput
   questions?: Prisma.QuestionUpdateManyWithoutAssignmentNestedInput
+  progress?: Prisma.AssignmentProgressUpdateManyWithoutAssignmentNestedInput
 }
 
 export type ParentAssignmentUncheckedUpdateWithoutParentInput = {
@@ -957,6 +1075,7 @@ export type ParentAssignmentUncheckedUpdateWithoutParentInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssignmentNestedInput
   questions?: Prisma.QuestionUncheckedUpdateManyWithoutAssignmentNestedInput
+  progress?: Prisma.AssignmentProgressUncheckedUpdateManyWithoutAssignmentNestedInput
 }
 
 export type ParentAssignmentUncheckedUpdateManyWithoutParentInput = {
@@ -987,6 +1106,7 @@ export type ParentAssignmentUpdateWithoutChildInput = {
   parent?: Prisma.UserUpdateOneRequiredWithoutAssignmentsGivenNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssignmentNestedInput
   questions?: Prisma.QuestionUpdateManyWithoutAssignmentNestedInput
+  progress?: Prisma.AssignmentProgressUpdateManyWithoutAssignmentNestedInput
 }
 
 export type ParentAssignmentUncheckedUpdateWithoutChildInput = {
@@ -1003,6 +1123,7 @@ export type ParentAssignmentUncheckedUpdateWithoutChildInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssignmentNestedInput
   questions?: Prisma.QuestionUncheckedUpdateManyWithoutAssignmentNestedInput
+  progress?: Prisma.AssignmentProgressUncheckedUpdateManyWithoutAssignmentNestedInput
 }
 
 export type ParentAssignmentUncheckedUpdateManyWithoutChildInput = {
@@ -1027,11 +1148,13 @@ export type ParentAssignmentUncheckedUpdateManyWithoutChildInput = {
 export type ParentAssignmentCountOutputType = {
   notifications: number
   questions: number
+  progress: number
 }
 
 export type ParentAssignmentCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   notifications?: boolean | ParentAssignmentCountOutputTypeCountNotificationsArgs
   questions?: boolean | ParentAssignmentCountOutputTypeCountQuestionsArgs
+  progress?: boolean | ParentAssignmentCountOutputTypeCountProgressArgs
 }
 
 /**
@@ -1058,6 +1181,13 @@ export type ParentAssignmentCountOutputTypeCountQuestionsArgs<ExtArgs extends ru
   where?: Prisma.QuestionWhereInput
 }
 
+/**
+ * ParentAssignmentCountOutputType without action
+ */
+export type ParentAssignmentCountOutputTypeCountProgressArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AssignmentProgressWhereInput
+}
+
 
 export type ParentAssignmentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1076,6 +1206,7 @@ export type ParentAssignmentSelect<ExtArgs extends runtime.Types.Extensions.Inte
   child?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   notifications?: boolean | Prisma.ParentAssignment$notificationsArgs<ExtArgs>
   questions?: boolean | Prisma.ParentAssignment$questionsArgs<ExtArgs>
+  progress?: boolean | Prisma.ParentAssignment$progressArgs<ExtArgs>
   _count?: boolean | Prisma.ParentAssignmentCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["parentAssignment"]>
 
@@ -1134,6 +1265,7 @@ export type ParentAssignmentInclude<ExtArgs extends runtime.Types.Extensions.Int
   child?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   notifications?: boolean | Prisma.ParentAssignment$notificationsArgs<ExtArgs>
   questions?: boolean | Prisma.ParentAssignment$questionsArgs<ExtArgs>
+  progress?: boolean | Prisma.ParentAssignment$progressArgs<ExtArgs>
   _count?: boolean | Prisma.ParentAssignmentCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ParentAssignmentIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1152,6 +1284,7 @@ export type $ParentAssignmentPayload<ExtArgs extends runtime.Types.Extensions.In
     child: Prisma.$UserPayload<ExtArgs>
     notifications: Prisma.$NotificationPayload<ExtArgs>[]
     questions: Prisma.$QuestionPayload<ExtArgs>[]
+    progress: Prisma.$AssignmentProgressPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1564,6 +1697,7 @@ export interface Prisma__ParentAssignmentClient<T, Null = never, ExtArgs extends
   child<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   notifications<T extends Prisma.ParentAssignment$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ParentAssignment$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   questions<T extends Prisma.ParentAssignment$questionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ParentAssignment$questionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$QuestionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  progress<T extends Prisma.ParentAssignment$progressArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ParentAssignment$progressArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssignmentProgressPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2051,6 +2185,30 @@ export type ParentAssignment$questionsArgs<ExtArgs extends runtime.Types.Extensi
   take?: number
   skip?: number
   distinct?: Prisma.QuestionScalarFieldEnum | Prisma.QuestionScalarFieldEnum[]
+}
+
+/**
+ * ParentAssignment.progress
+ */
+export type ParentAssignment$progressArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AssignmentProgress
+   */
+  select?: Prisma.AssignmentProgressSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AssignmentProgress
+   */
+  omit?: Prisma.AssignmentProgressOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AssignmentProgressInclude<ExtArgs> | null
+  where?: Prisma.AssignmentProgressWhereInput
+  orderBy?: Prisma.AssignmentProgressOrderByWithRelationInput | Prisma.AssignmentProgressOrderByWithRelationInput[]
+  cursor?: Prisma.AssignmentProgressWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AssignmentProgressScalarFieldEnum | Prisma.AssignmentProgressScalarFieldEnum[]
 }
 
 /**

@@ -64,7 +64,8 @@ export const ModelName = {
   ReadingProgress: 'ReadingProgress',
   ParentAssignment: 'ParentAssignment',
   Notification: 'Notification',
-  Question: 'Question'
+  Question: 'Question',
+  AssignmentProgress: 'AssignmentProgress'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -285,6 +286,19 @@ export const QuestionScalarFieldEnum = {
 } as const
 
 export type QuestionScalarFieldEnum = (typeof QuestionScalarFieldEnum)[keyof typeof QuestionScalarFieldEnum]
+
+
+export const AssignmentProgressScalarFieldEnum = {
+  assignmentId: 'assignmentId',
+  frameSlug: 'frameSlug',
+  completed: 'completed',
+  correct: 'correct',
+  total: 'total',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AssignmentProgressScalarFieldEnum = (typeof AssignmentProgressScalarFieldEnum)[keyof typeof AssignmentProgressScalarFieldEnum]
 
 
 export const SortOrder = {

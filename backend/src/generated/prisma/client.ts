@@ -111,3 +111,8 @@ export type Notification = Prisma.NotificationModel
  * 
  */
 export type Question = Prisma.QuestionModel
+/**
+ * Model AssignmentProgress
+ * 
+ */
+export type AssignmentProgress = Prisma.AssignmentProgressModel
