@@ -275,6 +275,7 @@ model ParentAssignment {
   notes          String? // parent's notes or feedback
   notifications  Notification[]
   questions      Question[]
+  progress       AssignmentProgress[]
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
@@ -319,4 +320,21 @@ model Question {
   @@index([childId])
   @@index([parentId])
   @@map("questions")
+}
+
+// Per-assignment frame progress — tracks which frames a child completed
+// within the context of a specific assignment (not globally per module)
+model AssignmentProgress {
+  assignmentId String
+  assignment   ParentAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  frameSlug    String
+  completed    Boolean          @default(false)
+  correct      Int              @default(0)
+  total        Int              @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@id([assignmentId, frameSlug])
+  @@index([assignmentId])
+  @@map("assignment_progress")
 }

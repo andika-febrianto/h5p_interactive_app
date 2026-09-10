@@ -32,6 +32,7 @@ export function ProgressProvider({
   totalFrames,
   moduleId,
   disableApi = false,
+  assignmentId,
 }: {
   children: ReactNode;
   totalFrames: number;
@@ -39,6 +40,9 @@ export function ProgressProvider({
   /** When true, never calls the backend or reads a real clientId — used for
    *  the teacher's live frame preview, which must have zero side effects. */
   disableApi?: boolean;
+  /** When set, progress is also saved under this assignment so each
+   *  assignment tracks completion independently. */
+  assignmentId?: string | null;
 }) {
   const clientId = useMemo(() => (disableApi ? 'preview' : getClientId()), [disableApi]);
   const [results, setResults] = useState<Record<string, FrameResult>>({});
@@ -85,6 +89,7 @@ export function ProgressProvider({
       completed: result.completed,
       correct: result.correct,
       total: result.total,
+      assignmentId: assignmentId ?? undefined,
     }).catch((err) => {
       console.error('Failed to save progress:', err);
     });
@@ -112,7 +117,7 @@ export function ProgressProvider({
       error,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [results, currentIndex, totalFrames, moduleId, loading, error]
+    [results, currentIndex, totalFrames, moduleId, loading, error, assignmentId]
   );
 
   return <ProgressContext.Provider value={value}>{children}</ProgressContext.Provider>;

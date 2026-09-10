@@ -829,6 +829,58 @@ parentRouter.post(
   },
 )
 
+// GET /api/parent/assignments/:assignmentId/progress
+// Returns per-assignment frame progress so each assignment tracks completion
+// independently even when two assignments share the same module.
+parentRouter.get(
+  '/assignments/:assignmentId/progress',
+  requireAuth,
+  async (req, res, next) => {
+    try {
+      const authUserId = req.auth!.userId
+      const authRole = req.auth!.role
+      const { assignmentId } = req.params
+
+      const assignment = await prisma.parentAssignment.findUnique({
+        where: { id: assignmentId },
+      })
+      if (!assignment) {
+        res.status(404).json({ error: 'Tugas tidak ditemukan.' })
+        return
+      }
+
+      // Parents can only see their own assignments; students see their own
+      if (
+        authRole === 'PARENT' && assignment.parentId !== authUserId
+      ) {
+        res.status(403).json({ error: 'Akses ditolak.' })
+        return
+      }
+      if (
+        authRole === 'STUDENT' && assignment.childId !== authUserId
+      ) {
+        res.status(403).json({ error: 'Akses ditolak.' })
+        return
+      }
+
+      const records = await prisma.assignmentProgress.findMany({
+        where: { assignmentId },
+      })
+
+      const results = records.map((r) => ({
+        frameSlug: r.frameSlug,
+        completed: r.completed,
+        correct: r.correct,
+        total: r.total,
+      }))
+
+      res.json(results)
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
 // ---------- Notifications ----------
 
 // GET /api/parent/notifications - Get notifications for the current user (PARENT or STUDENT)

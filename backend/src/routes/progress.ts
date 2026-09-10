@@ -66,19 +66,21 @@ interface UpsertProgressBody {
   completed?: unknown;
   correct?: unknown;
   total?: unknown;
+  assignmentId?: unknown;
 }
 
 // POST /api/progress
-// Body: { clientId, moduleId, frameSlug, completed, correct, total }
-// Requires login + an unexpired trial/subscription — this is the "recording
-// that you actually used the content" action a trial gates (teachers are
-// exempt, same as GET /api/modules/:id — see requireActiveAccess).
+// Body: { clientId, moduleId, frameSlug, completed, correct, total, assignmentId? }
+// When assignmentId is provided, also saves per-assignment progress so each
+// assignment tracks completion independently (same module + different frames
+// → separate percentages).
 progressRouter.post('/', requireAuth, requireActiveAccess, async (req, res, next) => {
   try {
     const body = req.body as UpsertProgressBody;
     const { clientId, userId } = resolveIdentity(req, requireString(body.clientId));
     const moduleId = requireString(body.moduleId);
     const frameSlug = requireString(body.frameSlug);
+    const assignmentId = requireString(body.assignmentId);
     const completed = typeof body.completed === 'boolean' ? body.completed : undefined;
     const correct = typeof body.correct === 'number' ? body.correct : undefined;
     const total = typeof body.total === 'number' ? body.total : undefined;
@@ -103,6 +105,20 @@ progressRouter.post('/', requireAuth, requireActiveAccess, async (req, res, next
       create: { clientId, moduleId, frameSlug, completed, correct, total, userId },
       update: { completed, correct, total, userId },
     });
+
+    // Also save per-assignment progress if assignmentId is provided
+    if (assignmentId) {
+      try {
+        await prisma.assignmentProgress.upsert({
+          where: { assignmentId_frameSlug: { assignmentId, frameSlug } },
+          create: { assignmentId, frameSlug, completed, correct, total },
+          update: { completed, correct, total },
+        });
+      } catch (_err) {
+        // If assignment doesn't exist or constraint fails, silently skip —
+        // the global progress record above is still saved.
+      }
+    }
 
     res.status(200).json({
       frameId: record.frameSlug,

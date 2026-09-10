@@ -291,7 +291,7 @@ export default function ModulePage() {
       : mod.frames
 
   return (
-    <ProgressProvider totalFrames={visibleFrames.length} moduleId={mod.id}>
+    <ProgressProvider totalFrames={visibleFrames.length} moduleId={mod.id} assignmentId={assignmentId}>
       <ModuleRunner
         mod={mod}
         filteredFrames={selectedFrameIds ?? undefined}

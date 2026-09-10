@@ -195,6 +195,7 @@ export function upsertProgress(body: {
   completed: boolean
   correct: number
   total: number
+  assignmentId?: string
 }): Promise<FrameResult> {
   return request('/progress', { method: 'POST', body: JSON.stringify(body) })
 }
@@ -677,6 +678,22 @@ export function deleteAssignment(id: string): Promise<void> {
   return request(`/parent/assignments/${encodeURIComponent(id)}`, {
     method: 'DELETE',
   })
+}
+
+// Per-assignment frame progress — each assignment tracks completion independently
+export interface AssignmentFrameProgress {
+  frameSlug: string
+  completed: boolean
+  correct: number
+  total: number
+}
+
+export function fetchAssignmentProgress(
+  assignmentId: string,
+): Promise<AssignmentFrameProgress[]> {
+  return request(
+    `/parent/assignments/${encodeURIComponent(assignmentId)}/progress`,
+  )
 }
 
 export function fetchChildAssignments(

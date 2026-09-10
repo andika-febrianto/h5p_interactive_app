@@ -29,7 +29,9 @@ import {
   fetchUnreadCount,
   markNotificationRead,
   markAllNotificationsRead,
+  fetchAssignmentProgress,
   type Notification,
+  type AssignmentFrameProgress,
 } from '../../lib/api'
 import { ApiError } from '../../lib/api'
 import { grades, semesters } from '../../data/grades'
@@ -775,6 +777,10 @@ export default function ParentDashboard() {
     Record<string, Record<string, FrameProgress>>
   >({})
   const [moduleCache, setModuleCache] = useState<Record<string, Module>>({})
+  // Per-assignment frame progress (keyed by assignmentId → frameSlug → progress)
+  const [assignFrameProgress, setAssignFrameProgress] = useState<
+    Record<string, AssignmentFrameProgress[]>
+  >({})
 
   // Assignment state
   const [assignments, setAssignments] = useState<ParentAssignment[]>([])
@@ -915,6 +921,24 @@ export default function ParentDashboard() {
       }
     })
     Promise.all(fetches).finally(() => setProgressLoading(false))
+  }, [selectedChild, assignments])
+
+  // Fetch per-assignment frame progress so each assignment shows independent %
+  useEffect(() => {
+    if (!selectedChild) return
+    const childAssignments = assignments.filter(
+      (a) => a.childId === selectedChild.id,
+    )
+    if (childAssignments.length === 0) return
+    childAssignments.forEach((a) => {
+      if (a.id && !assignFrameProgress[a.id]) {
+        fetchAssignmentProgress(a.id)
+          .then((records) => {
+            setAssignFrameProgress((prev) => ({ ...prev, [a.id]: records }))
+          })
+          .catch(() => {})
+      }
+    })
   }, [selectedChild, assignments])
 
   useEffect(() => {
@@ -1183,21 +1207,26 @@ export default function ParentDashboard() {
       return { completed: 0, total: 0, pct: 0 }
     const total = a.selectedFrames.length
     let completed = 0
-    a.selectedFrames.forEach((fid) => {
-      const fp = getFrameProgress(a.materialId, fid)
-      if (fp?.completed) completed++
-    })
 
-    console.log('ASSIGNMENT DEBUG', {
-      assignmentId: a.id,
-      title: a.title,
-      materialId: a.materialId,
-      selectedFrames: a.selectedFrames,
-      frameProgress: a.selectedFrames.map((fid) => ({
-        frameSlug: fid,
-        progress: getFrameProgress(a.materialId, fid),
-      })),
-    })
+    // Prefer per-assignment progress if available — this ensures each
+    // assignment tracks completion independently even when two assignments
+    // share the same material and overlapping frames.
+    const perAssignment = assignFrameProgress[a.id]
+    if (perAssignment) {
+      const progressMap = new Map(
+        perAssignment.map((r) => [r.frameSlug, r]),
+      )
+      a.selectedFrames.forEach((fid) => {
+        const fp = progressMap.get(fid)
+        if (fp?.completed) completed++
+      })
+    } else {
+      // Fall back to global module progress until per-assignment data loads
+      a.selectedFrames.forEach((fid) => {
+        const fp = getFrameProgress(a.materialId, fid)
+        if (fp?.completed) completed++
+      })
+    }
 
     return {
       completed,
