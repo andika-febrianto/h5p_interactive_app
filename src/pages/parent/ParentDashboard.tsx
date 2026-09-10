@@ -1213,9 +1213,7 @@ export default function ParentDashboard() {
     // share the same material and overlapping frames.
     const perAssignment = assignFrameProgress[a.id]
     if (perAssignment) {
-      const progressMap = new Map(
-        perAssignment.map((r) => [r.frameSlug, r]),
-      )
+      const progressMap = new Map(perAssignment.map((r) => [r.frameSlug, r]))
       a.selectedFrames.forEach((fid) => {
         const fp = progressMap.get(fid)
         if (fp?.completed) completed++

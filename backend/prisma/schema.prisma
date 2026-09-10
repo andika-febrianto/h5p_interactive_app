@@ -261,23 +261,23 @@ model ReadingProgress {
 
 // Tasks/assignments created by parents for their children
 model ParentAssignment {
-  id             String         @id @default(cuid())
+  id             String               @id @default(cuid())
   parentId       String
-  parent         User           @relation("Parent", fields: [parentId], references: [id], onDelete: Cascade)
+  parent         User                 @relation("Parent", fields: [parentId], references: [id], onDelete: Cascade)
   childId        String
-  child          User           @relation("Child", fields: [childId], references: [id], onDelete: Cascade)
+  child          User                 @relation("Child", fields: [childId], references: [id], onDelete: Cascade)
   title          String
   description    String?
   materialId     String? // optional link to a module
   selectedFrames Json? // array of frame ids selected by parent, e.g. ["bc1", "bc3"]
   dueDate        DateTime?
-  status         String         @default("pending") // 'pending' | 'in_progress' | 'completed' | 'overdue'
+  status         String               @default("pending") // 'pending' | 'in_progress' | 'completed' | 'overdue'
   notes          String? // parent's notes or feedback
   notifications  Notification[]
   questions      Question[]
   progress       AssignmentProgress[]
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
 
   @@index([parentId])
   @@index([childId])
