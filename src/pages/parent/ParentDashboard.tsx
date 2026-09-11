@@ -1059,6 +1059,14 @@ export default function ParentDashboard() {
     setAssignSuccess(null)
     setAssigning(true)
     try {
+      console.log('create assignment', {
+        childId: selectedChildId,
+        title: selectedModule.title,
+        materialId: selectedModule.id,
+        selectedFrames,
+        dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
+      })
+
       const childInfo = children.find((c) => c.id === selectedChildId)
       await createAssignment({
         childId: selectedChildId,
@@ -2789,7 +2797,7 @@ export default function ParentDashboard() {
                           boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                         }}
                       >
-                        Matematika Dasar
+                        Kurikulum Merdeka
                       </span>
                       <span
                         style={{
