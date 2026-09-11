@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type { FrameResult } from '../types/storyboard';
+import type { FrameResult, UserRole } from '../types/storyboard';
 import { getClientId } from '../lib/clientId';
 import { fetchProgress, upsertProgress, clearProgress, ApiError } from '../lib/api';
 
@@ -33,6 +33,7 @@ export function ProgressProvider({
   moduleId,
   disableApi = false,
   assignmentId,
+  userRole,
 }: {
   children: ReactNode;
   totalFrames: number;
@@ -43,6 +44,8 @@ export function ProgressProvider({
   /** When set, progress is also saved under this assignment so each
    *  assignment tracks completion independently. */
   assignmentId?: string | null;
+  /** User role — only STUDENT progress is saved to the backend. */
+  userRole?: UserRole;
 }) {
   const clientId = useMemo(() => (disableApi ? 'preview' : getClientId()), [disableApi]);
   const [results, setResults] = useState<Record<string, FrameResult>>({});
@@ -82,6 +85,9 @@ export function ProgressProvider({
   const setResult = (result: FrameResult) => {
     setResults((prev) => ({ ...prev, [result.frameId]: result }));
     if (disableApi) return; // preview mode: stop here, no network call
+    // Only save progress for STUDENT role — parents and teachers are
+    // previewing the module and should not affect assignment progress.
+    if (userRole && userRole !== 'STUDENT') return;
     upsertProgress({
       clientId,
       moduleId,
