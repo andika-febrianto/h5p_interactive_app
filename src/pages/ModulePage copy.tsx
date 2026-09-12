@@ -95,6 +95,7 @@ function ModuleRunner({
         userName={user?.name}
         onJump={handleJump}
         onExit={handleExit}
+        userRole={user?.role || 'TEACHER'}
       />
       <main className='app-main' style={{ padding: 0 }}>
         {/* Top header bar */}
@@ -291,7 +292,12 @@ export default function ModulePage() {
       : mod.frames
 
   return (
-    <ProgressProvider totalFrames={visibleFrames.length} moduleId={mod.id} assignmentId={assignmentId}>
+    <ProgressProvider
+      totalFrames={visibleFrames.length}
+      moduleId={mod.id}
+      assignmentId={assignmentId}
+      userRole={user?.role}
+    >
       <ModuleRunner
         mod={mod}
         filteredFrames={selectedFrameIds ?? undefined}
