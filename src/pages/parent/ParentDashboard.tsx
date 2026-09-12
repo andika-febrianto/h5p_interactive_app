@@ -830,6 +830,9 @@ export default function ParentDashboard() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [notificationsLoading, setNotificationsLoading] = useState(false)
 
+  // Subject filter for Progres Mata Pelajaran
+  const [subjectFilter, setSubjectFilter] = useState<'all' | 'ongoing' | 'unstarted' | 'completed'>('all')
+
   // Manage profiles
   const [showManageProfiles, setShowManageProfiles] = useState(false)
   const [editingChild, setEditingChild] = useState<ChildInfo | null>(null)
@@ -3252,99 +3255,284 @@ export default function ParentDashboard() {
                       </div>
                     )}
                   </div>
+                </section>
+              </section>
 
-                  {/* ── Subject Quick Stats ── */}
-                  <footer
-                    style={{
-                      marginTop: 8,
-                      display: 'grid',
-                      gridTemplateColumns:
-                        'repeat(auto-fit, minmax(180px, 1fr))',
-                      gap: 10,
-                    }}
-                  >
-                    {subjects.slice(0, 3).map((s) => {
-                      const sAssignments = assignments.filter(
-                        (a) =>
-                          a.materialId &&
-                          moduleCache[a.materialId]?.subjectId === s.id,
+              {/* ── Progres Mata Pelajaran ── */}
+              <section
+                style={{
+                  background: '#fff',
+                  borderRadius: 24,
+                  border: '1px solid rgba(226,232,240,0.8)',
+                  padding: '24px 32px 28px',
+                  marginTop: 20,
+                  boxShadow:
+                    '0 4px 20px -2px rgba(15,23,42,0.05), 0 2px 6px -1px rgba(15,23,42,0.02)',
+                }}
+              >
+                {/* Section Header + Filter Pills */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row' as const,
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    marginBottom: 16,
+                    flexWrap: 'wrap' as const,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <h3
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        color: '#0f172a',
+                        margin: 0,
+                        letterSpacing: '-0.01em',
+                      }}
+                    >
+                      Progres Mata Pelajaran
+                    </h3>
+                    <span
+                      style={{
+                        padding: '3px 10px',
+                        borderRadius: 999,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: '#f1f5f9',
+                        color: '#475569',
+                        border: '1px solid #e2e8f0',
+                      }}
+                    >
+                      {subjects.length} Mapel
+                    </span>
+                  </div>
+                  {/* Filter Pills */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto' }}>
+                    {([
+                      { key: 'all' as const, label: 'Semua', count: subjects.length },
+                      {
+                        key: 'ongoing' as const,
+                        label: 'Sedang Belajar',
+                        count: subjects.filter((s) => {
+                          const sa = assignments.filter((a) => a.materialId && moduleCache[a.materialId]?.subjectId === s.id)
+                          const p = sa.length > 0 ? Math.round(sa.reduce((sm, a) => sm + getAssignmentCompletion(a).pct, 0) / sa.length) : 0
+                          return p > 0 && p < 100
+                        }).length,
+                      },
+                      {
+                        key: 'unstarted' as const,
+                        label: 'Belum Mulai',
+                        count: subjects.filter((s) => {
+                          const sa = assignments.filter((a) => a.materialId && moduleCache[a.materialId]?.subjectId === s.id)
+                          const p = sa.length > 0 ? Math.round(sa.reduce((sm, a) => sm + getAssignmentCompletion(a).pct, 0) / sa.length) : 0
+                          return p === 0
+                        }).length,
+                      },
+                      {
+                        key: 'completed' as const,
+                        label: 'Tuntas',
+                        count: subjects.filter((s) => {
+                          const sa = assignments.filter((a) => a.materialId && moduleCache[a.materialId]?.subjectId === s.id)
+                          const p = sa.length > 0 ? Math.round(sa.reduce((sm, a) => sm + getAssignmentCompletion(a).pct, 0) / sa.length) : 0
+                          return p === 100
+                        }).length,
+                      },
+                    ]).map((f) => {
+                      const isPillActive = subjectFilter === f.key
+                      return (
+                        <button
+                          key={f.key}
+                          type='button'
+                          onClick={() => setSubjectFilter(f.key)}
+                          style={{
+                            padding: '5px 14px',
+                            borderRadius: 10,
+                            fontSize: 11,
+                            fontWeight: isPillActive ? 700 : 500,
+                            color: isPillActive ? '#fff' : '#475569',
+                            background: isPillActive ? '#1e293b' : 'transparent',
+                            border: isPillActive ? '1px solid #1e293b' : '1px solid transparent',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap' as const,
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {f.label} ({f.count})
+                        </button>
                       )
-                      console.log('xfdfdsa', sAssignments)
+                    })}
+                  </div>
+                </div>
 
-                      const pct =
-                        sAssignments.length > 0
-                          ? Math.round(
-                              sAssignments.reduce(
-                                (sum, a) =>
-                                  sum + getAssignmentCompletion(a).pct,
-                                0,
-                              ) / sAssignments.length,
-                            )
-                          : 0
+                {/* Subject Cards Grid */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                    gap: 12,
+                  }}
+                >
+                  {subjects
+                    .filter((s) => {
+                      if (subjectFilter === 'all') return true
+                      const sa = assignments.filter((a) => a.materialId && moduleCache[a.materialId]?.subjectId === s.id)
+                      const p = sa.length > 0 ? Math.round(sa.reduce((sm, a) => sm + getAssignmentCompletion(a).pct, 0) / sa.length) : 0
+                      if (subjectFilter === 'ongoing') return p > 0 && p < 100
+                      if (subjectFilter === 'unstarted') return p === 0
+                      if (subjectFilter === 'completed') return p === 100
+                      return true
+                    })
+                    .map((s) => {
+                      const sAssignments = assignments.filter(
+                        (a) => a.materialId && moduleCache[a.materialId]?.subjectId === s.id,
+                      )
+                      const pct = sAssignments.length > 0
+                        ? Math.round(sAssignments.reduce((sm, a) => sm + getAssignmentCompletion(a).pct, 0) / sAssignments.length)
+                        : 0
+                      const isComplete = pct === 100
+                      const isOngoing = pct > 0 && pct < 100
+                      const accent = s.accent || '#6366F1'
 
-                      const isActive = pct > 0
+                      let statusText = 'Belum Mulai'
+                      let statusColor = '#94a3b8'
+                      if (isOngoing) { statusText = 'Sedang Dibuka'; statusColor = accent }
+                      if (isComplete) { statusText = '\u2713 Tuntas'; statusColor = '#059669' }
+
+                      const cardBg = isOngoing ? 'linear-gradient(135deg, #fbfaff 0%, #f5f3ff 100%)' : '#fff'
+                      const cardBorder = isOngoing ? accent : 'rgba(226,232,240,0.9)'
+
                       return (
                         <div
                           key={s.id}
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '12px 16px',
+                            position: 'relative',
+                            padding: '14px 16px',
                             borderRadius: 16,
-                            background: isActive
-                              ? 'rgba(238,242,255,0.4)'
-                              : 'rgba(248,250,252,0.7)',
-                            border:
-                              '1px solid ' +
-                              (isActive
-                                ? 'rgba(224,231,255,0.8)'
-                                : 'rgba(226,232,240,0.7)'),
+                            border: '1.5px solid ' + cardBorder,
+                            background: cardBg,
+                            boxShadow: isOngoing ? '0 4px 16px -2px rgba(99,102,241,0.14)' : '0 1px 4px rgba(0,0,0,0.02)',
+                            transition: 'all 0.2s ease',
                           }}
                         >
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 10,
-                            }}
-                          >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span
+                                style={{
+                                  width: 10,
+                                  height: 10,
+                                  borderRadius: '50%',
+                                  background: accent,
+                                  boxShadow: isOngoing ? '0 0 0 4px ' + accent + '20' : 'none',
+                                  flexShrink: 0,
+                                }}
+                              />
+                              <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
+                                {s.shortName}
+                              </span>
+                            </div>
                             <span
                               style={{
-                                width: 8,
-                                height: 8,
-                                borderRadius: '50%',
-                                background: s.accent,
-                                boxShadow: '0 0 0 4px ' + s.accent + '20',
-                              }}
-                            />
-                            <span
-                              style={{
-                                fontSize: 12,
-                                fontWeight: 600,
-                                color: isActive ? '#1e293b' : '#64748b',
+                                fontSize: 13,
+                                fontWeight: 700,
+                                color: isComplete ? '#059669' : isOngoing ? accent : '#94a3b8',
                               }}
                             >
-                              {s.shortName}
+                              {pct}%
                             </span>
                           </div>
-                          <span
+
+                          {/* Mini Progress Bar */}
+                          <div
                             style={{
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: isActive ? '#4F46E5' : '#94a3b8',
+                              width: '100%',
+                              background: isComplete ? '#d1fae5' : '#e2e8f0',
+                              height: 5,
+                              borderRadius: 999,
+                              overflow: 'hidden',
+                              marginBottom: 8,
                             }}
                           >
-                            {pct}% Selesai
-                          </span>
+                            <div
+                              style={{
+                                width: pct + '%',
+                                background: isComplete ? '#059669' : accent,
+                                height: '100%',
+                                borderRadius: 999,
+                                transition: 'width 0.6s ease',
+                              }}
+                            />
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                color: statusColor,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                              }}
+                            >
+                              {pct > 0 ? (
+                                <span
+                                  style={{
+                                    width: 5,
+                                    height: 5,
+                                    borderRadius: '50%',
+                                    background: statusColor,
+                                  }}
+                                />
+                              ) : null}
+                              {statusText}
+                            </span>
+                            <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                              {sAssignments.length > 0 ? sAssignments.length + ' Tugas' : '0 Tugas'}
+                            </span>
+                          </div>
                         </div>
                       )
                     })}
-                  </footer>
-                </section>
+                </div>
+
+                {/* Footer Insight */}
+                <div
+                  style={{
+                    marginTop: 14,
+                    paddingTop: 12,
+                    borderTop: '1px dashed #e2e8f0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: 11,
+                    color: '#94a3b8',
+                    flexWrap: 'wrap' as const,
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#6366F1' }} />
+                    Klik salah satu mapel di atas untuk melihat detail progres.
+                  </span>
+                  <span style={{ fontWeight: 600, color: '#475569' }}>
+                    Rata-rata:{' '}
+                    <strong style={{ color: '#4F46E5' }}>
+                      {subjects.length > 0
+                        ? Math.round(
+                            subjects.reduce((sm, s) => {
+                              const sa = assignments.filter((a) => a.materialId && moduleCache[a.materialId]?.subjectId === s.id)
+                              return sm + (sa.length > 0 ? Math.round(sa.reduce((ss, a) => ss + getAssignmentCompletion(a).pct, 0) / sa.length) : 0)
+                            }, 0) / subjects.length,
+                          )
+                        : 0}% Semester Berjalan
+                    </strong>
+                  </span>
+                </div>
               </section>
 
-              {/* Weekly Chart */}
+
               <section style={S.card}>
                 <div
                   style={{
