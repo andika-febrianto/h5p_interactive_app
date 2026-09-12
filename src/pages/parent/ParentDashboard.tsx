@@ -831,9 +831,13 @@ export default function ParentDashboard() {
   const [notificationsLoading, setNotificationsLoading] = useState(false)
 
   // Subject filter for Progres Mata Pelajaran
-  const [subjectFilter, setSubjectFilter] = useState<'all' | 'ongoing' | 'unstarted' | 'completed'>('all')
+  const [subjectFilter, setSubjectFilter] = useState<
+    'all' | 'ongoing' | 'unstarted' | 'completed'
+  >('all')
   // Selected subject card filter (clicking a subject card filters active assignments)
-  const [selectedSubjectCardId, setSelectedSubjectCardId] = useState<string | null>(null)
+  const [selectedSubjectCardId, setSelectedSubjectCardId] = useState<
+    string | null
+  >(null)
 
   // Manage profiles
   const [showManageProfiles, setShowManageProfiles] = useState(false)
@@ -1313,10 +1317,12 @@ export default function ParentDashboard() {
   const childName = selectedChild?.name ?? 'Anak'
 
   const activeAssignments = assignments.filter(
-    (a) => a.status !== 'completed' && a.childId === (selectedChild?.id ?? '') && (
-      !selectedSubjectCardId ||
-      (a.materialId && moduleCache[a.materialId]?.subjectId === selectedSubjectCardId)
-    ),
+    (a) =>
+      a.status !== 'completed' &&
+      a.childId === (selectedChild?.id ?? '') &&
+      (!selectedSubjectCardId ||
+        (a.materialId &&
+          moduleCache[a.materialId]?.subjectId === selectedSubjectCardId)),
   )
   const bellCount = unreadCount
 
@@ -2825,61 +2831,78 @@ export default function ParentDashboard() {
                   </header>
 
                   {/* Subject Filter Indicator */}
-                  {selectedSubjectCardId && (() => {
-                    const filteredSubject = subjects.find(s => s.id === selectedSubjectCardId)
-                    return filteredSubject ? (
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          marginTop: 16,
-                          padding: '8px 16px',
-                          borderRadius: 12,
-                          background: 'rgba(99,102,241,0.06)',
-                          border: '1px solid rgba(99,102,241,0.15)',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span
-                            style={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: '50%',
-                              background: filteredSubject.accent || '#6366F1',
-                            }}
-                          />
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>
-                            Menampilkan tugas:{' '}
-                            <strong style={{ color: '#4F46E5' }}>{filteredSubject.shortName}</strong>
-                          </span>
-                          <span style={{ fontSize: 11, color: '#94a3b8' }}>
-                            ({activeAssignments.length} tugas)
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedSubjectCardId(null)}
+                  {selectedSubjectCardId &&
+                    (() => {
+                      const filteredSubject = subjects.find(
+                        (s) => s.id === selectedSubjectCardId,
+                      )
+                      return filteredSubject ? (
+                        <div
                           style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 4,
-                            padding: '4px 12px',
-                            borderRadius: 8,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: '#6366F1',
-                            background: '#fff',
-                            border: '1px solid rgba(99,102,241,0.2)',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
+                            justifyContent: 'space-between',
+                            marginTop: 16,
+                            padding: '8px 16px',
+                            borderRadius: 12,
+                            background: 'rgba(99,102,241,0.06)',
+                            border: '1px solid rgba(99,102,241,0.15)',
                           }}
                         >
-                          Tampilkan Semua
-                        </button>
-                      </div>
-                    ) : null
-                  })()}
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                background: filteredSubject.accent || '#6366F1',
+                              }}
+                            />
+                            <span
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 600,
+                                color: '#334155',
+                              }}
+                            >
+                              Menampilkan tugas:{' '}
+                              <strong style={{ color: '#4F46E5' }}>
+                                {filteredSubject.shortName}
+                              </strong>
+                            </span>
+                            <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                              ({activeAssignments.length} tugas)
+                            </span>
+                          </div>
+                          <button
+                            type='button'
+                            onClick={() => setSelectedSubjectCardId(null)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              padding: '4px 12px',
+                              borderRadius: 8,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: '#6366F1',
+                              background: '#fff',
+                              border: '1px solid rgba(99,102,241,0.2)',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            Tampilkan Semua
+                          </button>
+                        </div>
+                      ) : null
+                    })()}
 
                   {/* Active Task Cards */}
                   <div style={{ marginTop: 24 }}>
@@ -3344,7 +3367,9 @@ export default function ParentDashboard() {
                     flexWrap: 'wrap' as const,
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+                  >
                     <h3
                       style={{
                         fontSize: 16,
@@ -3371,15 +3396,39 @@ export default function ParentDashboard() {
                     </span>
                   </div>
                   {/* Filter Pills */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto' }}>
-                    {([
-                      { key: 'all' as const, label: 'Semua', count: subjects.length },
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      overflowX: 'auto',
+                    }}
+                  >
+                    {[
+                      {
+                        key: 'all' as const,
+                        label: 'Semua',
+                        count: subjects.length,
+                      },
                       {
                         key: 'ongoing' as const,
                         label: 'Sedang Belajar',
                         count: subjects.filter((s) => {
-                          const sa = assignments.filter((a) => a.materialId && moduleCache[a.materialId]?.subjectId === s.id)
-                          const p = sa.length > 0 ? Math.round(sa.reduce((sm, a) => sm + getAssignmentCompletion(a).pct, 0) / sa.length) : 0
+                          const sa = assignments.filter(
+                            (a) =>
+                              a.materialId &&
+                              moduleCache[a.materialId]?.subjectId === s.id,
+                          )
+                          const p =
+                            sa.length > 0
+                              ? Math.round(
+                                  sa.reduce(
+                                    (sm, a) =>
+                                      sm + getAssignmentCompletion(a).pct,
+                                    0,
+                                  ) / sa.length,
+                                )
+                              : 0
                           return p > 0 && p < 100
                         }).length,
                       },
@@ -3387,8 +3436,21 @@ export default function ParentDashboard() {
                         key: 'unstarted' as const,
                         label: 'Belum Mulai',
                         count: subjects.filter((s) => {
-                          const sa = assignments.filter((a) => a.materialId && moduleCache[a.materialId]?.subjectId === s.id)
-                          const p = sa.length > 0 ? Math.round(sa.reduce((sm, a) => sm + getAssignmentCompletion(a).pct, 0) / sa.length) : 0
+                          const sa = assignments.filter(
+                            (a) =>
+                              a.materialId &&
+                              moduleCache[a.materialId]?.subjectId === s.id,
+                          )
+                          const p =
+                            sa.length > 0
+                              ? Math.round(
+                                  sa.reduce(
+                                    (sm, a) =>
+                                      sm + getAssignmentCompletion(a).pct,
+                                    0,
+                                  ) / sa.length,
+                                )
+                              : 0
                           return p === 0
                         }).length,
                       },
@@ -3396,12 +3458,25 @@ export default function ParentDashboard() {
                         key: 'completed' as const,
                         label: 'Tuntas',
                         count: subjects.filter((s) => {
-                          const sa = assignments.filter((a) => a.materialId && moduleCache[a.materialId]?.subjectId === s.id)
-                          const p = sa.length > 0 ? Math.round(sa.reduce((sm, a) => sm + getAssignmentCompletion(a).pct, 0) / sa.length) : 0
+                          const sa = assignments.filter(
+                            (a) =>
+                              a.materialId &&
+                              moduleCache[a.materialId]?.subjectId === s.id,
+                          )
+                          const p =
+                            sa.length > 0
+                              ? Math.round(
+                                  sa.reduce(
+                                    (sm, a) =>
+                                      sm + getAssignmentCompletion(a).pct,
+                                    0,
+                                  ) / sa.length,
+                                )
+                              : 0
                           return p === 100
                         }).length,
                       },
-                    ]).map((f) => {
+                    ].map((f) => {
                       const isPillActive = subjectFilter === f.key
                       return (
                         <button
@@ -3414,8 +3489,12 @@ export default function ParentDashboard() {
                             fontSize: 11,
                             fontWeight: isPillActive ? 700 : 500,
                             color: isPillActive ? '#fff' : '#475569',
-                            background: isPillActive ? '#1e293b' : 'transparent',
-                            border: isPillActive ? '1px solid #1e293b' : '1px solid transparent',
+                            background: isPillActive
+                              ? '#1e293b'
+                              : 'transparent',
+                            border: isPillActive
+                              ? '1px solid #1e293b'
+                              : '1px solid transparent',
                             cursor: 'pointer',
                             whiteSpace: 'nowrap' as const,
                             transition: 'all 0.15s ease',
@@ -3432,15 +3511,28 @@ export default function ParentDashboard() {
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                    gridTemplateColumns:
+                      'repeat(auto-fill, minmax(200px, 1fr))',
                     gap: 12,
                   }}
                 >
                   {subjects
                     .filter((s) => {
                       if (subjectFilter === 'all') return true
-                      const sa = assignments.filter((a) => a.materialId && moduleCache[a.materialId]?.subjectId === s.id)
-                      const p = sa.length > 0 ? Math.round(sa.reduce((sm, a) => sm + getAssignmentCompletion(a).pct, 0) / sa.length) : 0
+                      const sa = assignments.filter(
+                        (a) =>
+                          a.materialId &&
+                          moduleCache[a.materialId]?.subjectId === s.id,
+                      )
+                      const p =
+                        sa.length > 0
+                          ? Math.round(
+                              sa.reduce(
+                                (sm, a) => sm + getAssignmentCompletion(a).pct,
+                                0,
+                              ) / sa.length,
+                            )
+                          : 0
                       if (subjectFilter === 'ongoing') return p > 0 && p < 100
                       if (subjectFilter === 'unstarted') return p === 0
                       if (subjectFilter === 'completed') return p === 100
@@ -3448,56 +3540,105 @@ export default function ParentDashboard() {
                     })
                     .map((s) => {
                       const sAssignments = assignments.filter(
-                        (a) => a.materialId && moduleCache[a.materialId]?.subjectId === s.id,
+                        (a) =>
+                          a.materialId &&
+                          moduleCache[a.materialId]?.subjectId === s.id,
                       )
-                      const pct = sAssignments.length > 0
-                        ? Math.round(sAssignments.reduce((sm, a) => sm + getAssignmentCompletion(a).pct, 0) / sAssignments.length)
-                        : 0
+                      const pct =
+                        sAssignments.length > 0
+                          ? Math.round(
+                              sAssignments.reduce(
+                                (sm, a) => sm + getAssignmentCompletion(a).pct,
+                                0,
+                              ) / sAssignments.length,
+                            )
+                          : 0
                       const isComplete = pct === 100
                       const isOngoing = pct > 0 && pct < 100
                       const accent = s.accent || '#6366F1'
 
                       let statusText = 'Belum Mulai'
                       let statusColor = '#94a3b8'
-                      if (isOngoing) { statusText = 'Sedang Dibuka'; statusColor = accent }
-                      if (isComplete) { statusText = '\u2713 Tuntas'; statusColor = '#059669' }
+                      if (isOngoing) {
+                        statusText = 'Sedang Dibuka'
+                        statusColor = accent
+                      }
+                      if (isComplete) {
+                        statusText = '\u2713 Tuntas'
+                        statusColor = '#059669'
+                      }
 
                       const isSelected = selectedSubjectCardId === s.id
                       const cardBg = isSelected
                         ? 'linear-gradient(135deg, #fbfaff 0%, #f0edff 100%)'
-                        : isOngoing ? 'linear-gradient(135deg, #fbfaff 0%, #f5f3ff 100%)' : '#fff'
-                      const cardBorder = isSelected ? accent : isOngoing ? accent : 'rgba(226,232,240,0.9)'
+                        : isOngoing
+                          ? 'linear-gradient(135deg, #fbfaff 0%, #f5f3ff 100%)'
+                          : '#fff'
+                      const cardBorder = isSelected
+                        ? accent
+                        : isOngoing
+                          ? accent
+                          : 'rgba(226,232,240,0.9)'
 
                       return (
                         <div
                           key={s.id}
-                          onClick={() => setSelectedSubjectCardId(isSelected ? null : s.id)}
+                          onClick={() =>
+                            setSelectedSubjectCardId(isSelected ? null : s.id)
+                          }
                           style={{
                             position: 'relative',
                             padding: '14px 16px',
                             borderRadius: 16,
-                            border: (isSelected ? '2px solid ' : '1.5px solid ') + cardBorder,
+                            border:
+                              (isSelected ? '2px solid ' : '1.5px solid ') +
+                              cardBorder,
                             background: cardBg,
                             boxShadow: isSelected
-                              ? '0 6px 20px -2px rgba(99,102,241,0.22), 0 0 0 3px ' + accent + '18'
-                              : isOngoing ? '0 4px 16px -2px rgba(99,102,241,0.14)' : '0 1px 4px rgba(0,0,0,0.02)',
+                              ? '0 6px 20px -2px rgba(99,102,241,0.22), 0 0 0 3px ' +
+                                accent +
+                                '18'
+                              : isOngoing
+                                ? '0 4px 16px -2px rgba(99,102,241,0.14)'
+                                : '0 1px 4px rgba(0,0,0,0.02)',
                             transition: 'all 0.2s ease',
                             cursor: 'pointer',
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              marginBottom: 8,
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                              }}
+                            >
                               <span
                                 style={{
                                   width: 10,
                                   height: 10,
                                   borderRadius: '50%',
                                   background: accent,
-                                  boxShadow: isOngoing ? '0 0 0 4px ' + accent + '20' : 'none',
+                                  boxShadow: isOngoing
+                                    ? '0 0 0 4px ' + accent + '20'
+                                    : 'none',
                                   flexShrink: 0,
                                 }}
                               />
-                              <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
+                              <span
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  color: '#0f172a',
+                                }}
+                              >
                                 {s.shortName}
                               </span>
                             </div>
@@ -3505,7 +3646,11 @@ export default function ParentDashboard() {
                               style={{
                                 fontSize: 13,
                                 fontWeight: 700,
-                                color: isComplete ? '#059669' : isOngoing ? accent : '#94a3b8',
+                                color: isComplete
+                                  ? '#059669'
+                                  : isOngoing
+                                    ? accent
+                                    : '#94a3b8',
                               }}
                             >
                               {pct}%
@@ -3534,7 +3679,13 @@ export default function ParentDashboard() {
                             />
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                            }}
+                          >
                             <span
                               style={{
                                 fontSize: 11,
@@ -3558,7 +3709,9 @@ export default function ParentDashboard() {
                               {statusText}
                             </span>
                             <span style={{ fontSize: 11, color: '#94a3b8' }}>
-                              {sAssignments.length > 0 ? sAssignments.length + ' Tugas' : '0 Tugas'}
+                              {sAssignments.length > 0
+                                ? sAssignments.length + ' Tugas'
+                                : '0 Tugas'}
                             </span>
                           </div>
                         </div>
@@ -3581,8 +3734,17 @@ export default function ParentDashboard() {
                     gap: 8,
                   }}
                 >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#6366F1' }} />
+                  <span
+                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <span
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: '50%',
+                        background: '#6366F1',
+                      }}
+                    />
                     Klik salah satu mapel di atas untuk melihat detail progres.
                   </span>
                   <span style={{ fontWeight: 600, color: '#475569' }}>
@@ -3591,16 +3753,31 @@ export default function ParentDashboard() {
                       {subjects.length > 0
                         ? Math.round(
                             subjects.reduce((sm, s) => {
-                              const sa = assignments.filter((a) => a.materialId && moduleCache[a.materialId]?.subjectId === s.id)
-                              return sm + (sa.length > 0 ? Math.round(sa.reduce((ss, a) => ss + getAssignmentCompletion(a).pct, 0) / sa.length) : 0)
+                              const sa = assignments.filter(
+                                (a) =>
+                                  a.materialId &&
+                                  moduleCache[a.materialId]?.subjectId === s.id,
+                              )
+                              return (
+                                sm +
+                                (sa.length > 0
+                                  ? Math.round(
+                                      sa.reduce(
+                                        (ss, a) =>
+                                          ss + getAssignmentCompletion(a).pct,
+                                        0,
+                                      ) / sa.length,
+                                    )
+                                  : 0)
+                              )
                             }, 0) / subjects.length,
                           )
-                        : 0}% Semester Berjalan
+                        : 0}
+                      % Semester Berjalan
                     </strong>
                   </span>
                 </div>
               </section>
-
 
               <section style={S.card}>
                 <div
