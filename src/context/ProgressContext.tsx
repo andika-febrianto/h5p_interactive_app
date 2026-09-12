@@ -5,27 +5,32 @@ import {
   useMemo,
   useState,
   type ReactNode,
-} from 'react';
-import type { FrameResult, UserRole } from '../types/storyboard';
-import { getClientId } from '../lib/clientId';
-import { fetchProgress, upsertProgress, clearProgress, ApiError } from '../lib/api';
+} from 'react'
+import type { FrameResult, UserRole } from '../types/storyboard'
+import { getClientId } from '../lib/clientId'
+import {
+  fetchProgress,
+  upsertProgress,
+  clearProgress,
+  ApiError,
+} from '../lib/api'
 
 interface ProgressState {
-  results: Record<string, FrameResult>;
-  setResult: (result: FrameResult) => void;
-  currentIndex: number;
-  setCurrentIndex: (i: number) => void;
-  totalFrames: number;
+  results: Record<string, FrameResult>
+  setResult: (result: FrameResult) => void
+  currentIndex: number
+  setCurrentIndex: (i: number) => void
+  totalFrames: number
   /** Highest frame index the learner is allowed to jump to (review is always allowed below this). */
-  furthestIndex: number;
-  resetProgress: () => void;
+  furthestIndex: number
+  resetProgress: () => void
   /** True while the initial progress fetch for this module is in flight. */
-  loading: boolean;
+  loading: boolean
   /** Set if the initial progress fetch failed (e.g. backend unreachable). */
-  error: string | null;
+  error: string | null
 }
 
-const ProgressContext = createContext<ProgressState | null>(null);
+const ProgressContext = createContext<ProgressState | null>(null)
 
 export function ProgressProvider({
   children,
@@ -35,59 +40,64 @@ export function ProgressProvider({
   assignmentId,
   userRole,
 }: {
-  children: ReactNode;
-  totalFrames: number;
-  moduleId: string;
+  children: ReactNode
+  totalFrames: number
+  moduleId: string
   /** When true, never calls the backend or reads a real clientId — used for
    *  the teacher's live frame preview, which must have zero side effects. */
-  disableApi?: boolean;
+  disableApi?: boolean
   /** When set, progress is also saved under this assignment so each
    *  assignment tracks completion independently. */
-  assignmentId?: string | null;
+  assignmentId?: string | null
   /** User role — only STUDENT progress is saved to the backend. */
-  userRole?: UserRole;
+  userRole?: UserRole
 }) {
-  const clientId = useMemo(() => (disableApi ? 'preview' : getClientId()), [disableApi]);
-  const [results, setResults] = useState<Record<string, FrameResult>>({});
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [loading, setLoading] = useState(!disableApi);
-  const [error, setError] = useState<string | null>(null);
+  const clientId = useMemo(
+    () => (disableApi ? 'preview' : getClientId()),
+    [disableApi],
+  )
+  const [results, setResults] = useState<Record<string, FrameResult>>({})
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [loading, setLoading] = useState(!disableApi)
+  const [error, setError] = useState<string | null>(null)
 
   // Load this module's progress from the backend once on mount (and whenever
   // the module changes), then resume at the first not-yet-completed frame.
   useEffect(() => {
-    if (disableApi) return;
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
+    if (disableApi) return
+    let cancelled = false
+    setLoading(true)
+    setError(null)
 
     fetchProgress(clientId, moduleId)
       .then((data) => {
-        if (cancelled) return;
-        setResults(data);
-        const completed = Object.values(data).filter((r) => r.completed).length;
-        setCurrentIndex(Math.min(completed, totalFrames));
+        if (cancelled) return
+        setResults(data)
+        const completed = Object.values(data).filter((r) => r.completed).length
+        setCurrentIndex(Math.min(completed, totalFrames))
       })
       .catch((err) => {
-        if (cancelled) return;
-        setError(err instanceof ApiError ? err.message : 'Gagal memuat progres.');
+        if (cancelled) return
+        setError(
+          err instanceof ApiError ? err.message : 'Gagal memuat progres.',
+        )
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+        if (!cancelled) setLoading(false)
+      })
 
     return () => {
-      cancelled = true;
-    };
+      cancelled = true
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId, moduleId, disableApi]);
+  }, [clientId, moduleId, disableApi])
 
   const setResult = (result: FrameResult) => {
-    setResults((prev) => ({ ...prev, [result.frameId]: result }));
-    if (disableApi) return; // preview mode: stop here, no network call
+    setResults((prev) => ({ ...prev, [result.frameId]: result }))
+    if (disableApi) return // preview mode: stop here, no network call
     // Only save progress for STUDENT role — parents and teachers are
     // previewing the module and should not affect assignment progress.
-    if (userRole && userRole !== 'STUDENT') return;
+    if (userRole && userRole !== 'STUDENT') return
     upsertProgress({
       clientId,
       moduleId,
@@ -97,18 +107,18 @@ export function ProgressProvider({
       total: result.total,
       assignmentId: assignmentId ?? undefined,
     }).catch((err) => {
-      console.error('Failed to save progress:', err);
-    });
-  };
+      console.error('Failed to save progress:', err)
+    })
+  }
 
   const resetProgress = () => {
-    setResults({});
-    setCurrentIndex(0);
-    if (disableApi) return;
+    setResults({})
+    setCurrentIndex(0)
+    if (disableApi) return
     clearProgress(clientId, moduleId).catch((err) => {
-      console.error('Failed to reset progress:', err);
-    });
-  };
+      console.error('Failed to reset progress:', err)
+    })
+  }
 
   const value = useMemo(
     () => ({
@@ -123,14 +133,26 @@ export function ProgressProvider({
       error,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [results, currentIndex, totalFrames, moduleId, loading, error, assignmentId]
-  );
+    [
+      results,
+      currentIndex,
+      totalFrames,
+      moduleId,
+      loading,
+      error,
+      assignmentId,
+    ],
+  )
 
-  return <ProgressContext.Provider value={value}>{children}</ProgressContext.Provider>;
+  return (
+    <ProgressContext.Provider value={value}>
+      {children}
+    </ProgressContext.Provider>
+  )
 }
 
 export function useProgress() {
-  const ctx = useContext(ProgressContext);
-  if (!ctx) throw new Error('useProgress must be used within ProgressProvider');
-  return ctx;
+  const ctx = useContext(ProgressContext)
+  if (!ctx) throw new Error('useProgress must be used within ProgressProvider')
+  return ctx
 }

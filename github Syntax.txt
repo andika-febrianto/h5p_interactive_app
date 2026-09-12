@@ -36,3 +36,74 @@ git stash
 git checkout master
 
 https://stitch.withgoogle.com/
+
+
+AI Rule Code
+nstead of saying:
+
+“Implement assignment progress.”
+
+Ask:
+
+“Before writing code, explain the business rules, data flow, affected files, and invariants that must remain true.”
+
+I would also ask AI to explain every major change
+
+For example, after AI changes your ProgressContext, ask:
+
+“Explain this code as if I am the developer who will maintain it six months from now. Don't explain syntax. Explain the architecture, business rules, data flow, side effects, and failure cases.”
+
+Let AI do
+boilerplate
+repetitive CRUD
+TypeScript types
+API wiring
+test generation
+refactoring suggestions
+documentation
+debugging hypotheses
+alternative implementations
+code review
+explaining unfamiliar libraries
+Keep yourself responsible for
+architecture
+business rules
+data ownership
+security
+authorization
+database relationships
+invariants
+trade-offs
+testing strategy
+deciding whether the generated solution is actually correct
+
+In other words:
+
+AI should reduce typing, not eliminate thinking.
+
+I would encourage you to maintain a separate “system rules” document alongside the source code.
+
+For example:
+
+PROJECT RULES
+
+1. Who owns progress?
+2. What identifies progress?
+3. Who can write progress?
+4. Who can read progress?
+5. What is an assignment?
+6. What happens when an assignment is deleted?
+7. What happens to its progress?
+8. What happens during teacher preview?
+9. What happens when API is unavailable?
+10. What must never happen?
+
+Then when you ask AI to modify code, you give it the rules first.
+
+That changes the relationship from:
+
+“AI, build my application.”
+
+to:
+
+“Here is my architecture and business rules. Help me implement them, challenge them, and explain every important decision.”
