@@ -832,6 +832,8 @@ export default function ParentDashboard() {
 
   // Subject filter for Progres Mata Pelajaran
   const [subjectFilter, setSubjectFilter] = useState<'all' | 'ongoing' | 'unstarted' | 'completed'>('all')
+  // Selected subject card filter (clicking a subject card filters active assignments)
+  const [selectedSubjectCardId, setSelectedSubjectCardId] = useState<string | null>(null)
 
   // Manage profiles
   const [showManageProfiles, setShowManageProfiles] = useState(false)
@@ -1311,7 +1313,10 @@ export default function ParentDashboard() {
   const childName = selectedChild?.name ?? 'Anak'
 
   const activeAssignments = assignments.filter(
-    (a) => a.status !== 'completed' && a.childId === (selectedChild?.id ?? ''),
+    (a) => a.status !== 'completed' && a.childId === (selectedChild?.id ?? '') && (
+      !selectedSubjectCardId ||
+      (a.materialId && moduleCache[a.materialId]?.subjectId === selectedSubjectCardId)
+    ),
   )
   const bellCount = unreadCount
 
@@ -2819,7 +2824,64 @@ export default function ParentDashboard() {
                     </div>
                   </header>
 
-                  {/* ── Active Task Cards ── */}
+                  {/* Subject Filter Indicator */}
+                  {selectedSubjectCardId && (() => {
+                    const filteredSubject = subjects.find(s => s.id === selectedSubjectCardId)
+                    return filteredSubject ? (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginTop: 16,
+                          padding: '8px 16px',
+                          borderRadius: 12,
+                          background: 'rgba(99,102,241,0.06)',
+                          border: '1px solid rgba(99,102,241,0.15)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              background: filteredSubject.accent || '#6366F1',
+                            }}
+                          />
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>
+                            Menampilkan tugas:{' '}
+                            <strong style={{ color: '#4F46E5' }}>{filteredSubject.shortName}</strong>
+                          </span>
+                          <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                            ({activeAssignments.length} tugas)
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSubjectCardId(null)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '4px 12px',
+                            borderRadius: 8,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: '#6366F1',
+                            background: '#fff',
+                            border: '1px solid rgba(99,102,241,0.2)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          Tampilkan Semua
+                        </button>
+                      </div>
+                    ) : null
+                  })()}
+
+                  {/* Active Task Cards */}
                   <div style={{ marginTop: 24 }}>
                     {selectedChild && activeAssignments.length > 0 ? (
                       activeAssignments.map((a) => {
@@ -3400,20 +3462,27 @@ export default function ParentDashboard() {
                       if (isOngoing) { statusText = 'Sedang Dibuka'; statusColor = accent }
                       if (isComplete) { statusText = '\u2713 Tuntas'; statusColor = '#059669' }
 
-                      const cardBg = isOngoing ? 'linear-gradient(135deg, #fbfaff 0%, #f5f3ff 100%)' : '#fff'
-                      const cardBorder = isOngoing ? accent : 'rgba(226,232,240,0.9)'
+                      const isSelected = selectedSubjectCardId === s.id
+                      const cardBg = isSelected
+                        ? 'linear-gradient(135deg, #fbfaff 0%, #f0edff 100%)'
+                        : isOngoing ? 'linear-gradient(135deg, #fbfaff 0%, #f5f3ff 100%)' : '#fff'
+                      const cardBorder = isSelected ? accent : isOngoing ? accent : 'rgba(226,232,240,0.9)'
 
                       return (
                         <div
                           key={s.id}
+                          onClick={() => setSelectedSubjectCardId(isSelected ? null : s.id)}
                           style={{
                             position: 'relative',
                             padding: '14px 16px',
                             borderRadius: 16,
-                            border: '1.5px solid ' + cardBorder,
+                            border: (isSelected ? '2px solid ' : '1.5px solid ') + cardBorder,
                             background: cardBg,
-                            boxShadow: isOngoing ? '0 4px 16px -2px rgba(99,102,241,0.14)' : '0 1px 4px rgba(0,0,0,0.02)',
+                            boxShadow: isSelected
+                              ? '0 6px 20px -2px rgba(99,102,241,0.22), 0 0 0 3px ' + accent + '18'
+                              : isOngoing ? '0 4px 16px -2px rgba(99,102,241,0.14)' : '0 1px 4px rgba(0,0,0,0.02)',
                             transition: 'all 0.2s ease',
+                            cursor: 'pointer',
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
