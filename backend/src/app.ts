@@ -13,6 +13,7 @@ import { subscriptionRouter } from './routes/subscription.js'
 import { webhooksRouter } from './routes/webhooks.js'
 import { parentRouter } from './routes/parent.js'
 import { uploadsRouter } from './routes/uploads.js'
+import { weeklyActivityRouter } from './routes/weekly-activity.js'
 
 const app = express()
 const PORT = Number(process.env.PORT ?? 4001)
@@ -69,6 +70,7 @@ app.use('/api/plans', plansRouter)
 app.use('/api/subscription', subscriptionRouter)
 app.use('/api/webhooks', webhooksRouter)
 app.use('/api/parent', parentRouter)
+app.use('/api/parent', weeklyActivityRouter)
 
 app.use((req, res) => {
   res.status(404).json({ error: `No route for ${req.method} ${req.path}` })

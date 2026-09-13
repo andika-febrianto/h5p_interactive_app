@@ -16,6 +16,7 @@ import {
   checkDeadlines,
   generateWeeklyReport,
   generateMonthlyReport,
+  fetchWeeklyActivity,
   type ChildInfo,
   type ParentAssignment,
   type ModuleSummary,
@@ -23,6 +24,7 @@ import {
   type Subject,
   type FrameProgress,
   type Question,
+  type WeeklyActivityResponse,
   updateChild,
   deleteChild,
   fetchNotifications,
@@ -771,6 +773,10 @@ export default function ParentDashboard() {
   const [selectedChildIdx, setSelectedChildIdx] = useState(0)
   const selectedChild = children[selectedChildIdx] ?? null
 
+  // Weekly activity state
+  const [weeklyActivity, setWeeklyActivity] = useState<WeeklyActivityResponse | null>(null)
+  // const [weeklyActivityLoading, setWeeklyActivityLoading] = useState(false)
+
   // Progress state
   const [, setProgressLoading] = useState(false)
   const [assignmentProgress, setAssignmentProgress] = useState<
@@ -887,6 +893,19 @@ export default function ParentDashboard() {
       .then(setSubjects)
       .catch(() => setSubjects([]))
   }, [])
+
+  // Fetch weekly activity when selected child changes
+  useEffect(() => {
+    if (!selectedChild) {
+      setWeeklyActivity(null)
+      return
+    }
+    // setWeeklyActivityLoading(true)
+    fetchWeeklyActivity(selectedChild.id)
+      .then(setWeeklyActivity)
+      .catch(() => setWeeklyActivity(null))
+      .finally(() => {})
+  }, [selectedChild])
 
   useEffect(() => {
     if (!selectedChild) {
@@ -3925,7 +3944,7 @@ export default function ParentDashboard() {
                             userSelect: 'none',
                           }}
                         >
-                          Minggu Ini: 7 - 13 Sep 2026
+                          Minggu Ini: {weeklyActivity?.weekRange ?? '-'}
                         </span>
                         <button
                           type='button'
@@ -4056,7 +4075,7 @@ export default function ParentDashboard() {
                         Rata-rata Harian
                       </span>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                        <span style={{ fontSize: 22, fontWeight: 800, color: '#0f172a' }}>42</span>
+                        <span style={{ fontSize: 22, fontWeight: 800, color: '#0f172a' }}>{weeklyActivity?.kpi.avgDailyMinutes ?? 0}</span>
                         <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8' }}>Menit / Hari</span>
                       </div>
                       <span style={{ fontSize: 11, color: '#059669', fontWeight: 500, marginTop: 4, display: 'flex', alignItems: 'center' }}>
@@ -4077,7 +4096,7 @@ export default function ParentDashboard() {
                         Total Waktu Belajar
                       </span>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                        <span style={{ fontSize: 22, fontWeight: 800, color: '#0f172a' }}>3j 48m</span>
+                        <span style={{ fontSize: 22, fontWeight: 800, color: '#0f172a' }}>{weeklyActivity?.kpi.totalHours ?? 0}j {weeklyActivity?.kpi.totalMinutesRemaining ?? 0}m</span>
                       </div>
                       <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500, marginTop: 4, display: 'block' }}>
                         95% dari kuota 4 jam/minggu
@@ -4097,7 +4116,7 @@ export default function ParentDashboard() {
                         Puncak Produktivitas
                       </span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 22, fontWeight: 800, color: '#4F46E5' }}>68 Menit</span>
+                        <span style={{ fontSize: 22, fontWeight: 800, color: '#4F46E5' }}>{weeklyActivity?.kpi.peakMinutes ?? 0} Menit</span>
                         <span style={{ fontSize: 14 }}>{'\u2B50'}</span>
                       </div>
                       <span style={{ fontSize: 11, color: '#4338CA', fontWeight: 500, marginTop: 4, display: 'block' }}>
@@ -4118,7 +4137,7 @@ export default function ParentDashboard() {
                         Konsistensi Hari Belajar
                       </span>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                        <span style={{ fontSize: 22, fontWeight: 800, color: '#0f172a' }}>5 / 7</span>
+                        <span style={{ fontSize: 22, fontWeight: 800, color: '#0f172a' }}>{weeklyActivity?.kpi.activeDays ?? 0} / {weeklyActivity?.kpi.totalDays ?? 7}</span>
                         <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8' }}>Hari Aktif</span>
                       </div>
                       <span style={{ fontSize: 11, color: '#4F46E5', fontWeight: 600, marginTop: 4, display: 'block' }}>
@@ -4212,7 +4231,7 @@ export default function ParentDashboard() {
                     >
                       {/* Bar: Senin (30m) */}
                       <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative' as const, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>30m</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>{weeklyActivity?.daily[0]?.minutes ?? 0}m</span>
                         <div style={{ width: '100%', maxWidth: 56, height: '37.5%', borderRadius: 16, display: 'flex', flexDirection: 'column' as const, justifyContent: 'flex-end', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', background: 'rgba(199,210,254,0.8)' }}>
                           <div style={{ height: '65%', width: '100%', background: '#818CF8' }} title='Latihan Soal (20m)' />
                           <div style={{ height: '35%', width: '100%', background: '#A5B4FC' }} title='Video Belajar (10m)' />
@@ -4225,7 +4244,7 @@ export default function ParentDashboard() {
 
                       {/* Bar: Selasa (55m) */}
                       <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative' as const, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>55m</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>{weeklyActivity?.daily[1]?.minutes ?? 0}m</span>
                         <div style={{ width: '100%', maxWidth: 56, height: '68.75%', borderRadius: 16, display: 'flex', flexDirection: 'column' as const, justifyContent: 'flex-end', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', background: 'rgba(199,210,254,0.8)' }}>
                           <div style={{ height: '60%', width: '100%', background: '#818CF8' }} title='Latihan Soal (35m)' />
                           <div style={{ height: '40%', width: '100%', background: '#A5B4FC' }} title='Video & Modul (20m)' />
@@ -4238,7 +4257,7 @@ export default function ParentDashboard() {
 
                       {/* Bar: Rabu (40m) */}
                       <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative' as const, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>40m</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>{weeklyActivity?.daily[2]?.minutes ?? 0}m</span>
                         <div style={{ width: '100%', maxWidth: 56, height: '50%', borderRadius: 16, display: 'flex', flexDirection: 'column' as const, justifyContent: 'flex-end', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', background: 'rgba(199,210,254,0.8)' }}>
                           <div style={{ height: '50%', width: '100%', background: '#818CF8' }} title='Latihan Soal (20m)' />
                           <div style={{ height: '50%', width: '100%', background: '#A5B4FC' }} title='Video & Modul (20m)' />
@@ -4253,7 +4272,7 @@ export default function ParentDashboard() {
                       <div style={{ position: 'relative' as const, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'flex-end', height: '100%', zIndex: 20 }}>
                         <div style={{ position: 'absolute', top: -32, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', zIndex: 30 }}>
                           <div style={{ background: 'rgba(255,255,255,0.95)', boxShadow: '0 4px 12px rgba(99,102,241,0.1)', border: '1px solid #C7D2FE', borderRadius: 999, padding: '4px 10px', fontSize: 11, fontWeight: 700, color: '#4F46E5', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
-                            <span>68m</span>
+                            <span>{weeklyActivity?.daily[3]?.minutes ?? 0}m</span>
                             <span>{'\u2B50'}</span>
                             <span style={{ fontSize: 10, fontWeight: 500, color: '#6366F1', background: '#EEF2FF', padding: '1px 6px', borderRadius: 4 }}>Puncak</span>
                           </div>
@@ -4285,7 +4304,7 @@ export default function ParentDashboard() {
 
                       {/* Bar: Jumat (45m) */}
                       <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative' as const, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>45m</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>{weeklyActivity?.daily[4]?.minutes ?? 0}m</span>
                         <div style={{ width: '100%', maxWidth: 56, height: '56.25%', borderRadius: 16, display: 'flex', flexDirection: 'column' as const, justifyContent: 'flex-end', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', background: 'rgba(199,210,254,0.8)' }}>
                           <div style={{ height: '65%', width: '100%', background: '#818CF8' }} title='Latihan Soal (30m)' />
                           <div style={{ height: '35%', width: '100%', background: '#A5B4FC' }} title='Video (15m)' />
@@ -4298,7 +4317,7 @@ export default function ParentDashboard() {
 
                       {/* Bar: Sabtu (15m - Weekend) */}
                       <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative' as const, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 11, fontWeight: 500, color: '#cbd5e1', marginBottom: 8 }}>15m</span>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: '#cbd5e1', marginBottom: 8 }}>{weeklyActivity?.daily[5]?.minutes ?? 0}m</span>
                         <div style={{ width: '100%', maxWidth: 56, height: '18.75%', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', background: 'rgba(226,232,240,0.8)' }} title='Review Santai Akhir Pekan (15m)' />
                         <div style={{ marginTop: 16, textAlign: 'center' }}>
                           <span style={{ fontSize: 12, fontWeight: 500, color: '#cbd5e1' }}>Sab</span>
@@ -4308,7 +4327,7 @@ export default function ParentDashboard() {
 
                       {/* Bar: Minggu (10m - Weekend) */}
                       <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative' as const, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 11, fontWeight: 500, color: '#cbd5e1', marginBottom: 8 }}>10m</span>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: '#cbd5e1', marginBottom: 8 }}>{weeklyActivity?.daily[6]?.minutes ?? 0}m</span>
                         <div style={{ width: '100%', maxWidth: 56, height: '12.5%', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', background: 'rgba(226,232,240,0.8)' }} title='Review Santai Akhir Pekan (10m)' />
                         <div style={{ marginTop: 16, textAlign: 'center' }}>
                           <span style={{ fontSize: 12, fontWeight: 500, color: '#cbd5e1' }}>Min</span>
@@ -4354,7 +4373,7 @@ export default function ParentDashboard() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, color: '#94a3b8' }}>
                     <span>
                       Total Waktu:{' '}
-                      <strong style={{ color: '#0f172a', fontWeight: 700, fontSize: 14 }}>3 Jam 48 Menit</strong>
+                      <strong style={{ color: '#0f172a', fontWeight: 700, fontSize: 14 }}>{weeklyActivity ? `${weeklyActivity.kpi.totalHours} Jam ${weeklyActivity.kpi.totalMinutesRemaining} Menit` : '0 Menit'}</strong>
                     </span>
                     <span style={{ color: '#e2e8f0' }}>{'\u2022'}</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', color: '#D97706', fontWeight: 600, background: '#FFFBEB', padding: '2px 8px', borderRadius: 6, border: '1px solid rgba(253,230,138,0.6)' }}>

@@ -858,6 +858,41 @@ export function generateMonthlyReport(): Promise<void> {
   return request('/parent/reports/monthly')
 }
 
+// ---------- Weekly Activity ----------
+
+export interface WeeklyActivityDay {
+  day: string
+  date: string
+  minutes: number
+  isToday: boolean
+  isWeekend: boolean
+}
+
+export interface WeeklyActivityKPI {
+  avgDailyMinutes: number
+  totalMinutes: number
+  totalHours: number
+  totalMinutesRemaining: number
+  peakMinutes: number
+  peakDay: string
+  peakDayIndex: number
+  activeDays: number
+  totalDays: number
+  weekOverWeekChange: number
+  totalMinutesPrevWeek: number
+}
+
+export interface WeeklyActivityResponse {
+  childName: string
+  weekRange: string
+  daily: WeeklyActivityDay[]
+  kpi: WeeklyActivityKPI
+}
+
+export function fetchWeeklyActivity(childId: string): Promise<WeeklyActivityResponse> {
+  return request(`/parent/children/${encodeURIComponent(childId)}/weekly-activity`)
+}
+
 // ---------- Student Notifications ----------
 
 export function notifyStudentScore(body: {
