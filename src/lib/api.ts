@@ -187,7 +187,7 @@ export function fetchChildrenAssignmentProgress(
   assignmentId: string,
 ): Promise<Record<string, FrameResult>> {
   return request(
-    `/children/${encodeURIComponent(childId)}/progress/${encodeURIComponent(moduleId)}/assignment/${encodeURIComponent(assignmentId)}`,
+    `/progress/${encodeURIComponent(childId)}/progress/${encodeURIComponent(moduleId)}/assignment/${encodeURIComponent(assignmentId)}`,
   )
 }
 

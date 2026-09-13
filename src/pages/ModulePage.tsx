@@ -197,12 +197,18 @@ export default function ModulePage() {
     null,
   )
 
+  // NEW: which child this assignment belongs to, when a PARENT is viewing it
+  const [assignmentChildId, setAssignmentChildId] = useState<string | null>(
+    null,
+  )
+
   useEffect(() => {
     if (!moduleId) return
     setMod(null)
     setNotFound(false)
     setLocked(false)
     setSelectedFrameIds(null)
+    setAssignmentChildId(null) // NEW: reset on module change
     fetchModule(moduleId)
       .then(setMod)
       .catch((err) => {
@@ -215,6 +221,7 @@ export default function ModulePage() {
   }, [moduleId])
 
   // If there's an assignment ID, fetch assignments to get selectedFrames
+  // (and, for a PARENT, which child the assignment belongs to)
   useEffect(() => {
     if (!assignmentId || !user?.id) return
     const fetcher =
@@ -226,6 +233,11 @@ export default function ModulePage() {
         const a = assignments.find((x) => x.id === assignmentId)
         if (a?.selectedFrames && a.selectedFrames.length > 0) {
           setSelectedFrameIds(a.selectedFrames)
+        }
+        // NEW: capture childId so the parent's ProgressProvider can
+        // fetch the CHILD's real progress, not the parent's own.
+        if (user.role === 'PARENT' && a?.childId) {
+          setAssignmentChildId(a.childId)
         }
       })
       .catch(() => {})
@@ -297,6 +309,7 @@ export default function ModulePage() {
       moduleId={mod.id}
       assignmentId={assignmentId}
       userRole={user?.role}
+      childId={user?.role === 'PARENT' ? assignmentChildId : undefined} // NEW
     >
       <ModuleRunner
         mod={mod}

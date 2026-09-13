@@ -151,12 +151,14 @@ export function ProgressProvider({
        * Parent READS progress.
        * Parent does NOT write progress.
        */
+
       progressRequest = fetchChildrenAssignmentProgress(
         childId,
         moduleId,
         assignmentId,
       )
     } else if (userRole === 'STUDENT' && assignmentId) {
+      console.log('child Progress Context')
       /**
        * Student is working on a specific assignment.
        *

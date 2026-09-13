@@ -402,7 +402,6 @@ export const ModelName = {
   Subject: 'Subject',
   Module: 'Module',
   Frame: 'Frame',
-  ProgressRecord: 'ProgressRecord',
   Plan: 'Plan',
   Subscription: 'Subscription',
   Payment: 'Payment',
@@ -411,7 +410,8 @@ export const ModelName = {
   ParentAssignment: 'ParentAssignment',
   Notification: 'Notification',
   Question: 'Question',
-  AssignmentProgress: 'AssignmentProgress'
+  AssignmentProgress: 'AssignmentProgress',
+  ProgressRecord: 'ProgressRecord'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -427,7 +427,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "subject" | "module" | "frame" | "progressRecord" | "plan" | "subscription" | "payment" | "parentChild" | "readingProgress" | "parentAssignment" | "notification" | "question" | "assignmentProgress"
+    modelProps: "user" | "session" | "subject" | "module" | "frame" | "plan" | "subscription" | "payment" | "parentChild" | "readingProgress" | "parentAssignment" | "notification" | "question" | "assignmentProgress" | "progressRecord"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -798,80 +798,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.FrameCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.FrameCountAggregateOutputType> | number
-        }
-      }
-    }
-    ProgressRecord: {
-      payload: Prisma.$ProgressRecordPayload<ExtArgs>
-      fields: Prisma.ProgressRecordFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.ProgressRecordFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.ProgressRecordFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>
-        }
-        findFirst: {
-          args: Prisma.ProgressRecordFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.ProgressRecordFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>
-        }
-        findMany: {
-          args: Prisma.ProgressRecordFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>[]
-        }
-        create: {
-          args: Prisma.ProgressRecordCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>
-        }
-        createMany: {
-          args: Prisma.ProgressRecordCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.ProgressRecordCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>[]
-        }
-        delete: {
-          args: Prisma.ProgressRecordDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>
-        }
-        update: {
-          args: Prisma.ProgressRecordUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>
-        }
-        deleteMany: {
-          args: Prisma.ProgressRecordDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.ProgressRecordUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.ProgressRecordUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>[]
-        }
-        upsert: {
-          args: Prisma.ProgressRecordUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>
-        }
-        aggregate: {
-          args: Prisma.ProgressRecordAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateProgressRecord>
-        }
-        groupBy: {
-          args: Prisma.ProgressRecordGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.ProgressRecordGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.ProgressRecordCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.ProgressRecordCountAggregateOutputType> | number
         }
       }
     }
@@ -1541,6 +1467,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ProgressRecord: {
+      payload: Prisma.$ProgressRecordPayload<ExtArgs>
+      fields: Prisma.ProgressRecordFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ProgressRecordFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ProgressRecordFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>
+        }
+        findFirst: {
+          args: Prisma.ProgressRecordFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ProgressRecordFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>
+        }
+        findMany: {
+          args: Prisma.ProgressRecordFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>[]
+        }
+        create: {
+          args: Prisma.ProgressRecordCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>
+        }
+        createMany: {
+          args: Prisma.ProgressRecordCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ProgressRecordCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>[]
+        }
+        delete: {
+          args: Prisma.ProgressRecordDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>
+        }
+        update: {
+          args: Prisma.ProgressRecordUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>
+        }
+        deleteMany: {
+          args: Prisma.ProgressRecordDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ProgressRecordUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ProgressRecordUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>[]
+        }
+        upsert: {
+          args: Prisma.ProgressRecordUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProgressRecordPayload>
+        }
+        aggregate: {
+          args: Prisma.ProgressRecordAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateProgressRecord>
+        }
+        groupBy: {
+          args: Prisma.ProgressRecordGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProgressRecordGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ProgressRecordCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProgressRecordCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1654,20 +1654,6 @@ export const FrameScalarFieldEnum = {
 } as const
 
 export type FrameScalarFieldEnum = (typeof FrameScalarFieldEnum)[keyof typeof FrameScalarFieldEnum]
-
-
-export const ProgressRecordScalarFieldEnum = {
-  clientId: 'clientId',
-  moduleId: 'moduleId',
-  frameSlug: 'frameSlug',
-  userId: 'userId',
-  completed: 'completed',
-  correct: 'correct',
-  total: 'total',
-  updatedAt: 'updatedAt'
-} as const
-
-export type ProgressRecordScalarFieldEnum = (typeof ProgressRecordScalarFieldEnum)[keyof typeof ProgressRecordScalarFieldEnum]
 
 
 export const PlanScalarFieldEnum = {
@@ -1795,6 +1781,20 @@ export const AssignmentProgressScalarFieldEnum = {
 } as const
 
 export type AssignmentProgressScalarFieldEnum = (typeof AssignmentProgressScalarFieldEnum)[keyof typeof AssignmentProgressScalarFieldEnum]
+
+
+export const ProgressRecordScalarFieldEnum = {
+  clientId: 'clientId',
+  moduleId: 'moduleId',
+  frameSlug: 'frameSlug',
+  userId: 'userId',
+  completed: 'completed',
+  correct: 'correct',
+  total: 'total',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ProgressRecordScalarFieldEnum = (typeof ProgressRecordScalarFieldEnum)[keyof typeof ProgressRecordScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2125,7 +2125,6 @@ export type GlobalOmitConfig = {
   subject?: Prisma.SubjectOmit
   module?: Prisma.ModuleOmit
   frame?: Prisma.FrameOmit
-  progressRecord?: Prisma.ProgressRecordOmit
   plan?: Prisma.PlanOmit
   subscription?: Prisma.SubscriptionOmit
   payment?: Prisma.PaymentOmit
@@ -2135,6 +2134,7 @@ export type GlobalOmitConfig = {
   notification?: Prisma.NotificationOmit
   question?: Prisma.QuestionOmit
   assignmentProgress?: Prisma.AssignmentProgressOmit
+  progressRecord?: Prisma.ProgressRecordOmit
 }
 
 /* Types for Logging */

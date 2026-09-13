@@ -51,31 +51,41 @@ progressRouter.get('/', async (req, res, next) => {
 })
 
 progressRouter.get(
-  '/children/:childId/progress/:modulId/assignment/:assignmentId',
+  '/:childId/progress/:moduleId/assignment/:assignmentId',
   requireRole('PARENT'),
   async (req, res, next) => {
     try {
       const parentId = req.auth!.userId
       const { childId, moduleId, assignmentId } = req.params
-      // const assignmentId = req.query.assignmentId as string | undefined
 
       // 1. Verify this child belongs to this parent
       const childParentRelationship = await prisma.parentChild.findUnique({
-        where: {
-          parentId_childId: { parentId: parentId, childId },
-        },
+        where: { parentId_childId: { parentId, childId } },
       })
       if (!childParentRelationship) {
         res
           .status(404)
           .json({ error: 'Murid tidak terhubung dengan akun Anda' })
-
         return
       }
 
-      // 2. Find child's progress
-      const records = await prisma.progressRecord.findMany({
-        where: { clientId: childId, moduleId },
+      // 2. Verify this assignment belongs to this parent + this child + this module
+      const assignment = await prisma.parentAssignment.findUnique({
+        where: { id: assignmentId },
+      })
+      if (
+        !assignment ||
+        assignment.parentId !== parentId ||
+        assignment.childId !== childId ||
+        assignment.materialId !== moduleId
+      ) {
+        res.status(404).json({ error: 'Tugas tidak ditemukan' })
+        return
+      }
+
+      // 3. Read the per-assignment table, not whole-module ProgressRecord
+      const records = await prisma.assignmentProgress.findMany({
+        where: { assignmentId },
       })
       const results = Object.fromEntries(
         records.map((r) => [
@@ -89,10 +99,6 @@ progressRouter.get(
         ]),
       )
       res.json(results)
-
-      // 3. If assignmentId exists, filter progress by assignmentId
-
-      // 4. Return the SAME FrameResult structure
     } catch (err) {
       next(err)
     }
@@ -122,7 +128,48 @@ progressRouter.get('/summary', async (req, res, next) => {
     next(err)
   }
 })
+// GET /api/progress/:moduleId/assignment/:assignmentId
+// A STUDENT viewing their OWN assignment's per-frame progress.
+progressRouter.get(
+  '/:moduleId/assignment/:assignmentId',
+  requireAuth,
+  async (req, res, next) => {
+    try {
+      const userId = req.auth!.userId
+      const { moduleId, assignmentId } = req.params
 
+      const assignment = await prisma.parentAssignment.findUnique({
+        where: { id: assignmentId },
+      })
+      if (
+        !assignment ||
+        assignment.childId !== userId ||
+        assignment.materialId !== moduleId
+      ) {
+        res.status(404).json({ error: 'Tugas tidak ditemukan' })
+        return
+      }
+
+      const records = await prisma.assignmentProgress.findMany({
+        where: { assignmentId },
+      })
+      const results = Object.fromEntries(
+        records.map((r) => [
+          r.frameSlug,
+          {
+            frameId: r.frameSlug,
+            completed: r.completed,
+            correct: r.correct,
+            total: r.total,
+          },
+        ]),
+      )
+      res.json(results)
+    } catch (err) {
+      next(err)
+    }
+  },
+)
 interface UpsertProgressBody {
   clientId?: unknown
   moduleId?: unknown

@@ -56,7 +56,6 @@ export const ModelName = {
   Subject: 'Subject',
   Module: 'Module',
   Frame: 'Frame',
-  ProgressRecord: 'ProgressRecord',
   Plan: 'Plan',
   Subscription: 'Subscription',
   Payment: 'Payment',
@@ -65,7 +64,8 @@ export const ModelName = {
   ParentAssignment: 'ParentAssignment',
   Notification: 'Notification',
   Question: 'Question',
-  AssignmentProgress: 'AssignmentProgress'
+  AssignmentProgress: 'AssignmentProgress',
+  ProgressRecord: 'ProgressRecord'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -158,20 +158,6 @@ export const FrameScalarFieldEnum = {
 } as const
 
 export type FrameScalarFieldEnum = (typeof FrameScalarFieldEnum)[keyof typeof FrameScalarFieldEnum]
-
-
-export const ProgressRecordScalarFieldEnum = {
-  clientId: 'clientId',
-  moduleId: 'moduleId',
-  frameSlug: 'frameSlug',
-  userId: 'userId',
-  completed: 'completed',
-  correct: 'correct',
-  total: 'total',
-  updatedAt: 'updatedAt'
-} as const
-
-export type ProgressRecordScalarFieldEnum = (typeof ProgressRecordScalarFieldEnum)[keyof typeof ProgressRecordScalarFieldEnum]
 
 
 export const PlanScalarFieldEnum = {
@@ -299,6 +285,20 @@ export const AssignmentProgressScalarFieldEnum = {
 } as const
 
 export type AssignmentProgressScalarFieldEnum = (typeof AssignmentProgressScalarFieldEnum)[keyof typeof AssignmentProgressScalarFieldEnum]
+
+
+export const ProgressRecordScalarFieldEnum = {
+  clientId: 'clientId',
+  moduleId: 'moduleId',
+  frameSlug: 'frameSlug',
+  userId: 'userId',
+  completed: 'completed',
+  correct: 'correct',
+  total: 'total',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ProgressRecordScalarFieldEnum = (typeof ProgressRecordScalarFieldEnum)[keyof typeof ProgressRecordScalarFieldEnum]
 
 
 export const SortOrder = {

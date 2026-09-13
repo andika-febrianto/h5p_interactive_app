@@ -67,11 +67,6 @@ export type Module = Prisma.ModuleModel
  */
 export type Frame = Prisma.FrameModel
 /**
- * Model ProgressRecord
- * 
- */
-export type ProgressRecord = Prisma.ProgressRecordModel
-/**
  * Model Plan
  * 
  */
@@ -116,3 +111,8 @@ export type Question = Prisma.QuestionModel
  * 
  */
 export type AssignmentProgress = Prisma.AssignmentProgressModel
+/**
+ * Model ProgressRecord
+ * 
+ */
+export type ProgressRecord = Prisma.ProgressRecordModel
