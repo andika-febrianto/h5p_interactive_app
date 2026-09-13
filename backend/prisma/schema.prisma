@@ -136,23 +136,6 @@ model Frame {
   @@map("frames")
 }
 
-model ProgressRecord {
-  clientId  String // "user:<userId>" once logged in, else the anonymous UUID
-  moduleId  String
-  frameSlug String
-  userId    String? // set when clientId represents a logged-in user — enables report queries
-  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  completed Boolean  @default(false)
-  correct   Int      @default(0)
-  total     Int      @default(0)
-  updatedAt DateTime @updatedAt
-
-  @@id([clientId, moduleId, frameSlug])
-  @@index([clientId, moduleId])
-  @@index([userId])
-  @@map("progress_records")
-}
-
 // ---------- Billing / Subscription (Xendit) ----------
 
 enum SubscriptionStatus {
@@ -337,4 +320,21 @@ model AssignmentProgress {
   @@id([assignmentId, frameSlug])
   @@index([assignmentId])
   @@map("assignment_progress")
+}
+
+model ProgressRecord {
+  clientId  String // "user:<userId>" once logged in, else the anonymous UUID
+  moduleId  String
+  frameSlug String
+  userId    String? // set when clientId represents a logged-in user — enables report queries
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completed Boolean  @default(false)
+  correct   Int      @default(0)
+  total     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([clientId, moduleId, frameSlug])
+  @@index([clientId, moduleId])
+  @@index([userId])
+  @@map("progress_records")
 }

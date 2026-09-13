@@ -42,7 +42,8 @@ export function Sidebar({
 }) {
   const { results, currentIndex, furthestIndex } = useProgress()
   const doneCount = Object.values(results).filter((r) => r.completed).length
-  console.log('userRole', userRole)
+
+  console.log('userRole', userRole, frames, results)
 
   return (
     <aside className='sidebar'>

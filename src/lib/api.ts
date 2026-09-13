@@ -181,6 +181,16 @@ export function fetchProgress(
   return request(`/progress?${qs.toString()}`)
 }
 
+export function fetchChildrenAssignmentProgress(
+  childId: string,
+  moduleId: string,
+  assignmentId: string,
+): Promise<Record<string, FrameResult>> {
+  return request(
+    `/children/${encodeURIComponent(childId)}/progress/${encodeURIComponent(moduleId)}/assignment/${encodeURIComponent(assignmentId)}`,
+  )
+}
+
 export function fetchProgressSummary(
   clientId: string,
 ): Promise<Record<string, number>> {
@@ -200,12 +210,30 @@ export function upsertProgress(body: {
   return request('/progress', { method: 'POST', body: JSON.stringify(body) })
 }
 
+// export function clearProgress(
+//   clientId: string,
+//   moduleId: string,
+//   assignmentId: string,
+// ): Promise<void> {
+//   const qs = new URLSearchParams({ clientId, moduleId, assignmentId })
+//   return request(`/progress?${qs.toString()}`, { method: 'DELETE' })
+// }
+
 export function clearProgress(
   clientId: string,
   moduleId: string,
-): Promise<void> {
-  const qs = new URLSearchParams({ clientId, moduleId })
-  return request(`/progress?${qs.toString()}`, { method: 'DELETE' })
+  assignmentId?: string,
+) {
+  const query = assignmentId
+    ? `?assignmentId=${encodeURIComponent(assignmentId)}`
+    : ''
+
+  return request(
+    `/progress/${encodeURIComponent(clientId)}/${encodeURIComponent(moduleId)}${query}`,
+    {
+      method: 'DELETE',
+    },
+  )
 }
 
 // ---------- Auth ----------
@@ -688,11 +716,20 @@ export interface AssignmentFrameProgress {
   total: number
 }
 
+// export function fetchAssignmentProgress(
+//   assignmentId: string,
+// ): Promise<AssignmentFrameProgress[]> {
+//   return request(
+//     `/parent/assignments/${encodeURIComponent(assignmentId)}/progress`,
+//   )
+// }
+
 export function fetchAssignmentProgress(
+  moduleId: string,
   assignmentId: string,
-): Promise<AssignmentFrameProgress[]> {
+): Promise<Record<string, FrameResult>> {
   return request(
-    `/parent/assignments/${encodeURIComponent(assignmentId)}/progress`,
+    `/progress/${encodeURIComponent(moduleId)}/assignment/${encodeURIComponent(assignmentId)}`,
   )
 }
 

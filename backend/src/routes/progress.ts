@@ -1,12 +1,18 @@
-import { Router } from 'express';
-import { prisma } from '../lib/prisma.js';
-import { optionalAuth, resolveIdentity, requireAuth, requireActiveAccess } from '../middleware/auth.js';
+import { Router } from 'express'
+import { prisma } from '../lib/prisma.js'
+import {
+  optionalAuth,
+  resolveIdentity,
+  requireAuth,
+  requireActiveAccess,
+  requireRole,
+} from '../middleware/auth.js'
 
-export const progressRouter = Router();
-progressRouter.use(optionalAuth);
+export const progressRouter = Router()
+progressRouter.use(optionalAuth)
 
 function requireString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() !== '' ? value : null;
+  return typeof value === 'string' && value.trim() !== '' ? value : null
 }
 
 // GET /api/progress?clientId=&moduleId=
@@ -15,58 +21,116 @@ function requireString(value: unknown): string | null {
 // progress just by knowing its UUID once they're logged in).
 progressRouter.get('/', async (req, res, next) => {
   try {
-    const { clientId } = resolveIdentity(req, requireString(req.query.clientId));
-    const moduleId = requireString(req.query.moduleId);
+    const { clientId } = resolveIdentity(req, requireString(req.query.clientId))
+    const moduleId = requireString(req.query.moduleId)
     if (!clientId || !moduleId) {
-      res.status(400).json({ error: '"clientId" and "moduleId" query params are required' });
-      return;
+      res
+        .status(400)
+        .json({ error: '"clientId" and "moduleId" query params are required' })
+      return
     }
 
-    const records = await prisma.progressRecord.findMany({ where: { clientId, moduleId } });
+    const records = await prisma.progressRecord.findMany({
+      where: { clientId, moduleId },
+    })
     const results = Object.fromEntries(
       records.map((r) => [
         r.frameSlug,
-        { frameId: r.frameSlug, completed: r.completed, correct: r.correct, total: r.total },
-      ])
-    );
-    res.json(results);
+        {
+          frameId: r.frameSlug,
+          completed: r.completed,
+          correct: r.correct,
+          total: r.total,
+        },
+      ]),
+    )
+    res.json(results)
   } catch (err) {
-    next(err);
+    next(err)
   }
-});
+})
+
+progressRouter.get(
+  '/children/:childId/progress/:modulId/assignment/:assignmentId',
+  requireRole('PARENT'),
+  async (req, res, next) => {
+    try {
+      const parentId = req.auth!.userId
+      const { childId, moduleId, assignmentId } = req.params
+      // const assignmentId = req.query.assignmentId as string | undefined
+
+      // 1. Verify this child belongs to this parent
+      const childParentRelationship = await prisma.parentChild.findUnique({
+        where: {
+          parentId_childId: { parentId: parentId, childId },
+        },
+      })
+      if (!childParentRelationship) {
+        res
+          .status(404)
+          .json({ error: 'Murid tidak terhubung dengan akun Anda' })
+
+        return
+      }
+
+      // 2. Find child's progress
+      const records = await prisma.progressRecord.findMany({
+        where: { clientId: childId, moduleId },
+      })
+      const results = Object.fromEntries(
+        records.map((r) => [
+          r.frameSlug,
+          {
+            frameId: r.frameSlug,
+            completed: r.completed,
+            correct: r.correct,
+            total: r.total,
+          },
+        ]),
+      )
+      res.json(results)
+
+      // 3. If assignmentId exists, filter progress by assignmentId
+
+      // 4. Return the SAME FrameResult structure
+    } catch (err) {
+      next(err)
+    }
+  },
+)
 
 // GET /api/progress/summary?clientId=
 progressRouter.get('/summary', async (req, res, next) => {
   try {
-    const { clientId } = resolveIdentity(req, requireString(req.query.clientId));
+    const { clientId } = resolveIdentity(req, requireString(req.query.clientId))
     if (!clientId) {
-      res.status(400).json({ error: '"clientId" query param is required' });
-      return;
+      res.status(400).json({ error: '"clientId" query param is required' })
+      return
     }
 
     const records = await prisma.progressRecord.findMany({
       where: { clientId, completed: true },
       select: { moduleId: true },
-    });
+    })
 
-    const summary: Record<string, number> = {};
+    const summary: Record<string, number> = {}
     for (const r of records) {
-      summary[r.moduleId] = (summary[r.moduleId] ?? 0) + 1;
+      summary[r.moduleId] = (summary[r.moduleId] ?? 0) + 1
     }
-    res.json(summary);
+    res.json(summary)
   } catch (err) {
-    next(err);
+    next(err)
   }
-});
+})
 
 interface UpsertProgressBody {
-  clientId?: unknown;
-  moduleId?: unknown;
-  frameSlug?: unknown;
-  completed?: unknown;
-  correct?: unknown;
-  total?: unknown;
-  assignmentId?: unknown;
+  clientId?: unknown
+  moduleId?: unknown
+  frameSlug?: unknown
+  completed?: unknown
+  correct?: unknown
+  total?: unknown
+  assignmentId?: unknown
 }
 
 // POST /api/progress
@@ -74,76 +138,98 @@ interface UpsertProgressBody {
 // When assignmentId is provided, also saves per-assignment progress so each
 // assignment tracks completion independently (same module + different frames
 // → separate percentages).
-progressRouter.post('/', requireAuth, requireActiveAccess, async (req, res, next) => {
-  try {
-    const body = req.body as UpsertProgressBody;
-    const { clientId, userId } = resolveIdentity(req, requireString(body.clientId));
-    const moduleId = requireString(body.moduleId);
-    const frameSlug = requireString(body.frameSlug);
-    const assignmentId = requireString(body.assignmentId);
-    const completed = typeof body.completed === 'boolean' ? body.completed : undefined;
-    const correct = typeof body.correct === 'number' ? body.correct : undefined;
-    const total = typeof body.total === 'number' ? body.total : undefined;
+progressRouter.post(
+  '/',
+  requireAuth,
+  requireActiveAccess,
+  async (req, res, next) => {
+    try {
+      const body = req.body as UpsertProgressBody
+      const { clientId, userId } = resolveIdentity(
+        req,
+        requireString(body.clientId),
+      )
+      const moduleId = requireString(body.moduleId)
+      const frameSlug = requireString(body.frameSlug)
+      const assignmentId = requireString(body.assignmentId)
+      const completed =
+        typeof body.completed === 'boolean' ? body.completed : undefined
+      const correct =
+        typeof body.correct === 'number' ? body.correct : undefined
+      const total = typeof body.total === 'number' ? body.total : undefined
 
-    if (
-      !clientId ||
-      !moduleId ||
-      !frameSlug ||
-      completed === undefined ||
-      correct === undefined ||
-      total === undefined
-    ) {
-      res.status(400).json({
-        error:
-          'Body must include clientId (string), moduleId (string), frameSlug (string), completed (boolean), correct (number), total (number)',
-      });
-      return;
-    }
-
-    const record = await prisma.progressRecord.upsert({
-      where: { clientId_moduleId_frameSlug: { clientId, moduleId, frameSlug } },
-      create: { clientId, moduleId, frameSlug, completed, correct, total, userId },
-      update: { completed, correct, total, userId },
-    });
-
-    // Also save per-assignment progress if assignmentId is provided
-    if (assignmentId) {
-      try {
-        await prisma.assignmentProgress.upsert({
-          where: { assignmentId_frameSlug: { assignmentId, frameSlug } },
-          create: { assignmentId, frameSlug, completed, correct, total },
-          update: { completed, correct, total },
-        });
-      } catch (_err) {
-        // If assignment doesn't exist or constraint fails, silently skip —
-        // the global progress record above is still saved.
+      if (
+        !clientId ||
+        !moduleId ||
+        !frameSlug ||
+        completed === undefined ||
+        correct === undefined ||
+        total === undefined
+      ) {
+        res.status(400).json({
+          error:
+            'Body must include clientId (string), moduleId (string), frameSlug (string), completed (boolean), correct (number), total (number)',
+        })
+        return
       }
-    }
 
-    res.status(200).json({
-      frameId: record.frameSlug,
-      completed: record.completed,
-      correct: record.correct,
-      total: record.total,
-    });
-  } catch (err) {
-    next(err);
-  }
-});
+      const record = await prisma.progressRecord.upsert({
+        where: {
+          clientId_moduleId_frameSlug: { clientId, moduleId, frameSlug },
+        },
+        create: {
+          clientId,
+          moduleId,
+          frameSlug,
+          completed,
+          correct,
+          total,
+          userId,
+        },
+        update: { completed, correct, total, userId },
+      })
+
+      // Also save per-assignment progress if assignmentId is provided
+      if (assignmentId) {
+        try {
+          await prisma.assignmentProgress.upsert({
+            where: { assignmentId_frameSlug: { assignmentId, frameSlug } },
+            create: { assignmentId, frameSlug, completed, correct, total },
+            update: { completed, correct, total },
+          })
+        } catch (_err) {
+          // If assignment doesn't exist or constraint fails, silently skip —
+          // the global progress record above is still saved.
+        }
+      }
+
+      res.status(200).json({
+        frameId: record.frameSlug,
+        completed: record.completed,
+        correct: record.correct,
+        total: record.total,
+      })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
 
 // DELETE /api/progress?clientId=&moduleId=
 progressRouter.delete('/', async (req, res, next) => {
   try {
-    const { clientId } = resolveIdentity(req, requireString(req.query.clientId));
-    const moduleId = requireString(req.query.moduleId);
+    const { clientId } = resolveIdentity(req, requireString(req.query.clientId))
+    const moduleId = requireString(req.query.moduleId)
     if (!clientId || !moduleId) {
-      res.status(400).json({ error: '"clientId" and "moduleId" query params are required' });
-      return;
+      res
+        .status(400)
+        .json({ error: '"clientId" and "moduleId" query params are required' })
+      return
     }
 
-    await prisma.progressRecord.deleteMany({ where: { clientId, moduleId } });
-    res.status(204).send();
+    await prisma.progressRecord.deleteMany({ where: { clientId, moduleId } })
+    res.status(204).send()
   } catch (err) {
-    next(err);
+    next(err)
   }
-});
+})
