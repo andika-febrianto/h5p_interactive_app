@@ -6,6 +6,7 @@ import {
   fetchChildAssignments,
   fetchModule,
   fetchChildModuleProgress,
+  fetchAssignmentProgress,
   fetchAssignmentQuestions,
   askQuestion,
   markAssignmentStarted,
@@ -46,6 +47,9 @@ export default function ChildDashboard() {
   const [progressCache, setProgressCache] = useState<
     Record<string, Record<string, FrameProgress>>
   >({})
+  const [assignmentProgressCache, setAssignmentProgressCache] = useState<
+    Record<string, Record<string, FrameProgress>>
+  >({})
 
   const [expandedAssignment, setExpandedAssignment] = useState<string | null>(
     null,
@@ -78,6 +82,7 @@ export default function ChildDashboard() {
                 setModuleCache((prev) => ({ ...prev, [a.materialId!]: mod })),
               )
               .catch(() => {})
+
             fetchChildModuleProgress(user.id!, a.materialId)
               .then((frames) => {
                 const map: Record<string, FrameProgress> = {}
@@ -85,6 +90,30 @@ export default function ChildDashboard() {
                   map[f.frameSlug] = f
                 })
                 setProgressCache((prev) => ({ ...prev, [a.materialId!]: map }))
+              })
+              .catch(() => {})
+          }
+
+          if (a.materialId && a.id) {
+            fetchAssignmentProgress(a.materialId, a.id)
+              .then((records) => {
+                const map: Record<string, FrameProgress> = {}
+                Object.entries(records).forEach(([frameSlug, record]) => {
+                  map[frameSlug] = {
+                    frameSlug,
+                    completed: record.completed,
+                    correct: record.correct,
+                    total: record.total,
+                    accuracy:
+                      record.total > 0
+                        ? Math.round((record.correct / record.total) * 100)
+                        : 0,
+                  }
+                })
+                setAssignmentProgressCache((prev) => ({
+                  ...prev,
+                  [a.id]: map,
+                }))
               })
               .catch(() => {})
           }
@@ -185,7 +214,11 @@ export default function ChildDashboard() {
   const getFrameProgress = (
     materialId: string | null,
     frameSlug: string,
+    assignmentId?: string,
   ): FrameProgress | null => {
+    if (assignmentId && assignmentProgressCache[assignmentId]) {
+      return assignmentProgressCache[assignmentId][frameSlug] ?? null
+    }
     if (!materialId) return null
     return progressCache[materialId]?.[frameSlug] ?? null
   }
@@ -195,7 +228,10 @@ export default function ChildDashboard() {
     if (frames.length === 0) return { completed: 0, total: 0, pct: 0 }
     let completed = 0
     frames.forEach((f) => {
-      if (getFrameProgress(assignment.materialId, f.id)?.completed) completed++
+      if (
+        getFrameProgress(assignment.materialId, f.id, assignment.id)?.completed
+      )
+        completed++
     })
     return {
       completed,
