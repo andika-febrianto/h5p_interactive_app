@@ -651,6 +651,19 @@ parentRouter.delete(
         return
       }
 
+      // Delete all notifications referencing this assignment before deleting
+      // the assignment itself. The FK uses onDelete: SetNull, so without
+      // this step orphaned notifications would remain visible in dashboards.
+      await prisma.notification.deleteMany({
+        where: { assignmentId: id },
+      })
+
+      // Questions and AssignmentProgress are cascade-deleted by Prisma,
+      // but explicitly delete questions first for clarity.
+      await prisma.question.deleteMany({
+        where: { assignmentId: id },
+      })
+
       await prisma.parentAssignment.delete({ where: { id } })
 
       res.status(204).send()
