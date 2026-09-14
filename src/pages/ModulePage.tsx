@@ -11,6 +11,7 @@ import {
   fetchChildAssignments,
   fetchAssignments,
   ApiError,
+  logStudySession,
 } from '../lib/api'
 import { Sidebar } from '../components/Sidebar'
 import { ScenePlayer } from '../components/ScenePlayer'
@@ -42,9 +43,35 @@ function ModuleRunner({
       : allFrames
   const isSummary = currentIndex >= frames.length
   const subject = getSubjectById(mod.subjectId)
+  const currentFrame = !isSummary ? frames[currentIndex] : null
+  const kindLabel: Record<string, string> = {
+    text: 'MATERI',
+    quiz: 'KUIS',
+    dragdrop: 'DRAG & DROP',
+    video: 'VIDEO INTERAKTIF',
+    pdf: 'DOKUMEN',
+    shortanswer: 'ISIAN SINGKAT',
+  }
+  const [frameStartAt, setFrameStartAt] = useState(() => Date.now())
 
-  const handleDone = () =>
+  useEffect(() => {
+    setFrameStartAt(Date.now())
+  }, [currentIndex])
+
+  const handleDone = () => {
+    if (user?.role === 'STUDENT' && currentFrame) {
+      const durationSeconds = Math.round((Date.now() - frameStartAt) / 1000)
+
+      logStudySession({
+        moduleId: mod.id,
+        frameSlug: currentFrame.id,
+        durationSeconds,
+        activityType: currentFrame.kind,
+      }).catch(() => {})
+    }
     setCurrentIndex(Math.min(currentIndex + 1, frames.length))
+  }
+
   const handleJump = (i: number) => setCurrentIndex(i)
   const handleRestart = () => resetProgress()
   const handleExit = () => {
@@ -73,15 +100,6 @@ function ModuleRunner({
   // }
   if (loading) {
     return <Loading />
-  }
-  const currentFrame = !isSummary ? frames[currentIndex] : null
-  const kindLabel: Record<string, string> = {
-    text: 'MATERI',
-    quiz: 'KUIS',
-    dragdrop: 'DRAG & DROP',
-    video: 'VIDEO INTERAKTIF',
-    pdf: 'DOKUMEN',
-    shortanswer: 'ISIAN SINGKAT',
   }
 
   return (

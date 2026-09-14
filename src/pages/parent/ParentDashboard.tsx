@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import {
@@ -16,7 +16,7 @@ import {
   checkDeadlines,
   generateWeeklyReport,
   generateMonthlyReport,
-  fetchWeeklyActivity,
+  // fetchWeeklyActivity,
   type ChildInfo,
   type ParentAssignment,
   type ModuleSummary,
@@ -24,7 +24,7 @@ import {
   type Subject,
   type FrameProgress,
   type Question,
-  type WeeklyActivityResponse,
+  // type WeeklyActivityResponse,
   updateChild,
   deleteChild,
   fetchNotifications,
@@ -34,6 +34,9 @@ import {
   fetchAssignmentProgress,
   type Notification,
   type AssignmentFrameProgress,
+  type StudyDay,
+  fetchWeeklyStudy,
+  fetchChildrenAssignmentProgress,
 } from '../../lib/api'
 import { ApiError } from '../../lib/api'
 import { grades, semesters } from '../../data/grades'
@@ -774,7 +777,8 @@ export default function ParentDashboard() {
   const selectedChild = children[selectedChildIdx] ?? null
 
   // Weekly activity state
-  const [weeklyActivity, setWeeklyActivity] = useState<WeeklyActivityResponse | null>(null)
+  // const [weeklyActivity, setWeeklyActivity] =
+  //   useState<WeeklyActivityResponse | null>(null)
   // const [weeklyActivityLoading, setWeeklyActivityLoading] = useState(false)
 
   // Progress state
@@ -861,6 +865,81 @@ export default function ParentDashboard() {
   const [deleteConfirmChild, setDeleteConfirmChild] =
     useState<ChildInfo | null>(null)
 
+  const [weeklyStudy, setWeeklyStudy] = useState<StudyDay[]>([])
+  // 0 = current week, 1 = one week back, 2 = two weeks back, etc.
+  // Negative (future weeks) is never reachable — the "next" button
+  // stays disabled once weekOffset is back at 0.
+  // const [weekOffset, setWeekOffset] = useState(0)
+
+  const [anchorDate, setAnchorDate] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  )
+  const dateInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!selectedChild) {
+      setWeeklyStudy([])
+      return
+    }
+    // -   fetchWeeklyStudy(selectedChild.id)
+    // const anchor = new Date()
+    // anchor.setUTCDate(anchor.getUTCDate() - weekOffset * 7)
+    // const weekStart = anchor.toISOString().slice(0, 10)
+    fetchWeeklyStudy(selectedChild.id, anchorDate)
+      .then((res) => setWeeklyStudy(res.days))
+      .catch(() => setWeeklyStudy([]))
+    // - }, [selectedChild])
+  }, [selectedChild, anchorDate])
+
+  // Reset back to the current week whenever the selected child changes,
+  // so switching children doesn't leave you stuck three weeks in the past.
+  useEffect(() => {
+    // setWeekOffset(0)
+    setAnchorDate(new Date().toISOString().slice(0, 10))
+  }, [selectedChild?.id])
+
+  // useEffect(() => {
+  //   if (!selectedChild) {
+  //     setWeeklyStudy([])
+  //     return
+  //   }
+  //   fetchWeeklyStudy(selectedChild.id)
+  //     .then((res) => setWeeklyStudy(res.days))
+  //     .catch(() => setWeeklyStudy([]))
+  // }, [selectedChild])
+
+  const weeklyKpi = (() => {
+    const totalMin = weeklyStudy.reduce((s, d) => s + d.min, 0)
+    const activeDays = weeklyStudy.filter((d) => d.active)
+    const avgDailyMinutes =
+      activeDays.length > 0 ? Math.round(totalMin / activeDays.length) : 0
+    const peak = weeklyStudy.find((d) => d.peak)
+    return {
+      avgDailyMinutes,
+      totalHours: Math.floor(totalMin / 60),
+      totalMinutesRemaining: totalMin % 60,
+      peakMinutes: peak?.min ?? 0,
+      peakDay: peak?.day ?? '-',
+      activeDays: activeDays.length,
+      totalDays: 7,
+      weekRange:
+        weeklyStudy.length > 0
+          ? `${weeklyStudy[0].date} – ${weeklyStudy[6].date}`
+          : '-',
+    }
+  })()
+
+  const isCurrentWeek = (() => {
+    const todayMonday = (() => {
+      const d = new Date()
+      const dow = d.getUTCDay()
+      const diff = dow === 0 ? 6 : dow - 1
+      d.setUTCDate(d.getUTCDate() - diff)
+      return d.toISOString().slice(0, 10)
+    })()
+    return weeklyKpi.weekRange.startsWith(todayMonday)
+  })()
+
   // ── Data Loading ──
   useEffect(() => {
     fetchChildren()
@@ -895,17 +974,17 @@ export default function ParentDashboard() {
   }, [])
 
   // Fetch weekly activity when selected child changes
-  useEffect(() => {
-    if (!selectedChild) {
-      setWeeklyActivity(null)
-      return
-    }
-    // setWeeklyActivityLoading(true)
-    fetchWeeklyActivity(selectedChild.id)
-      .then(setWeeklyActivity)
-      .catch(() => setWeeklyActivity(null))
-      .finally(() => {})
-  }, [selectedChild])
+  // useEffect(() => {
+  //   if (!selectedChild) {
+  //     setWeeklyActivity(null)
+  //     return
+  //   }
+  //   // setWeeklyActivityLoading(true)
+  //   fetchWeeklyActivity(selectedChild.id)
+  //     .then(setWeeklyActivity)
+  //     .catch(() => setWeeklyActivity(null))
+  //     .finally(() => {})
+  // }, [selectedChild])
 
   useEffect(() => {
     if (!selectedChild) {
@@ -960,9 +1039,20 @@ export default function ParentDashboard() {
     if (childAssignments.length === 0) return
     childAssignments.forEach((a) => {
       if (a.id && !assignFrameProgress[a.id]) {
-        fetchAssignmentProgress(a.id)
+        if (!a.materialId) return
+        // fetchAssignmentProgress(a.materialId, a.id)
+        fetchChildrenAssignmentProgress(selectedChild.id, a.materialId, a.id)
           .then((records) => {
-            setAssignFrameProgress((prev) => ({ ...prev, [a.id]: records }))
+            // setAssignFrameProgress((prev) => ({ ...prev, [a.id]: records }))
+            const arr: AssignmentFrameProgress[] = Object.values(records).map(
+              (r) => ({
+                frameSlug: r.frameId,
+                completed: r.completed,
+                correct: r.correct,
+                total: r.total,
+              }),
+            )
+            setAssignFrameProgress((prev) => ({ ...prev, [a.id]: arr }))
           })
           .catch(() => {})
       }
@@ -1344,7 +1434,6 @@ export default function ParentDashboard() {
           moduleCache[a.materialId]?.subjectId === selectedSubjectCardId)),
   )
   const bellCount = unreadCount
-
 
   const upcomingItems = assignments
     .filter((a) => a.status !== 'completed')
@@ -2918,8 +3007,6 @@ export default function ParentDashboard() {
                   <div style={{ marginTop: 24 }}>
                     {selectedChild && activeAssignments.length > 0 ? (
                       activeAssignments.map((a) => {
-                        console.log('xyz', a)
-
                         const comp = getAssignmentCompletion(a)
                         const statusLabel = deadlineStatus(a)
                         return (
@@ -3820,8 +3907,20 @@ export default function ParentDashboard() {
                     }}
                   >
                     {/* Left: Title + Subtitle */}
-                    <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column' as const,
+                        gap: 6,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                        }}
+                      >
                         {/* Pulsing dot */}
                         <span
                           style={{
@@ -3891,164 +3990,163 @@ export default function ParentDashboard() {
                         <strong style={{ color: '#334155', fontWeight: 600 }}>
                           {selectedChild?.name ?? childName}
                         </strong>{' '}
-                        menyelesaikan latihan soal, membaca modul, & video interaktif
+                        menyelesaikan latihan soal, membaca modul, & video
+                        interaktif
                       </p>
                     </div>
 
                     {/* Right: Date navigator + View switcher + KPI pill */}
+                    {/* Date Navigator — click the label to open a native calendar */}
                     <div
                       style={{
-                        display: 'flex',
+                        display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 12,
-                        flexWrap: 'wrap' as const,
-                        flexShrink: 0,
+                        background: '#fff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 12,
+                        padding: 4,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                        position: 'relative' as const,
                       }}
                     >
-                      {/* Date Navigator */}
-                      <div
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          background: '#fff',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: 12,
-                          padding: 4,
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                      <button
+                        type='button'
+                        aria-label='Minggu Sebelumnya'
+                        onClick={() => {
+                          const d = new Date(anchorDate + 'T00:00:00Z')
+                          d.setUTCDate(d.getUTCDate() - 7)
+                          setAnchorDate(d.toISOString().slice(0, 10))
                         }}
-                      >
-                        <button
-                          type='button'
-                          aria-label='Minggu Sebelumnya'
-                          style={{
-                            padding: 6,
-                            color: '#94a3b8',
-                            background: 'none',
-                            border: 'none',
-                            borderRadius: 8,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                          }}
-                        >
-                          <svg width='16' height='16' fill='none' stroke='currentColor' strokeWidth='2' viewBox='0 0 24 24'>
-                            <path d='M15 19l-7-7 7-7' strokeLinecap='round' strokeLinejoin='round' />
-                          </svg>
-                        </button>
-                        <span
-                          style={{
-                            padding: '0 12px',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: '#334155',
-                            userSelect: 'none',
-                          }}
-                        >
-                          Minggu Ini: {weeklyActivity?.weekRange ?? '-'}
-                        </span>
-                        <button
-                          type='button'
-                          aria-label='Minggu Berikutnya'
-                          disabled
-                          style={{
-                            padding: 6,
-                            color: '#cbd5e1',
-                            background: 'none',
-                            border: 'none',
-                            borderRadius: 8,
-                            cursor: 'not-allowed',
-                            display: 'flex',
-                            alignItems: 'center',
-                          }}
-                        >
-                          <svg width='16' height='16' fill='none' stroke='currentColor' strokeWidth='2' viewBox='0 0 24 24'>
-                            <path d='M9 5l7 7-7 7' strokeLinecap='round' strokeLinejoin='round' />
-                          </svg>
-                        </button>
-                      </div>
-
-                      {/* View Switcher */}
-                      <div
                         style={{
-                          display: 'inline-flex',
-                          background: 'rgba(241,245,249,0.9)',
-                          padding: 4,
-                          borderRadius: 12,
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: '#64748b',
-                        }}
-                      >
-                        <button
-                          style={{
-                            padding: '6px 14px',
-                            borderRadius: 8,
-                            background: '#fff',
-                            color: '#4F46E5',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                            border: '1px solid rgba(226,232,240,0.5)',
-                            fontWeight: 700,
-                            fontSize: 11,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Waktu (Menit)
-                        </button>
-                        <button
-                          style={{
-                            padding: '6px 14px',
-                            borderRadius: 8,
-                            background: 'transparent',
-                            color: '#64748b',
-                            border: 'none',
-                            fontWeight: 600,
-                            fontSize: 11,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          XP Belajar
-                        </button>
-                      </div>
-
-                      {/* KPI Pill */}
-                      <div
-                        style={{
+                          padding: 6,
+                          color: '#94a3b8',
+                          background: 'none',
+                          border: 'none',
+                          borderRadius: 8,
+                          cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 10,
-                          background: 'rgba(236,253,245,0.9)',
-                          border: '1px solid #a7f3d0',
-                          padding: '8px 14px',
-                          borderRadius: 16,
                         }}
                       >
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            color: '#059669',
-                            fontWeight: 700,
-                            fontSize: 14,
-                          }}
+                        <svg
+                          width='16'
+                          height='16'
+                          fill='none'
+                          stroke='currentColor'
+                          strokeWidth='2'
+                          viewBox='0 0 24 24'
                         >
-                          <svg width='16' height='16' fill='none' stroke='currentColor' strokeWidth='2.5' viewBox='0 0 24 24' style={{ marginRight: 4 }}>
-                            <path d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' strokeLinecap='round' strokeLinejoin='round' />
-                          </svg>
-                          +14%
-                        </div>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            color: 'rgba(5,150,105,0.8)',
-                            fontWeight: 500,
-                            lineHeight: 1.3,
-                          }}
+                          <path
+                            d='M15 19l-7-7 7-7'
+                            strokeLinecap='round'
+                            strokeLinejoin='round'
+                          />
+                        </svg>
+                      </button>
+
+                      <button
+                        type='button'
+                        onClick={() => {
+                          // showPicker() opens the native calendar UI directly from a
+                          // click on this label, instead of requiring the tiny hidden
+                          // input to be clicked precisely. Falls back to .focus() on
+                          // browsers that don't support showPicker (older Safari).
+                          const el = dateInputRef.current
+                          if (el?.showPicker) el.showPicker()
+                          else el?.focus()
+                        }}
+                        style={{
+                          padding: '0 12px',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: '#334155',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                        }}
+                      >
+                        <svg
+                          width='14'
+                          height='14'
+                          fill='none'
+                          stroke='currentColor'
+                          strokeWidth='2'
+                          viewBox='0 0 24 24'
                         >
-                          vs minggu<br />
-                          lalu
+                          <rect x='3' y='4' width='18' height='18' rx='2' />
+                          <path
+                            d='M16 2v4M8 2v4M3 10h18'
+                            strokeLinecap='round'
+                          />
+                        </svg>
+                        <span>
+                          {isCurrentWeek ? 'Minggu Ini' : 'Minggu Lalu'}:{' '}
+                          {weeklyKpi.weekRange}
                         </span>
-                      </div>
+                      </button>
+
+                      {/* Hidden native date input — invisible but functional, opened via the button above */}
+                      <input
+                        ref={dateInputRef}
+                        type='date'
+                        value={anchorDate}
+                        max={new Date().toISOString().slice(0, 10)}
+                        onChange={(e) => {
+                          if (e.target.value) setAnchorDate(e.target.value)
+                        }}
+                        style={{
+                          position: 'absolute' as const,
+                          opacity: 0,
+                          width: 1,
+                          height: 1,
+                          pointerEvents: 'none',
+                        }}
+                        aria-hidden='true'
+                        tabIndex={-1}
+                      />
+
+                      <button
+                        type='button'
+                        aria-label='Minggu Berikutnya'
+                        disabled={isCurrentWeek}
+                        onClick={() => {
+                          const d = new Date(anchorDate + 'T00:00:00Z')
+                          d.setUTCDate(d.getUTCDate() + 7)
+                          const next = d.toISOString().slice(0, 10)
+                          const today = new Date().toISOString().slice(0, 10)
+                          setAnchorDate(next > today ? today : next)
+                        }}
+                        style={{
+                          padding: 6,
+                          color: isCurrentWeek ? '#cbd5e1' : '#94a3b8',
+                          background: 'none',
+                          border: 'none',
+                          borderRadius: 8,
+                          cursor: isCurrentWeek ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <svg
+                          width='16'
+                          height='16'
+                          fill='none'
+                          stroke='currentColor'
+                          strokeWidth='2'
+                          viewBox='0 0 24 24'
+                        >
+                          <path
+                            d='M9 5l7 7-7 7'
+                            strokeLinecap='round'
+                            strokeLinejoin='round'
+                          />
+                        </svg>
+                      </button>
                     </div>
+                    <div>waktu (menit) XP Belajar</div>
                   </div>
 
                   {/* KPI Strip */}
@@ -4071,14 +4169,53 @@ export default function ParentDashboard() {
                         border: '1px solid rgba(226,232,240,0.6)',
                       }}
                     >
-                      <span style={{ fontSize: 11, fontWeight: 500, color: '#94a3b8', display: 'block', marginBottom: 4 }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 500,
+                          color: '#94a3b8',
+                          display: 'block',
+                          marginBottom: 4,
+                        }}
+                      >
                         Rata-rata Harian
                       </span>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                        <span style={{ fontSize: 22, fontWeight: 800, color: '#0f172a' }}>{weeklyActivity?.kpi.avgDailyMinutes ?? 0}</span>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8' }}>Menit / Hari</span>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'baseline',
+                          gap: 6,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 22,
+                            fontWeight: 800,
+                            color: '#0f172a',
+                          }}
+                        >
+                          {weeklyKpi?.avgDailyMinutes ?? 0}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: '#94a3b8',
+                          }}
+                        >
+                          Menit / Hari
+                        </span>
                       </div>
-                      <span style={{ fontSize: 11, color: '#059669', fontWeight: 500, marginTop: 4, display: 'flex', alignItems: 'center' }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: '#059669',
+                          fontWeight: 500,
+                          marginTop: 4,
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
                         {'\u2713'} Melebihi target 40m/hari
                       </span>
                     </div>
@@ -4092,13 +4229,44 @@ export default function ParentDashboard() {
                         border: '1px solid rgba(226,232,240,0.6)',
                       }}
                     >
-                      <span style={{ fontSize: 11, fontWeight: 500, color: '#94a3b8', display: 'block', marginBottom: 4 }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 500,
+                          color: '#94a3b8',
+                          display: 'block',
+                          marginBottom: 4,
+                        }}
+                      >
                         Total Waktu Belajar
                       </span>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                        <span style={{ fontSize: 22, fontWeight: 800, color: '#0f172a' }}>{weeklyActivity?.kpi.totalHours ?? 0}j {weeklyActivity?.kpi.totalMinutesRemaining ?? 0}m</span>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'baseline',
+                          gap: 6,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 22,
+                            fontWeight: 800,
+                            color: '#0f172a',
+                          }}
+                        >
+                          {weeklyKpi.totalHours}j{' '}
+                          {weeklyKpi.totalMinutesRemaining}m
+                        </span>
                       </div>
-                      <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500, marginTop: 4, display: 'block' }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: '#94a3b8',
+                          fontWeight: 500,
+                          marginTop: 4,
+                          display: 'block',
+                        }}
+                      >
                         95% dari kuota 4 jam/minggu
                       </span>
                     </div>
@@ -4112,14 +4280,44 @@ export default function ParentDashboard() {
                         border: '1px solid #C7D2FE',
                       }}
                     >
-                      <span style={{ fontSize: 11, fontWeight: 500, color: '#4F46E5', display: 'block', marginBottom: 4 }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 500,
+                          color: '#4F46E5',
+                          display: 'block',
+                          marginBottom: 4,
+                        }}
+                      >
                         Puncak Produktivitas
                       </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 22, fontWeight: 800, color: '#4F46E5' }}>{weeklyActivity?.kpi.peakMinutes ?? 0} Menit</span>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 22,
+                            fontWeight: 800,
+                            color: '#4F46E5',
+                          }}
+                        >
+                          {weeklyKpi?.peakMinutes ?? 0} Menit
+                        </span>
                         <span style={{ fontSize: 14 }}>{'\u2B50'}</span>
                       </div>
-                      <span style={{ fontSize: 11, color: '#4338CA', fontWeight: 500, marginTop: 4, display: 'block' }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: '#4338CA',
+                          fontWeight: 500,
+                          marginTop: 4,
+                          display: 'block',
+                        }}
+                      >
                         Kamis (Hari Ini) {'\u2022'} Tertinggi
                       </span>
                     </div>
@@ -4133,14 +4331,52 @@ export default function ParentDashboard() {
                         border: '1px solid rgba(226,232,240,0.6)',
                       }}
                     >
-                      <span style={{ fontSize: 11, fontWeight: 500, color: '#94a3b8', display: 'block', marginBottom: 4 }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 500,
+                          color: '#94a3b8',
+                          display: 'block',
+                          marginBottom: 4,
+                        }}
+                      >
                         Konsistensi Hari Belajar
                       </span>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                        <span style={{ fontSize: 22, fontWeight: 800, color: '#0f172a' }}>{weeklyActivity?.kpi.activeDays ?? 0} / {weeklyActivity?.kpi.totalDays ?? 7}</span>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8' }}>Hari Aktif</span>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'baseline',
+                          gap: 6,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 22,
+                            fontWeight: 800,
+                            color: '#0f172a',
+                          }}
+                        >
+                          {weeklyKpi.activeDays} / {weeklyKpi.totalDays}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: '#94a3b8',
+                          }}
+                        >
+                          Hari Aktif
+                        </span>
                       </div>
-                      <span style={{ fontSize: 11, color: '#4F46E5', fontWeight: 600, marginTop: 4, display: 'block' }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: '#4F46E5',
+                          fontWeight: 600,
+                          marginTop: 4,
+                          display: 'block',
+                        }}
+                      >
                         {'\uD83D\uDD25\uD83D\uDD25\uD83D\uDD25'} 5-Day Streak
                       </span>
                     </div>
@@ -4148,8 +4384,20 @@ export default function ParentDashboard() {
                 </header>
 
                 {/* Chart Area */}
-                <div style={{ padding: '32px 40px', position: 'relative' as const, userSelect: 'none' as const }}>
-                  <div style={{ position: 'relative' as const, height: 320, width: '100%' }}>
+                <div
+                  style={{
+                    padding: '32px 40px',
+                    position: 'relative' as const,
+                    userSelect: 'none' as const,
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'relative' as const,
+                      height: 320,
+                      width: '100%',
+                    }}
+                  >
                     {/* Y-Axis + Grid Lines */}
                     <div
                       style={{
@@ -4165,18 +4413,70 @@ export default function ParentDashboard() {
                       }}
                     >
                       {/* 80m */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
-                        <span style={{ width: 32, textAlign: 'right' as const, fontFamily: 'monospace' }}>80m</span>
-                        <div style={{ height: 1, flex: 1, background: '#f1f5f9' }} />
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          width: '100%',
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 32,
+                            textAlign: 'right' as const,
+                            fontFamily: 'monospace',
+                          }}
+                        >
+                          80m
+                        </span>
+                        <div
+                          style={{ height: 1, flex: 1, background: '#f1f5f9' }}
+                        />
                       </div>
                       {/* 60m */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
-                        <span style={{ width: 32, textAlign: 'right' as const, fontFamily: 'monospace' }}>60m</span>
-                        <div style={{ height: 1, flex: 1, background: '#f1f5f9' }} />
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          width: '100%',
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 32,
+                            textAlign: 'right' as const,
+                            fontFamily: 'monospace',
+                          }}
+                        >
+                          60m
+                        </span>
+                        <div
+                          style={{ height: 1, flex: 1, background: '#f1f5f9' }}
+                        />
                       </div>
                       {/* 40m (Target) */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', position: 'relative' as const }}>
-                        <span style={{ width: 32, textAlign: 'right' as const, fontFamily: 'monospace', fontWeight: 600, color: '#F59E0B' }}>40m</span>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          width: '100%',
+                          position: 'relative' as const,
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 32,
+                            textAlign: 'right' as const,
+                            fontFamily: 'monospace',
+                            fontWeight: 600,
+                            color: '#F59E0B',
+                          }}
+                        >
+                          40m
+                        </span>
                         <div
                           style={{
                             height: 1,
@@ -4204,18 +4504,58 @@ export default function ParentDashboard() {
                         </span>
                       </div>
                       {/* 20m */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
-                        <span style={{ width: 32, textAlign: 'right' as const, fontFamily: 'monospace' }}>20m</span>
-                        <div style={{ height: 1, flex: 1, background: '#f1f5f9' }} />
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          width: '100%',
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 32,
+                            textAlign: 'right' as const,
+                            fontFamily: 'monospace',
+                          }}
+                        >
+                          20m
+                        </span>
+                        <div
+                          style={{ height: 1, flex: 1, background: '#f1f5f9' }}
+                        />
                       </div>
                       {/* 0m */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
-                        <span style={{ width: 32, textAlign: 'right' as const, fontFamily: 'monospace', color: '#cbd5e1' }}>0m</span>
-                        <div style={{ height: 1.5, flex: 1, background: '#e2e8f0' }} />
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          width: '100%',
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 32,
+                            textAlign: 'right' as const,
+                            fontFamily: 'monospace',
+                            color: '#cbd5e1',
+                          }}
+                        >
+                          0m
+                        </span>
+                        <div
+                          style={{
+                            height: 1.5,
+                            flex: 1,
+                            background: '#e2e8f0',
+                          }}
+                        />
                       </div>
                     </div>
 
                     {/* Bars Container (7 columns) */}
+                    {/* Bars Container (7 columns) — driven by weeklyStudy */}
                     <div
                       style={{
                         position: 'absolute',
@@ -4229,111 +4569,167 @@ export default function ParentDashboard() {
                         alignItems: 'end',
                       }}
                     >
-                      {/* Bar: Senin (30m) */}
-                      <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative' as const, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>{weeklyActivity?.daily[0]?.minutes ?? 0}m</span>
-                        <div style={{ width: '100%', maxWidth: 56, height: '37.5%', borderRadius: 16, display: 'flex', flexDirection: 'column' as const, justifyContent: 'flex-end', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', background: 'rgba(199,210,254,0.8)' }}>
-                          <div style={{ height: '65%', width: '100%', background: '#818CF8' }} title='Latihan Soal (20m)' />
-                          <div style={{ height: '35%', width: '100%', background: '#A5B4FC' }} title='Video Belajar (10m)' />
-                        </div>
-                        <div style={{ marginTop: 16, textAlign: 'center' }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>Sen</span>
-                          <span style={{ display: 'block', fontSize: 10, color: '#94a3b8' }}>7 Sep</span>
-                        </div>
-                      </div>
+                      {weeklyStudy.map((d, i) => {
+                        // Weekend = the 6th and 7th entries (Sat/Sun), since the backend
+                        // returns Monday-first (index 0 = Monday ... index 6 = Sunday).
+                        const isWeekend = i === 5 || i === 6
+                        // Scale against the fixed 80m grid drawn on the left axis. Capped at
+                        // 100% so a day that somehow exceeds 80m doesn't blow past the chart.
+                        const heightPct = Math.min((d.min / 80) * 100, 100)
+                        const dateLabel = d.date
+                          ? new Date(d.date + 'T00:00:00Z').toLocaleDateString(
+                              'id-ID',
+                              {
+                                day: 'numeric',
+                                month: 'short',
+                                timeZone: 'UTC',
+                              },
+                            )
+                          : ''
 
-                      {/* Bar: Selasa (55m) */}
-                      <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative' as const, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>{weeklyActivity?.daily[1]?.minutes ?? 0}m</span>
-                        <div style={{ width: '100%', maxWidth: 56, height: '68.75%', borderRadius: 16, display: 'flex', flexDirection: 'column' as const, justifyContent: 'flex-end', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', background: 'rgba(199,210,254,0.8)' }}>
-                          <div style={{ height: '60%', width: '100%', background: '#818CF8' }} title='Latihan Soal (35m)' />
-                          <div style={{ height: '40%', width: '100%', background: '#A5B4FC' }} title='Video & Modul (20m)' />
-                        </div>
-                        <div style={{ marginTop: 16, textAlign: 'center' }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>Sel</span>
-                          <span style={{ display: 'block', fontSize: 10, color: '#94a3b8' }}>8 Sep</span>
-                        </div>
-                      </div>
+                        return (
+                          <div
+                            key={d.date || i}
+                            style={{
+                              position: 'relative' as const,
+                              display: 'flex',
+                              flexDirection: 'column' as const,
+                              alignItems: 'center',
+                              justifyContent: 'flex-end',
+                              height: '100%',
+                              zIndex: d.peak ? 20 : 1,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {/* Peak badge — only rendered for the actual highest day, wherever it falls */}
+                            {d.peak && (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: -32,
+                                  display: 'flex',
+                                  flexDirection: 'column' as const,
+                                  alignItems: 'center',
+                                  zIndex: 30,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    background: 'rgba(255,255,255,0.95)',
+                                    boxShadow:
+                                      '0 4px 12px rgba(99,102,241,0.1)',
+                                    border: '1px solid #C7D2FE',
+                                    borderRadius: 999,
+                                    padding: '4px 10px',
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    color: '#4F46E5',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                  }}
+                                >
+                                  <span>{d.min}m</span>
+                                  <span>{'\u2B50'}</span>
+                                  <span
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 500,
+                                      color: '#6366F1',
+                                      background: '#EEF2FF',
+                                      padding: '1px 6px',
+                                      borderRadius: 4,
+                                    }}
+                                  >
+                                    Puncak
+                                  </span>
+                                </div>
+                              </div>
+                            )}
 
-                      {/* Bar: Rabu (40m) */}
-                      <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative' as const, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>{weeklyActivity?.daily[2]?.minutes ?? 0}m</span>
-                        <div style={{ width: '100%', maxWidth: 56, height: '50%', borderRadius: 16, display: 'flex', flexDirection: 'column' as const, justifyContent: 'flex-end', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', background: 'rgba(199,210,254,0.8)' }}>
-                          <div style={{ height: '50%', width: '100%', background: '#818CF8' }} title='Latihan Soal (20m)' />
-                          <div style={{ height: '50%', width: '100%', background: '#A5B4FC' }} title='Video & Modul (20m)' />
-                        </div>
-                        <div style={{ marginTop: 16, textAlign: 'center' }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>Rab</span>
-                          <span style={{ display: 'block', fontSize: 10, color: '#94a3b8' }}>9 Sep</span>
-                        </div>
-                      </div>
+                            {/* Minute label above the bar — only when not showing the peak badge, to avoid doubling up */}
+                            {!d.peak && (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: isWeekend ? 500 : 600,
+                                  color: isWeekend ? '#cbd5e1' : '#94a3b8',
+                                  marginBottom: 8,
+                                }}
+                              >
+                                {d.min}m
+                              </span>
+                            )}
 
-                      {/* Bar: Kamis (68m - PEAK / TODAY) */}
-                      <div style={{ position: 'relative' as const, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'flex-end', height: '100%', zIndex: 20 }}>
-                        <div style={{ position: 'absolute', top: -32, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', zIndex: 30 }}>
-                          <div style={{ background: 'rgba(255,255,255,0.95)', boxShadow: '0 4px 12px rgba(99,102,241,0.1)', border: '1px solid #C7D2FE', borderRadius: 999, padding: '4px 10px', fontSize: 11, fontWeight: 700, color: '#4F46E5', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
-                            <span>{weeklyActivity?.daily[3]?.minutes ?? 0}m</span>
-                            <span>{'\u2B50'}</span>
-                            <span style={{ fontSize: 10, fontWeight: 500, color: '#6366F1', background: '#EEF2FF', padding: '1px 6px', borderRadius: 4 }}>Puncak</span>
+                            {/* Bar */}
+                            <div
+                              style={{
+                                width: '100%',
+                                maxWidth: d.peak ? 62 : 56,
+                                height: `${Math.max(heightPct, 2)}%`, // floor so a 0-minute day still shows a sliver, not nothing
+                                borderRadius: 16,
+                                overflow: 'hidden',
+                                transition: 'height 0.4s ease',
+                                boxShadow: d.peak
+                                  ? '0 4px 16px rgba(99,102,241,0.3)'
+                                  : '0 1px 3px rgba(0,0,0,0.04)',
+                                outline: d.peak ? '4px solid #C7D2FE' : 'none',
+                                background: d.peak
+                                  ? 'linear-gradient(180deg, #6366F1 0%, #4F46E5 50%, #4338CA 100%)'
+                                  : isWeekend
+                                    ? 'rgba(226,232,240,0.8)'
+                                    : 'rgba(199,210,254,0.8)',
+                              }}
+                            />
+
+                            {/* Day + date label */}
+                            <div
+                              style={{
+                                marginTop: 16,
+                                textAlign: 'center' as const,
+                              }}
+                            >
+                              {d.isToday ? (
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    color: '#4F46E5',
+                                    background: '#EEF2FF',
+                                    padding: '2px 8px',
+                                    borderRadius: 6,
+                                    border: '1px solid #C7D2FE',
+                                  }}
+                                >
+                                  {d.day} (Hari Ini)
+                                </span>
+                              ) : (
+                                <span
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: isWeekend ? 500 : 600,
+                                    color: isWeekend ? '#cbd5e1' : '#64748b',
+                                  }}
+                                >
+                                  {d.day}
+                                </span>
+                              )}
+                              <span
+                                style={{
+                                  display: 'block',
+                                  fontSize: 10,
+                                  color: d.isToday ? '#4F46E5' : '#94a3b8',
+                                  fontWeight: d.isToday ? 600 : 400,
+                                  marginTop: 2,
+                                }}
+                              >
+                                {dateLabel}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                        <div
-                          style={{
-                            width: '100%',
-                            maxWidth: 62,
-                            height: '85%',
-                            borderRadius: 16,
-                            display: 'flex',
-                            flexDirection: 'column' as const,
-                            justifyContent: 'flex-end',
-                            overflow: 'hidden',
-                            boxShadow: '0 4px 16px rgba(99,102,241,0.3)',
-                            outline: '4px solid #C7D2FE',
-                            background: 'linear-gradient(180deg, #6366F1 0%, #4F46E5 50%, #4338CA 100%)',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          <div style={{ height: '60%', width: '100%', background: 'linear-gradient(180deg, #818CF8, #6366F1)' }} title='40m Latihan Matematika' />
-                          <div style={{ height: '40%', width: '100%', background: 'rgba(67,56,202,0.9)' }} title='28m Video & Kuis' />
-                        </div>
-                        <div style={{ marginTop: 16, textAlign: 'center' }}>
-                          <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, color: '#4F46E5', background: '#EEF2FF', padding: '2px 8px', borderRadius: 6, border: '1px solid #C7D2FE' }}>Kam (Hari Ini)</span>
-                          <span style={{ display: 'block', fontSize: 10, color: '#4F46E5', fontWeight: 600, marginTop: 2 }}>10 Sep</span>
-                        </div>
-                      </div>
-
-                      {/* Bar: Jumat (45m) */}
-                      <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative' as const, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>{weeklyActivity?.daily[4]?.minutes ?? 0}m</span>
-                        <div style={{ width: '100%', maxWidth: 56, height: '56.25%', borderRadius: 16, display: 'flex', flexDirection: 'column' as const, justifyContent: 'flex-end', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', background: 'rgba(199,210,254,0.8)' }}>
-                          <div style={{ height: '65%', width: '100%', background: '#818CF8' }} title='Latihan Soal (30m)' />
-                          <div style={{ height: '35%', width: '100%', background: '#A5B4FC' }} title='Video (15m)' />
-                        </div>
-                        <div style={{ marginTop: 16, textAlign: 'center' }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>Jum</span>
-                          <span style={{ display: 'block', fontSize: 10, color: '#94a3b8' }}>11 Sep</span>
-                        </div>
-                      </div>
-
-                      {/* Bar: Sabtu (15m - Weekend) */}
-                      <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative' as const, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 11, fontWeight: 500, color: '#cbd5e1', marginBottom: 8 }}>{weeklyActivity?.daily[5]?.minutes ?? 0}m</span>
-                        <div style={{ width: '100%', maxWidth: 56, height: '18.75%', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', background: 'rgba(226,232,240,0.8)' }} title='Review Santai Akhir Pekan (15m)' />
-                        <div style={{ marginTop: 16, textAlign: 'center' }}>
-                          <span style={{ fontSize: 12, fontWeight: 500, color: '#cbd5e1' }}>Sab</span>
-                          <span style={{ display: 'block', fontSize: 10, color: '#94a3b8' }}>12 Sep</span>
-                        </div>
-                      </div>
-
-                      {/* Bar: Minggu (10m - Weekend) */}
-                      <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative' as const, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 11, fontWeight: 500, color: '#cbd5e1', marginBottom: 8 }}>{weeklyActivity?.daily[6]?.minutes ?? 0}m</span>
-                        <div style={{ width: '100%', maxWidth: 56, height: '12.5%', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', background: 'rgba(226,232,240,0.8)' }} title='Review Santai Akhir Pekan (10m)' />
-                        <div style={{ marginTop: 16, textAlign: 'center' }}>
-                          <span style={{ fontSize: 12, fontWeight: 500, color: '#cbd5e1' }}>Min</span>
-                          <span style={{ display: 'block', fontSize: 10, color: '#94a3b8' }}>13 Sep</span>
-                        </div>
-                      </div>
+                        )
+                      })}
                     </div>
                   </div>
                 </div>
@@ -4352,31 +4748,104 @@ export default function ParentDashboard() {
                     flexWrap: 'wrap' as const,
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 20, fontSize: 11, fontWeight: 500, color: '#64748b', flexWrap: 'wrap' as const }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ width: 14, height: 14, borderRadius: 4, background: '#4F46E5' }} />
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 20,
+                      fontSize: 11,
+                      fontWeight: 500,
+                      color: '#64748b',
+                      flexWrap: 'wrap' as const,
+                    }}
+                  >
+                    <span
+                      style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                    >
+                      <span
+                        style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: 4,
+                          background: '#4F46E5',
+                        }}
+                      />
                       Latihan & Kuis Interaktif
                     </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ width: 14, height: 14, borderRadius: 4, background: '#A5B4FC' }} />
+                    <span
+                      style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                    >
+                      <span
+                        style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: 4,
+                          background: '#A5B4FC',
+                        }}
+                      />
                       Membaca & Video Animasi
                     </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ width: 14, height: 14, borderRadius: 4, background: '#e2e8f0' }} />
+                    <span
+                      style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                    >
+                      <span
+                        style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: 4,
+                          background: '#e2e8f0',
+                        }}
+                      />
                       Akhir Pekan
                     </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ width: 16, height: 0, borderTop: '2px dashed #F59E0B' }} />
+                    <span
+                      style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                    >
+                      <span
+                        style={{
+                          width: 16,
+                          height: 0,
+                          borderTop: '2px dashed #F59E0B',
+                        }}
+                      />
                       Target Harian
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, color: '#94a3b8' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      fontSize: 11,
+                      color: '#94a3b8',
+                    }}
+                  >
                     <span>
                       Total Waktu:{' '}
-                      <strong style={{ color: '#0f172a', fontWeight: 700, fontSize: 14 }}>{weeklyActivity ? `${weeklyActivity.kpi.totalHours} Jam ${weeklyActivity.kpi.totalMinutesRemaining} Menit` : '0 Menit'}</strong>
+                      <strong
+                        style={{
+                          color: '#0f172a',
+                          fontWeight: 700,
+                          fontSize: 14,
+                        }}
+                      >
+                        {weeklyKpi.totalHours} Jam{' '}
+                        {weeklyKpi.totalMinutesRemaining} Menit
+                      </strong>
                     </span>
                     <span style={{ color: '#e2e8f0' }}>{'\u2022'}</span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', color: '#D97706', fontWeight: 600, background: '#FFFBEB', padding: '2px 8px', borderRadius: 6, border: '1px solid rgba(253,230,138,0.6)' }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        color: '#D97706',
+                        fontWeight: 600,
+                        background: '#FFFBEB',
+                        padding: '2px 8px',
+                        borderRadius: 6,
+                        border: '1px solid rgba(253,230,138,0.6)',
+                      }}
+                    >
                       {'\u26A1'} 480 XP
                     </span>
                   </div>
@@ -4387,7 +4856,8 @@ export default function ParentDashboard() {
                   style={{
                     margin: '24px 32px 32px',
                     padding: '16px 20px',
-                    background: 'linear-gradient(90deg, rgba(255,251,235,0.8), rgba(238,242,255,0.4), rgba(236,253,245,0.5))',
+                    background:
+                      'linear-gradient(90deg, rgba(255,251,235,0.8), rgba(238,242,255,0.4), rgba(236,253,245,0.5))',
                     borderRadius: 16,
                     border: '1px solid rgba(253,230,138,0.6)',
                     display: 'flex',
@@ -4398,29 +4868,112 @@ export default function ParentDashboard() {
                     flexWrap: 'wrap' as const,
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 12, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 14,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 12,
+                        background: '#FEF3C7',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        fontSize: 18,
+                      }}
+                    >
                       {'\uD83D\uDCA1'}
                     </div>
                     <div>
-                      <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: '#92400E', margin: '0 0 2px' }}>
+                      <h3
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          textTransform: 'uppercase' as const,
+                          letterSpacing: '0.05em',
+                          color: '#92400E',
+                          margin: '0 0 2px',
+                        }}
+                      >
                         Analisis & Rekomendasi Belajar
                       </h3>
-                      <p style={{ fontSize: 12, color: '#475569', margin: 0, lineHeight: 1.5 }}>
+                      <p
+                        style={{
+                          fontSize: 12,
+                          color: '#475569',
+                          margin: 0,
+                          lineHeight: 1.5,
+                        }}
+                      >
                         {childName} paling fokus belajar pada rentang pukul{' '}
-                        <strong style={{ color: '#0f172a' }}>16:00 {'\u2013'} 17:30</strong>{' '}
-                        (sore hari). Disarankan mempertahankan ritme 35{'\u2013'}45 menit dengan jeda istirahat 5 menit untuk menjaga daya tangkap materi matematika.
+                        <strong style={{ color: '#0f172a' }}>
+                          16:00 {'\u2013'} 17:30
+                        </strong>{' '}
+                        (sore hari). Disarankan mempertahankan ritme 35
+                        {'\u2013'}45 menit dengan jeda istirahat 5 menit untuk
+                        menjaga daya tangkap materi matematika.
                       </p>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    <button type='button' style={{ padding: '8px 14px', fontSize: 11, fontWeight: 600, color: '#475569', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, cursor: 'pointer' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <button
+                      type='button'
+                      style={{
+                        padding: '8px 14px',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#475569',
+                        background: '#fff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 12,
+                        cursor: 'pointer',
+                      }}
+                    >
                       Atur Jam Pengingat
                     </button>
-                    <button type='button' style={{ padding: '8px 14px', fontSize: 11, fontWeight: 600, color: '#fff', background: '#4F46E5', border: 'none', borderRadius: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                      type='button'
+                      style={{
+                        padding: '8px 14px',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#fff',
+                        background: '#4F46E5',
+                        border: 'none',
+                        borderRadius: 12,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                    >
                       <span>Unduh Rapor PDF</span>
-                      <svg width='14' height='14' fill='none' stroke='currentColor' strokeWidth='2' viewBox='0 0 24 24'>
-                        <path d='M19 9l-7 7-7-7' strokeLinecap='round' strokeLinejoin='round' />
+                      <svg
+                        width='14'
+                        height='14'
+                        fill='none'
+                        stroke='currentColor'
+                        strokeWidth='2'
+                        viewBox='0 0 24 24'
+                      >
+                        <path
+                          d='M19 9l-7 7-7-7'
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                        />
                       </svg>
                     </button>
                   </div>

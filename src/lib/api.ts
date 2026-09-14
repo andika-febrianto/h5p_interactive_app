@@ -889,8 +889,12 @@ export interface WeeklyActivityResponse {
   kpi: WeeklyActivityKPI
 }
 
-export function fetchWeeklyActivity(childId: string): Promise<WeeklyActivityResponse> {
-  return request(`/parent/children/${encodeURIComponent(childId)}/weekly-activity`)
+export function fetchWeeklyActivity(
+  childId: string,
+): Promise<WeeklyActivityResponse> {
+  return request(
+    `/parent/children/${encodeURIComponent(childId)}/weekly-activity`,
+  )
 }
 
 // ---------- Student Notifications ----------
@@ -951,4 +955,49 @@ export function updateChild(
 
 export function deleteChild(id: string): Promise<void> {
   return request(`/children/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export interface StudyDay {
+  day: string // 'Sen' | 'Sel' | ... in Indonesian, Monday-first
+  date: string // 'YYYY-MM-DD'
+  min: number
+  active: boolean
+  peak: boolean
+  isToday: boolean
+}
+
+export interface WeeklyStudy {
+  weekStart: string
+  days: StudyDay[]
+}
+
+/** Called by a STUDENT right after finishing a frame, with how long they
+ *  spent on it. Silently no-ops on failure — losing a minute of chart data
+ *  should never block the learner from moving to the next frame. */
+export function logStudySession(body: {
+  moduleId: string
+  frameSlug: string
+  durationSeconds: number
+  activityType?: string
+}): Promise<{ success: boolean }> {
+  return request('/study/log', { method: 'POST', body: JSON.stringify(body) })
+}
+
+/** childId is required for a PARENT caller, ignored (self) for a STUDENT. */
+// export function fetchWeeklyStudy(childId?: string): Promise<WeeklyStudy> {
+//   const qs = childId ? `?${new URLSearchParams({ childId }).toString()}` : ''
+//   return request(`/study/weekly${qs}`)
+// }
+
+export function fetchWeeklyStudy(
+  childId?: string,
+  weekStart?: string,
+): Promise<WeeklyStudy> {
+  const params: Record<string, string> = {}
+  if (childId) params.childId = childId
+  if (weekStart) params.weekStart = weekStart
+  const qs = Object.keys(params).length
+    ? `?${new URLSearchParams(params).toString()}`
+    : ''
+  return request(`/study/weekly${qs}`)
 }

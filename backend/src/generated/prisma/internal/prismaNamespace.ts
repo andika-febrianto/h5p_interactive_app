@@ -398,6 +398,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   User: 'User',
+  StudySession: 'StudySession',
   Session: 'Session',
   Subject: 'Subject',
   Module: 'Module',
@@ -427,7 +428,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "subject" | "module" | "frame" | "plan" | "subscription" | "payment" | "parentChild" | "readingProgress" | "parentAssignment" | "notification" | "question" | "assignmentProgress" | "progressRecord"
+    modelProps: "user" | "studySession" | "session" | "subject" | "module" | "frame" | "plan" | "subscription" | "payment" | "parentChild" | "readingProgress" | "parentAssignment" | "notification" | "question" | "assignmentProgress" | "progressRecord"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -502,6 +503,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserCountAggregateOutputType> | number
+        }
+      }
+    }
+    StudySession: {
+      payload: Prisma.$StudySessionPayload<ExtArgs>
+      fields: Prisma.StudySessionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.StudySessionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudySessionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.StudySessionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudySessionPayload>
+        }
+        findFirst: {
+          args: Prisma.StudySessionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudySessionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.StudySessionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudySessionPayload>
+        }
+        findMany: {
+          args: Prisma.StudySessionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudySessionPayload>[]
+        }
+        create: {
+          args: Prisma.StudySessionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudySessionPayload>
+        }
+        createMany: {
+          args: Prisma.StudySessionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.StudySessionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudySessionPayload>[]
+        }
+        delete: {
+          args: Prisma.StudySessionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudySessionPayload>
+        }
+        update: {
+          args: Prisma.StudySessionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudySessionPayload>
+        }
+        deleteMany: {
+          args: Prisma.StudySessionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.StudySessionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.StudySessionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudySessionPayload>[]
+        }
+        upsert: {
+          args: Prisma.StudySessionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudySessionPayload>
+        }
+        aggregate: {
+          args: Prisma.StudySessionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateStudySession>
+        }
+        groupBy: {
+          args: Prisma.StudySessionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StudySessionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.StudySessionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StudySessionCountAggregateOutputType> | number
         }
       }
     }
@@ -1598,6 +1673,21 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
+export const StudySessionScalarFieldEnum = {
+  id: 'id',
+  childId: 'childId',
+  date: 'date',
+  durationSeconds: 'durationSeconds',
+  moduleId: 'moduleId',
+  frameSlug: 'frameSlug',
+  activityType: 'activityType',
+  updatedAt: 'updatedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type StudySessionScalarFieldEnum = (typeof StudySessionScalarFieldEnum)[keyof typeof StudySessionScalarFieldEnum]
+
+
 export const SessionScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -2121,6 +2211,7 @@ export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions 
 export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
+  studySession?: Prisma.StudySessionOmit
   session?: Prisma.SessionOmit
   subject?: Prisma.SubjectOmit
   module?: Prisma.ModuleOmit

@@ -52,6 +52,7 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
+  StudySession: 'StudySession',
   Session: 'Session',
   Subject: 'Subject',
   Module: 'Module',
@@ -100,6 +101,21 @@ export const UserScalarFieldEnum = {
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const StudySessionScalarFieldEnum = {
+  id: 'id',
+  childId: 'childId',
+  date: 'date',
+  durationSeconds: 'durationSeconds',
+  moduleId: 'moduleId',
+  frameSlug: 'frameSlug',
+  activityType: 'activityType',
+  updatedAt: 'updatedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type StudySessionScalarFieldEnum = (typeof StudySessionScalarFieldEnum)[keyof typeof StudySessionScalarFieldEnum]
 
 
 export const SessionScalarFieldEnum = {

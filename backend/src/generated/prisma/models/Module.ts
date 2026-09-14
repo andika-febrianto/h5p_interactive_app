@@ -553,14 +553,6 @@ export type ModuleUncheckedUpdateManyWithoutSubjectNestedInput = {
   deleteMany?: Prisma.ModuleScalarWhereInput | Prisma.ModuleScalarWhereInput[]
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type ModuleCreateNestedOneWithoutFramesInput = {
   create?: Prisma.XOR<Prisma.ModuleCreateWithoutFramesInput, Prisma.ModuleUncheckedCreateWithoutFramesInput>
   connectOrCreate?: Prisma.ModuleCreateOrConnectWithoutFramesInput
