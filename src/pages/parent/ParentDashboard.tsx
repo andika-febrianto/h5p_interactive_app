@@ -865,6 +865,9 @@ export default function ParentDashboard() {
     useState<ChildInfo | null>(null)
 
   const [weeklyStudy, setWeeklyStudy] = useState<StudyDay[]>([])
+  const [hoveredBar, setHoveredBar] = useState<number | null>(null)
+  const [clickedBar, setClickedBar] = useState<number | null>(null)
+  const tooltipRef = useRef<HTMLDivElement>(null)
   // 0 = current week, 1 = one week back, 2 = two weeks back, etc.
   // Negative (future weeks) is never reachable — the "next" button
   // stays disabled once weekOffset is back at 0.
@@ -874,6 +877,18 @@ export default function ParentDashboard() {
     new Date().toISOString().slice(0, 10),
   )
   const dateInputRef = useRef<HTMLInputElement>(null)
+
+  // Close tooltip when clicking outside
+  useEffect(() => {
+    if (clickedBar === null) return
+    const handler = (e: MouseEvent) => {
+      if (tooltipRef.current && !tooltipRef.current.contains(e.target as Node)) {
+        setClickedBar(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [clickedBar])
 
   useEffect(() => {
     if (!selectedChild) {
@@ -4585,9 +4600,19 @@ export default function ParentDashboard() {
                             )
                           : ''
 
+                        const showTooltip = hoveredBar === i || clickedBar === i
+                        const tooltipData = d.breakdown && d.breakdown.length > 0
+                          ? d.breakdown
+                          : d.min > 0
+                            ? [{ subject: 'Total', module: 'Belajar', minutes: d.min, frames: 0 }]
+                            : []
+
                         return (
                           <div
                             key={d.date || i}
+                            onMouseEnter={() => setHoveredBar(i)}
+                            onMouseLeave={() => setHoveredBar(null)}
+                            onClick={() => setClickedBar(clickedBar === i ? null : i)}
                             style={{
                               position: 'relative' as const,
                               display: 'flex',
@@ -4599,6 +4624,73 @@ export default function ParentDashboard() {
                               cursor: 'pointer',
                             }}
                           >
+                            {/* Tooltip on hover/click */}
+                            {showTooltip && d.min > 0 && (
+                              <div
+                                ref={tooltipRef}
+                                style={{
+                                  position: 'absolute' as const,
+                                  bottom: 'calc(100% + 12px)',
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  minWidth: 220,
+                                  maxWidth: 280,
+                                  background: '#1E1B4B',
+                                  borderRadius: 14,
+                                  padding: '14px 16px',
+                                  boxShadow: '0 8px 32px rgba(30,27,75,0.5)',
+                                  zIndex: 100,
+                                  pointerEvents: clickedBar === i ? 'auto' : 'none',
+                                  opacity: 1,
+                                  transition: 'opacity 0.15s ease',
+                                }}
+                              >
+                                {/* Arrow */}
+                                <div
+                                  style={{
+                                    position: 'absolute' as const,
+                                    bottom: -6,
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    width: 0,
+                                    height: 0,
+                                    borderLeft: '6px solid transparent',
+                                    borderRight: '6px solid transparent',
+                                    borderTop: '6px solid #1E1B4B',
+                                  }}
+                                />
+                                {/* Header */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: '#C7D2FE' }}>
+                                    {d.day}{dateLabel ? ', ' + dateLabel : ''}
+                                  </span>
+                                  <span style={{ fontSize: 11, fontWeight: 700, color: '#818CF8', background: 'rgba(99,102,241,0.2)', padding: '2px 8px', borderRadius: 6, whiteSpace: 'nowrap' }}>
+                                    Total {d.min}m
+                                  </span>
+                                </div>
+                                {/* Subject breakdown list */}
+                                {tooltipData.length > 0 ? (
+                                  <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 4 }}>
+                                    {tooltipData.map((item, ti) => (
+                                      <div key={ti} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: ti === 0 ? '#818CF8' : ti === 1 ? '#A5B4FC' : '#F59E0B', flexShrink: 0 }} />
+                                          <span style={{ fontSize: 11, color: '#CBD5E1', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            {item.subject}{item.module !== 'Belajar' ? ': ' + item.module : ''}
+                                          </span>
+                                        </div>
+                                        <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                                          {item.minutes}m
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span style={{ fontSize: 11, color: '#94A3B8' }}>Tidak ada data</span>
+                                )}
+                              </div>
+                            )}
+
                             {/* Peak badge — only rendered for the actual highest day, wherever it falls */}
                             {d.peak && (
                               <div

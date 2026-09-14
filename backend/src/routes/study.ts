@@ -150,14 +150,68 @@ studyRouter.get('/weekly', async (req, res, next) => {
       ]),
     )
 
+    // ── Per-day subject breakdown ──────────────────────────────────
+    // Query ProgressRecord for completed frames on each day of the week.
+    // Group by moduleId → resolve module title + subject name → distribute
+    // the day's total minutes proportionally by frame count.
+    const clientId = `user:${childId}`
+    const allProgress = await prisma.progressRecord.findMany({
+      where: {
+        clientId,
+        completed: true,
+        updatedAt: { gte: monday, lt: nextMonday },
+      },
+      select: { moduleId: true, updatedAt: true },
+    })
+
+    // Collect unique module IDs to resolve names in one query
+    const moduleIds = [...new Set(allProgress.map((r) => r.moduleId))]
+    const modules = moduleIds.length > 0
+      ? await prisma.module.findMany({
+          where: { id: { in: moduleIds } },
+          select: {
+            id: true,
+            title: true,
+            subject: { select: { name: true, shortName: true } },
+          },
+        })
+      : []
+    const moduleMap = new Map(modules.map((m) => [m.id, m]))
+
+    // Group progress records by day index (Mon=0..Sun=6) and moduleId
+    const framesByDayAndModule: Array<Map<string, number>> = Array.from({ length: 7 }, () => new Map())
+    for (const rec of allProgress) {
+      const recDate = startOfUtcDay(rec.updatedAt)
+      const dayIdx = Math.round((recDate.getTime() - monday.getTime()) / 86400000)
+      if (dayIdx < 0 || dayIdx > 6) continue
+      const cur = framesByDayAndModule[dayIdx]
+      cur.set(rec.moduleId, (cur.get(rec.moduleId) ?? 0) + 1)
+    }
+
     const today = startOfUtcDay(new Date())
     const days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(monday)
       d.setUTCDate(d.getUTCDate() + i)
 
       const seconds = byDate.get(d.toISOString()) ?? 0
-      // const min = Math.round(seconds / 60)
       const min = seconds > 0 ? Math.max(1, Math.round(seconds / 60)) : 0
+
+      // Build subject breakdown for this day
+      const moduleFrameCounts = framesByDayAndModule[i]
+      const totalFrames = [...moduleFrameCounts.values()].reduce((a, b) => a + b, 0)
+      const breakdown = totalFrames > 0 && min > 0
+        ? [...moduleFrameCounts.entries()].map(([modId, frameCount]) => {
+            const mod = moduleMap.get(modId)
+            const subjectName = mod?.subject?.shortName || mod?.subject?.name || 'Lainnya'
+            const moduleTitle = mod?.title || 'Modul'
+            return {
+              subject: subjectName,
+              module: moduleTitle,
+              minutes: Math.max(1, Math.round((frameCount / totalFrames) * min)),
+              frames: frameCount,
+            }
+          }).sort((a, b) => b.minutes - a.minutes)
+        : []
 
       return {
         day: DAY_LABELS[d.getUTCDay()],
@@ -165,6 +219,7 @@ studyRouter.get('/weekly', async (req, res, next) => {
         min,
         active: min > 0,
         isToday: d.getTime() === today.getTime(),
+        breakdown,
       }
     })
     const maxMin = Math.max(...days.map((d) => d.min), 0)

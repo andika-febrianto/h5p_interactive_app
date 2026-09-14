@@ -957,6 +957,13 @@ export function deleteChild(id: string): Promise<void> {
   return request(`/children/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
 
+export interface DayBreakdown {
+  subject: string
+  module: string
+  minutes: number
+  frames: number
+}
+
 export interface StudyDay {
   day: string // 'Sen' | 'Sel' | ... in Indonesian, Monday-first
   date: string // 'YYYY-MM-DD'
@@ -964,6 +971,7 @@ export interface StudyDay {
   active: boolean
   peak: boolean
   isToday: boolean
+  breakdown: DayBreakdown[]
 }
 
 export interface WeeklyStudy {
