@@ -31,7 +31,6 @@ import {
   fetchUnreadCount,
   markNotificationRead,
   markAllNotificationsRead,
-  fetchAssignmentProgress,
   type Notification,
   type AssignmentFrameProgress,
   type StudyDay,
@@ -1040,7 +1039,6 @@ export default function ParentDashboard() {
     childAssignments.forEach((a) => {
       if (a.id && !assignFrameProgress[a.id]) {
         if (!a.materialId) return
-        // fetchAssignmentProgress(a.materialId, a.id)
         fetchChildrenAssignmentProgress(selectedChild.id, a.materialId, a.id)
           .then((records) => {
             // setAssignFrameProgress((prev) => ({ ...prev, [a.id]: records }))
