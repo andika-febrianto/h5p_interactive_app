@@ -367,13 +367,11 @@ export default function ChildDashboard() {
     <div
       style={{
         minHeight: '100vh',
-        background: '#F6F8FD',
-        fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
+        background: '#F8FAFC',
+        fontFamily: 'var(--font-body)',
         color: '#1e293b',
         display: 'flex',
         flexDirection: 'column',
-        margin: '-64px -32px 0',
-        padding: 0,
       }}
       className='antialiased selection:bg-[#6366F1] selection:text-white'
     >
@@ -385,17 +383,19 @@ export default function ChildDashboard() {
           position: 'sticky',
           top: 0,
           zIndex: 40,
-          background: 'rgba(255,255,255,0.9)',
+          background: 'rgba(255,255,255,0.95)',
           backdropFilter: 'blur(12px)',
           borderBottom: '1px solid #f1f5f9',
-          padding: '12px 24px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           transition: 'all 0.2s',
         }}
       >
         <div
           style={{
-            maxWidth: 1600,
+            maxWidth: 1280,
             margin: '0 auto',
+            padding: '0 32px',
+            height: 80,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -436,8 +436,8 @@ export default function ChildDashboard() {
                 <span
                   style={{
                     fontWeight: 800,
-                    fontSize: 18,
-                    letterSpacing: '-0.025em',
+                    fontSize: 20,
+                    letterSpacing: '-0.02em',
                     color: '#0f172a',
                   }}
                 >
@@ -446,8 +446,8 @@ export default function ChildDashboard() {
                 <span
                   style={{
                     fontWeight: 800,
-                    fontSize: 18,
-                    letterSpacing: '-0.025em',
+                    fontSize: 20,
+                    letterSpacing: '-0.02em',
                     color: '#5850EC',
                   }}
                 >
@@ -850,10 +850,10 @@ export default function ChildDashboard() {
       <div
         style={{
           flex: 1,
-          maxWidth: 1600,
+          maxWidth: 1280,
           width: '100%',
-          margin: '50px auto',
-          padding: '24px 16px',
+          margin: '0 auto',
+          padding: '32px 32px 64px',
           display: 'flex',
           gap: 24,
         }}
@@ -1079,7 +1079,7 @@ export default function ChildDashboard() {
             minWidth: 0,
             display: 'flex',
             flexDirection: 'column',
-            gap: 24,
+            gap: 32,
           }}
         >
           {/* ═══ HOME TAB ═══ */}
@@ -1090,7 +1090,7 @@ export default function ChildDashboard() {
                 style={{
                   background: '#fff',
                   borderRadius: 24,
-                  padding: '24px 28px',
+                  padding: '32px 40px',
                   border: '1px solid #f1f5f9',
                   position: 'relative',
                   overflow: 'hidden',
@@ -1194,7 +1194,7 @@ export default function ChildDashboard() {
               <section
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
                   gap: 16,
                 }}
               >
@@ -1335,7 +1335,7 @@ export default function ChildDashboard() {
                 style={{
                   background: '#fff',
                   borderRadius: 24,
-                  padding: '24px 28px',
+                  padding: '28px 32px',
                   border: '1px solid #f1f5f9',
                 }}
               >
@@ -1352,8 +1352,8 @@ export default function ChildDashboard() {
                   <div>
                     <h2
                       style={{
-                        fontSize: 18,
-                        fontWeight: 800,
+                        fontSize: 17,
+                        fontWeight: 700,
                         color: '#0f172a',
                         margin: 0,
                         display: 'flex',
@@ -1667,7 +1667,13 @@ export default function ChildDashboard() {
                                   {a.title}
                                 </h3>
                                 {progress.total > 0 && !isCompleted && (
-                                  <div style={{ width: 256, paddingTop: 4 }}>
+                                  <div
+                                    style={{
+                                      width: '100%',
+                                      maxWidth: 280,
+                                      paddingTop: 4,
+                                    }}
+                                  >
                                     <div
                                       style={{
                                         display: 'flex',
@@ -1836,7 +1842,7 @@ export default function ChildDashboard() {
                   borderRadius: 24,
                   background:
                     'linear-gradient(135deg, #5850EC 0%, #7C3AED 100%)',
-                  padding: '24px 28px',
+                  padding: '28px 32px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -1909,10 +1915,10 @@ export default function ChildDashboard() {
           {/* ═══ MISSIONS TAB ═══ */}
           {sideTab === 'missions' && (
             <div>
-              <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 4px' }}>
+              <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', margin: '0 0 4px' }}>
                 🚀 Misi Belajar
               </h1>
-              <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 20 }}>
+              <p style={{ fontSize: 14, color: '#64748b', marginBottom: 20 }}>
                 Semua tugas yang diberikan orang tua
               </p>
               <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
@@ -2255,10 +2261,10 @@ export default function ChildDashboard() {
           {/* ═══ MODULES ═══ */}
           {sideTab === 'modules' && (
             <div>
-              <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 4px' }}>
+              <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', margin: '0 0 4px' }}>
                 📚 Modul Pelajaran
               </h1>
-              <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 20 }}>
+              <p style={{ fontSize: 14, color: '#64748b', marginBottom: 20 }}>
                 Modul yang sudah ditugaskan oleh orang tua
               </p>
               {assignments.filter((a) => a.materialId).length === 0 ? (
@@ -2356,10 +2362,10 @@ export default function ChildDashboard() {
           {/* ═══ REPORTS ═══ */}
           {sideTab === 'reports' && (
             <div>
-              <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 4px' }}>
+              <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', margin: '0 0 4px' }}>
                 📊 Rapor Belajar
               </h1>
-              <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 20 }}>
+              <p style={{ fontSize: 14, color: '#64748b', marginBottom: 20 }}>
                 Ringkasan perkembangan belajar
               </p>
               <div
@@ -2448,7 +2454,7 @@ export default function ChildDashboard() {
           {/* ═══ PROFILE ═══ */}
           {sideTab === 'profile' && (
             <div>
-              <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 20px' }}>
+              <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', margin: '0 0 20px' }}>
                 👤 Profil Saya
               </h1>
               <div
@@ -2690,8 +2696,8 @@ export default function ChildDashboard() {
               >
                 <h2
                   style={{
-                    fontSize: 14,
-                    fontWeight: 800,
+                    fontSize: 17,
+                    fontWeight: 700,
                     color: '#0f172a',
                     margin: 0,
                   }}
@@ -2846,8 +2852,8 @@ export default function ChildDashboard() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
-                    fontSize: 12,
-                    fontWeight: 800,
+                    fontSize: 17,
+                    fontWeight: 700,
                     color: '#0f172a',
                   }}
                 >
@@ -3004,13 +3010,14 @@ export default function ChildDashboard() {
           marginTop: 'auto',
           borderTop: '1px solid rgba(226,232,240,0.8)',
           background: '#fff',
-          padding: '16px 24px',
+          padding: '16px 0',
         }}
       >
         <div
           style={{
-            maxWidth: 1600,
+            maxWidth: 1280,
             margin: '0 auto',
+            padding: '0 32px',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
