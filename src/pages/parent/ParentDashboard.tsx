@@ -839,6 +839,47 @@ export default function ParentDashboard() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [notificationsLoading, setNotificationsLoading] = useState(false)
 
+  const notifRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!showNotifications) return
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        notifRef.current &&
+        !notifRef.current.contains(event.target as Node)
+      ) {
+        setShowNotifications(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [showNotifications])
+
+  useEffect(() => {
+    if (!menuOpenId) return
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('[data-action-menu]')) {
+        setMenuOpenId(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [menuOpenId])
+
+  const subjectPillsRef = useRef<HTMLDivElement | null>(null)
+  const scrollSubjectPills = (direction: 'left' | 'right') => {
+    const row = subjectPillsRef.current
+    if (!row) return
+    row.scrollBy({
+      left: direction === 'left' ? -140 : 140,
+      behavior: 'smooth',
+    })
+  }
+
   // Subject filter for Progres Mata Pelajaran
   const [subjectFilter, setSubjectFilter] = useState<
     'all' | 'ongoing' | 'unstarted' | 'completed'
@@ -867,6 +908,7 @@ export default function ParentDashboard() {
   const [weeklyStudy, setWeeklyStudy] = useState<StudyDay[]>([])
   const [hoveredBar, setHoveredBar] = useState<number | null>(null)
   const [clickedBar, setClickedBar] = useState<number | null>(null)
+  const [chartMode, setChartMode] = useState<'waktu' | 'xp'>('waktu')
   const tooltipRef = useRef<HTMLDivElement>(null)
   // 0 = current week, 1 = one week back, 2 = two weeks back, etc.
   // Negative (future weeks) is never reachable — the "next" button
@@ -882,7 +924,10 @@ export default function ParentDashboard() {
   useEffect(() => {
     if (clickedBar === null) return
     const handler = (e: MouseEvent) => {
-      if (tooltipRef.current && !tooltipRef.current.contains(e.target as Node)) {
+      if (
+        tooltipRef.current &&
+        !tooltipRef.current.contains(e.target as Node)
+      ) {
         setClickedBar(null)
       }
     }
@@ -1136,19 +1181,6 @@ export default function ParentDashboard() {
 
   // ── Handlers ──
   const handleCreateChild = async (e: React.FormEvent) => {
-    // Close action menu on outside click
-    useEffect(() => {
-      if (!menuOpenId) return
-      const handler = (e: MouseEvent) => {
-        const target = e.target as HTMLElement
-        if (!target.closest('[data-action-menu]')) {
-          setMenuOpenId(null)
-        }
-      }
-      document.addEventListener('mousedown', handler)
-      return () => document.removeEventListener('mousedown', handler)
-    }, [menuOpenId])
-
     e.preventDefault()
     setChildError(null)
     setChildSubmitting(true)
@@ -1610,24 +1642,7 @@ export default function ParentDashboard() {
           </nav>
 
           <div style={S.headerRight}>
-            {/* <button style={S.switchBtn} onClick={() => navigate('/anak')}>
-              <span>Beralih ke Akun Siswa</span>
-              <svg
-                width='14'
-                height='14'
-                fill='none'
-                stroke='currentColor'
-                strokeWidth='2.2'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  d='M14 5l7 7m0 0l-7 7m7-7H3'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                />
-              </svg>
-            </button> */}
-            <div style={{ position: 'relative' }}>
+            <div ref={notifRef} style={{ position: 'relative' }}>
               <button
                 style={S.bellBtn}
                 onClick={() => {
@@ -1662,18 +1677,6 @@ export default function ParentDashboard() {
               {/* ── Notification Dropdown ── */}
               {showNotifications && (
                 <>
-                  {/* Backdrop */}
-                  <div
-                    style={{
-                      position: 'fixed',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      zIndex: 99,
-                    }}
-                    onClick={() => setShowNotifications(false)}
-                  />
                   <div
                     style={{
                       position: 'absolute',
@@ -2937,7 +2940,8 @@ export default function ParentDashboard() {
                           boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                         }}
                       >
-                        Semester 1
+                        Kelas {selectedChild?.grade ?? '-'} • Semester{' '}
+                        {selectedChild?.semester ?? '-'}
                       </span>
                     </div>
                   </header>
@@ -3453,442 +3457,6 @@ export default function ParentDashboard() {
                 </section>
               </section>
 
-              {/* ── Progres Mata Pelajaran ── */}
-              <section
-                style={{
-                  background: '#fff',
-                  borderRadius: 24,
-                  border: '1px solid rgba(226,232,240,0.8)',
-                  padding: '24px 32px 28px',
-                  marginTop: 20,
-                  boxShadow:
-                    '0 4px 20px -2px rgba(15,23,42,0.05), 0 2px 6px -1px rgba(15,23,42,0.02)',
-                }}
-              >
-                {/* Section Header + Filter Pills */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'row' as const,
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    marginBottom: 16,
-                    flexWrap: 'wrap' as const,
-                  }}
-                >
-                  <div
-                    style={{ display: 'flex', alignItems: 'center', gap: 10 }}
-                  >
-                    <h3
-                      style={{
-                        fontSize: 16,
-                        fontWeight: 700,
-                        color: '#0f172a',
-                        margin: 0,
-                        letterSpacing: '-0.01em',
-                      }}
-                    >
-                      Progres Mata Pelajaran
-                    </h3>
-                    <span
-                      style={{
-                        padding: '3px 10px',
-                        borderRadius: 999,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        background: '#f1f5f9',
-                        color: '#475569',
-                        border: '1px solid #e2e8f0',
-                      }}
-                    >
-                      {subjects.length} Mapel
-                    </span>
-                  </div>
-                  {/* Filter Pills */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      overflowX: 'auto',
-                    }}
-                  >
-                    {[
-                      {
-                        key: 'all' as const,
-                        label: 'Semua',
-                        count: subjects.length,
-                      },
-                      {
-                        key: 'ongoing' as const,
-                        label: 'Sedang Belajar',
-                        count: subjects.filter((s) => {
-                          const sa = assignments.filter(
-                            (a) =>
-                              a.materialId &&
-                              moduleCache[a.materialId]?.subjectId === s.id,
-                          )
-                          const p =
-                            sa.length > 0
-                              ? Math.round(
-                                  sa.reduce(
-                                    (sm, a) =>
-                                      sm + getAssignmentCompletion(a).pct,
-                                    0,
-                                  ) / sa.length,
-                                )
-                              : 0
-                          return p > 0 && p < 100
-                        }).length,
-                      },
-                      {
-                        key: 'unstarted' as const,
-                        label: 'Belum Mulai',
-                        count: subjects.filter((s) => {
-                          const sa = assignments.filter(
-                            (a) =>
-                              a.materialId &&
-                              moduleCache[a.materialId]?.subjectId === s.id,
-                          )
-                          const p =
-                            sa.length > 0
-                              ? Math.round(
-                                  sa.reduce(
-                                    (sm, a) =>
-                                      sm + getAssignmentCompletion(a).pct,
-                                    0,
-                                  ) / sa.length,
-                                )
-                              : 0
-                          return p === 0
-                        }).length,
-                      },
-                      {
-                        key: 'completed' as const,
-                        label: 'Tuntas',
-                        count: subjects.filter((s) => {
-                          const sa = assignments.filter(
-                            (a) =>
-                              a.materialId &&
-                              moduleCache[a.materialId]?.subjectId === s.id,
-                          )
-                          const p =
-                            sa.length > 0
-                              ? Math.round(
-                                  sa.reduce(
-                                    (sm, a) =>
-                                      sm + getAssignmentCompletion(a).pct,
-                                    0,
-                                  ) / sa.length,
-                                )
-                              : 0
-                          return p === 100
-                        }).length,
-                      },
-                    ].map((f) => {
-                      const isPillActive = subjectFilter === f.key
-                      return (
-                        <button
-                          key={f.key}
-                          type='button'
-                          onClick={() => setSubjectFilter(f.key)}
-                          style={{
-                            padding: '5px 14px',
-                            borderRadius: 10,
-                            fontSize: 11,
-                            fontWeight: isPillActive ? 700 : 500,
-                            color: isPillActive ? '#fff' : '#475569',
-                            background: isPillActive
-                              ? '#1e293b'
-                              : 'transparent',
-                            border: isPillActive
-                              ? '1px solid #1e293b'
-                              : '1px solid transparent',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap' as const,
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          {f.label} ({f.count})
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Subject Cards Grid */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns:
-                      'repeat(auto-fill, minmax(200px, 1fr))',
-                    gap: 12,
-                  }}
-                >
-                  {subjects
-                    .filter((s) => {
-                      if (subjectFilter === 'all') return true
-                      const sa = assignments.filter(
-                        (a) =>
-                          a.materialId &&
-                          moduleCache[a.materialId]?.subjectId === s.id,
-                      )
-                      const p =
-                        sa.length > 0
-                          ? Math.round(
-                              sa.reduce(
-                                (sm, a) => sm + getAssignmentCompletion(a).pct,
-                                0,
-                              ) / sa.length,
-                            )
-                          : 0
-                      if (subjectFilter === 'ongoing') return p > 0 && p < 100
-                      if (subjectFilter === 'unstarted') return p === 0
-                      if (subjectFilter === 'completed') return p === 100
-                      return true
-                    })
-                    .map((s) => {
-                      const sAssignments = assignments.filter(
-                        (a) =>
-                          a.materialId &&
-                          moduleCache[a.materialId]?.subjectId === s.id,
-                      )
-                      const pct =
-                        sAssignments.length > 0
-                          ? Math.round(
-                              sAssignments.reduce(
-                                (sm, a) => sm + getAssignmentCompletion(a).pct,
-                                0,
-                              ) / sAssignments.length,
-                            )
-                          : 0
-                      const isComplete = pct === 100
-                      const isOngoing = pct > 0 && pct < 100
-                      const accent = s.accent || '#6366F1'
-
-                      let statusText = 'Belum Mulai'
-                      let statusColor = '#94a3b8'
-                      if (isOngoing) {
-                        statusText = 'Sedang Dibuka'
-                        statusColor = accent
-                      }
-                      if (isComplete) {
-                        statusText = '\u2713 Tuntas'
-                        statusColor = '#059669'
-                      }
-
-                      const isSelected = selectedSubjectCardId === s.id
-                      const cardBg = isSelected
-                        ? 'linear-gradient(135deg, #fbfaff 0%, #f0edff 100%)'
-                        : isOngoing
-                          ? 'linear-gradient(135deg, #fbfaff 0%, #f5f3ff 100%)'
-                          : '#fff'
-                      const cardBorder = isSelected
-                        ? accent
-                        : isOngoing
-                          ? accent
-                          : 'rgba(226,232,240,0.9)'
-
-                      return (
-                        <div
-                          key={s.id}
-                          onClick={() =>
-                            setSelectedSubjectCardId(isSelected ? null : s.id)
-                          }
-                          style={{
-                            position: 'relative',
-                            padding: '14px 16px',
-                            borderRadius: 16,
-                            border:
-                              (isSelected ? '2px solid ' : '1.5px solid ') +
-                              cardBorder,
-                            background: cardBg,
-                            boxShadow: isSelected
-                              ? '0 6px 20px -2px rgba(99,102,241,0.22), 0 0 0 3px ' +
-                                accent +
-                                '18'
-                              : isOngoing
-                                ? '0 4px 16px -2px rgba(99,102,241,0.14)'
-                                : '0 1px 4px rgba(0,0,0,0.02)',
-                            transition: 'all 0.2s ease',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              marginBottom: 8,
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                              }}
-                            >
-                              <span
-                                style={{
-                                  width: 10,
-                                  height: 10,
-                                  borderRadius: '50%',
-                                  background: accent,
-                                  boxShadow: isOngoing
-                                    ? '0 0 0 4px ' + accent + '20'
-                                    : 'none',
-                                  flexShrink: 0,
-                                }}
-                              />
-                              <span
-                                style={{
-                                  fontSize: 13,
-                                  fontWeight: 700,
-                                  color: '#0f172a',
-                                }}
-                              >
-                                {s.shortName}
-                              </span>
-                            </div>
-                            <span
-                              style={{
-                                fontSize: 13,
-                                fontWeight: 700,
-                                color: isComplete
-                                  ? '#059669'
-                                  : isOngoing
-                                    ? accent
-                                    : '#94a3b8',
-                              }}
-                            >
-                              {pct}%
-                            </span>
-                          </div>
-
-                          {/* Mini Progress Bar */}
-                          <div
-                            style={{
-                              width: '100%',
-                              background: isComplete ? '#d1fae5' : '#e2e8f0',
-                              height: 5,
-                              borderRadius: 999,
-                              overflow: 'hidden',
-                              marginBottom: 8,
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: pct + '%',
-                                background: isComplete ? '#059669' : accent,
-                                height: '100%',
-                                borderRadius: 999,
-                                transition: 'width 0.6s ease',
-                              }}
-                            />
-                          </div>
-
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 600,
-                                color: statusColor,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 4,
-                              }}
-                            >
-                              {pct > 0 ? (
-                                <span
-                                  style={{
-                                    width: 5,
-                                    height: 5,
-                                    borderRadius: '50%',
-                                    background: statusColor,
-                                  }}
-                                />
-                              ) : null}
-                              {statusText}
-                            </span>
-                            <span style={{ fontSize: 11, color: '#94a3b8' }}>
-                              {sAssignments.length > 0
-                                ? sAssignments.length + ' Tugas'
-                                : '0 Tugas'}
-                            </span>
-                          </div>
-                        </div>
-                      )
-                    })}
-                </div>
-
-                {/* Footer Insight */}
-                <div
-                  style={{
-                    marginTop: 14,
-                    paddingTop: 12,
-                    borderTop: '1px dashed #e2e8f0',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    fontSize: 11,
-                    color: '#94a3b8',
-                    flexWrap: 'wrap' as const,
-                    gap: 8,
-                  }}
-                >
-                  <span
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <span
-                      style={{
-                        width: 7,
-                        height: 7,
-                        borderRadius: '50%',
-                        background: '#6366F1',
-                      }}
-                    />
-                    Klik salah satu mapel di atas untuk melihat detail progres.
-                  </span>
-                  <span style={{ fontWeight: 600, color: '#475569' }}>
-                    Rata-rata:{' '}
-                    <strong style={{ color: '#4F46E5' }}>
-                      {subjects.length > 0
-                        ? Math.round(
-                            subjects.reduce((sm, s) => {
-                              const sa = assignments.filter(
-                                (a) =>
-                                  a.materialId &&
-                                  moduleCache[a.materialId]?.subjectId === s.id,
-                              )
-                              return (
-                                sm +
-                                (sa.length > 0
-                                  ? Math.round(
-                                      sa.reduce(
-                                        (ss, a) =>
-                                          ss + getAssignmentCompletion(a).pct,
-                                        0,
-                                      ) / sa.length,
-                                    )
-                                  : 0)
-                              )
-                            }, 0) / subjects.length,
-                          )
-                        : 0}
-                      % Semester Berjalan
-                    </strong>
-                  </span>
-                </div>
-              </section>
-
               {/* ── Weekly Learning Activity Card (New Design) ── */}
               <section
                 style={{
@@ -3897,7 +3465,7 @@ export default function ParentDashboard() {
                   border: '1px solid rgba(226,232,240,0.9)',
                   boxShadow:
                     '0 4px 20px -2px rgba(91,77,255,0.05), 0 4px 12px -2px rgba(15,23,42,0.04)',
-                  overflow: 'hidden',
+                  overflow: 'visible',
                 }}
               >
                 {/* Header */}
@@ -3988,7 +3556,7 @@ export default function ParentDashboard() {
                             border: '1px solid rgba(199,210,254,0.6)',
                           }}
                         >
-                          Kurikulum Merdeka Kelas 4
+                          Kurikulum Merdeka Kelas
                         </span>
                       </div>
                       <p
@@ -4159,7 +3727,43 @@ export default function ParentDashboard() {
                         </svg>
                       </button>
                     </div>
-                    <div>waktu (menit) XP Belajar</div>
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: 4,
+                        background: '#EEF2FF',
+                        border: '1px solid #C7D2FE',
+                        borderRadius: 999,
+                      }}
+                    >
+                      {(
+                        [
+                          ['waktu', 'Waktu'],
+                          ['xp', 'XP Belajar'],
+                        ] as const
+                      ).map(([mode, label]) => (
+                        <button
+                          key={mode}
+                          type='button'
+                          onClick={() => setChartMode(mode)}
+                          style={{
+                            padding: '6px 14px',
+                            border: 'none',
+                            borderRadius: 999,
+                            background:
+                              chartMode === mode ? '#4F46E5' : 'transparent',
+                            color: chartMode === mode ? '#fff' : '#475569',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {/* KPI Strip */}
@@ -4586,9 +4190,27 @@ export default function ParentDashboard() {
                         // Weekend = the 6th and 7th entries (Sat/Sun), since the backend
                         // returns Monday-first (index 0 = Monday ... index 6 = Sunday).
                         const isWeekend = i === 5 || i === 6
-                        // Scale against the fixed 80m grid drawn on the left axis. Capped at
-                        // 100% so a day that somehow exceeds 80m doesn't blow past the chart.
-                        const heightPct = Math.min((d.min / 80) * 100, 100)
+                        const framesForDay = (d.breakdown ?? []).reduce(
+                          (sum, item) => sum + (item.frames ?? 0),
+                          0,
+                        )
+                        const chartValue =
+                          chartMode === 'waktu' ? d.min : framesForDay
+                        const chartMaxValue = Math.max(
+                          ...weeklyStudy.map((day) =>
+                            chartMode === 'waktu'
+                              ? day.min
+                              : (day.breakdown ?? []).reduce(
+                                  (sum, item) => sum + (item.frames ?? 0),
+                                  0,
+                                ),
+                          ),
+                          1,
+                        )
+                        const heightPct = Math.min(
+                          (chartValue / chartMaxValue) * 100,
+                          100,
+                        )
                         const dateLabel = d.date
                           ? new Date(d.date + 'T00:00:00Z').toLocaleDateString(
                               'id-ID',
@@ -4601,18 +4223,33 @@ export default function ParentDashboard() {
                           : ''
 
                         const showTooltip = hoveredBar === i || clickedBar === i
-                        const tooltipData = d.breakdown && d.breakdown.length > 0
-                          ? d.breakdown
-                          : d.min > 0
-                            ? [{ subject: 'Total', module: 'Belajar', minutes: d.min, frames: 0 }]
-                            : []
+                        const tooltipData =
+                          d.breakdown && d.breakdown.length > 0
+                            ? d.breakdown
+                            : d.min > 0
+                              ? [
+                                  {
+                                    subject: 'Total',
+                                    module: 'Belajar',
+                                    minutes: d.min,
+                                    frames: 0,
+                                  },
+                                ]
+                              : []
+                        const tooltipTop = '6px'
+                        const metricLabel =
+                          chartMode === 'waktu'
+                            ? `${d.min}m`
+                            : `${framesForDay} XP`
 
                         return (
                           <div
                             key={d.date || i}
                             onMouseEnter={() => setHoveredBar(i)}
                             onMouseLeave={() => setHoveredBar(null)}
-                            onClick={() => setClickedBar(clickedBar === i ? null : i)}
+                            onClick={() =>
+                              setClickedBar(clickedBar === i ? null : i)
+                            }
                             style={{
                               position: 'relative' as const,
                               display: 'flex',
@@ -4625,68 +4262,142 @@ export default function ParentDashboard() {
                             }}
                           >
                             {/* Tooltip on hover/click */}
-                            {showTooltip && d.min > 0 && (
+                            {showTooltip && chartValue > 0 && (
                               <div
                                 ref={tooltipRef}
                                 style={{
                                   position: 'absolute' as const,
-                                  bottom: 'calc(100% + 12px)',
+                                  top: tooltipTop,
                                   left: '50%',
-                                  transform: 'translateX(-50%)',
+                                  transform:
+                                    'translate(-50%, calc(-100% - 6px))',
                                   minWidth: 220,
                                   maxWidth: 280,
                                   background: '#1E1B4B',
                                   borderRadius: 14,
                                   padding: '14px 16px',
                                   boxShadow: '0 8px 32px rgba(30,27,75,0.5)',
-                                  zIndex: 100,
-                                  pointerEvents: clickedBar === i ? 'auto' : 'none',
+                                  zIndex: 999999,
+                                  pointerEvents:
+                                    clickedBar === i ? 'auto' : 'none',
                                   opacity: 1,
                                   transition: 'opacity 0.15s ease',
+                                  overflow: 'visible',
                                 }}
                               >
-                                {/* Arrow */}
+                                {/* Header */}
                                 <div
                                   style={{
-                                    position: 'absolute' as const,
-                                    bottom: -6,
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    width: 0,
-                                    height: 0,
-                                    borderLeft: '6px solid transparent',
-                                    borderRight: '6px solid transparent',
-                                    borderTop: '6px solid #1E1B4B',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: 8,
+                                    paddingBottom: 8,
+                                    borderBottom:
+                                      '1px solid rgba(255,255,255,0.1)',
                                   }}
-                                />
-                                {/* Header */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                                  <span style={{ fontSize: 13, fontWeight: 700, color: '#C7D2FE' }}>
-                                    {d.day}{dateLabel ? ', ' + dateLabel : ''}
+                                >
+                                  <span
+                                    style={{
+                                      fontSize: 13,
+                                      fontWeight: 700,
+                                      color: '#C7D2FE',
+                                    }}
+                                  >
+                                    {d.day}
+                                    {dateLabel ? ', ' + dateLabel : ''}
                                   </span>
-                                  <span style={{ fontSize: 11, fontWeight: 700, color: '#818CF8', background: 'rgba(99,102,241,0.2)', padding: '2px 8px', borderRadius: 6, whiteSpace: 'nowrap' }}>
-                                    Total {d.min}m
+                                  <span
+                                    style={{
+                                      fontSize: 11,
+                                      fontWeight: 700,
+                                      color: '#818CF8',
+                                      background: 'rgba(99,102,241,0.2)',
+                                      padding: '2px 8px',
+                                      borderRadius: 6,
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    Total {metricLabel}
                                   </span>
                                 </div>
                                 {/* Subject breakdown list */}
                                 {tooltipData.length > 0 ? (
-                                  <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 4 }}>
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      flexDirection: 'column' as const,
+                                      gap: 4,
+                                    }}
+                                  >
                                     {tooltipData.map((item, ti) => (
-                                      <div key={ti} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: ti === 0 ? '#818CF8' : ti === 1 ? '#A5B4FC' : '#F59E0B', flexShrink: 0 }} />
-                                          <span style={{ fontSize: 11, color: '#CBD5E1', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            {item.subject}{item.module !== 'Belajar' ? ': ' + item.module : ''}
+                                      <div
+                                        key={ti}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'space-between',
+                                          gap: 8,
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 6,
+                                            minWidth: 0,
+                                          }}
+                                        >
+                                          <span
+                                            style={{
+                                              width: 7,
+                                              height: 7,
+                                              borderRadius: '50%',
+                                              background:
+                                                ti === 0
+                                                  ? '#818CF8'
+                                                  : ti === 1
+                                                    ? '#A5B4FC'
+                                                    : '#F59E0B',
+                                              flexShrink: 0,
+                                            }}
+                                          />
+                                          <span
+                                            style={{
+                                              fontSize: 11,
+                                              color: '#CBD5E1',
+                                              whiteSpace: 'nowrap',
+                                              overflow: 'hidden',
+                                              textOverflow: 'ellipsis',
+                                            }}
+                                          >
+                                            {item.subject}
+                                            {item.module !== 'Belajar'
+                                              ? ': ' + item.module
+                                              : ''}
                                           </span>
                                         </div>
-                                        <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                                          {item.minutes}m
+                                        <span
+                                          style={{
+                                            fontSize: 12,
+                                            fontWeight: 700,
+                                            color: '#fff',
+                                            flexShrink: 0,
+                                          }}
+                                        >
+                                          {chartMode === 'waktu'
+                                            ? `${item.minutes}m`
+                                            : `${item.frames} XP`}
                                         </span>
                                       </div>
                                     ))}
                                   </div>
                                 ) : (
-                                  <span style={{ fontSize: 11, color: '#94A3B8' }}>Tidak ada data</span>
+                                  <span
+                                    style={{ fontSize: 11, color: '#94A3B8' }}
+                                  >
+                                    Tidak ada data
+                                  </span>
                                 )}
                               </div>
                             )}
@@ -4719,7 +4430,7 @@ export default function ParentDashboard() {
                                     gap: 4,
                                   }}
                                 >
-                                  <span>{d.min}m</span>
+                                  <span>{metricLabel}</span>
                                   <span>{'\u2B50'}</span>
                                   <span
                                     style={{
@@ -4747,7 +4458,7 @@ export default function ParentDashboard() {
                                   marginBottom: 8,
                                 }}
                               >
-                                {d.min}m
+                                {metricLabel}
                               </span>
                             )}
 
@@ -4775,7 +4486,7 @@ export default function ParentDashboard() {
                             {/* Day + date label */}
                             <div
                               style={{
-                                marginTop: 16,
+                                marginTop: 2,
                                 textAlign: 'center' as const,
                               }}
                             >
@@ -5463,6 +5174,503 @@ export default function ParentDashboard() {
                 </div>
               </section>
 
+              {/* ── Progres Mata Pelajaran ── */}
+              <section
+                style={{
+                  background: '#fff',
+                  borderRadius: 24,
+                  border: '1px solid rgba(226,232,240,0.8)',
+                  padding: '24px 32px 28px',
+                  marginTop: 20,
+                  boxShadow:
+                    '0 4px 20px -2px rgba(15,23,42,0.05), 0 2px 6px -1px rgba(15,23,42,0.02)',
+                }}
+              >
+                {/* Section Header + Filter Pills */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row' as const,
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    marginBottom: 16,
+                    flexWrap: 'wrap' as const,
+                  }}
+                >
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+                  >
+                    <h3
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        color: '#0f172a',
+                        margin: 0,
+                        letterSpacing: '-0.01em',
+                      }}
+                    >
+                      Progres Mata Pelajaran
+                    </h3>
+                    <span
+                      style={{
+                        padding: '3px 10px',
+                        borderRadius: 999,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: '#f1f5f9',
+                        color: '#475569',
+                        border: '1px solid #e2e8f0',
+                      }}
+                    >
+                      {subjects.length} Mapel
+                    </span>
+                  </div>
+                  {/* Filter Pills */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      maxWidth: '100%',
+                      overflow: 'hidden',
+                      flexWrap: 'nowrap' as const,
+                    }}
+                  >
+                    <button
+                      type='button'
+                      onClick={() => scrollSubjectPills('left')}
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 10,
+                        border: '1px solid #cbd5e1',
+                        background: '#fff',
+                        color: '#334155',
+                        fontSize: 16,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                      aria-label='Move subject filter left'
+                    >
+                      ←
+                    </button>
+                    <div
+                      ref={subjectPillsRef}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        overflowX: 'auto',
+                        overflowY: 'hidden',
+                        maxWidth: 260,
+                        minWidth: 0,
+                        scrollbarWidth: 'none' as const,
+                        flexShrink: 1,
+                      }}
+                    >
+                      {[
+                        {
+                          key: 'all' as const,
+                          label: 'Semua',
+                          count: subjects.length,
+                        },
+                        {
+                          key: 'ongoing' as const,
+                          label: 'Sedang Belajar',
+                          count: subjects.filter((s) => {
+                            const sa = assignments.filter(
+                              (a) =>
+                                a.materialId &&
+                                moduleCache[a.materialId]?.subjectId === s.id,
+                            )
+                            const p =
+                              sa.length > 0
+                                ? Math.round(
+                                    sa.reduce(
+                                      (sm, a) =>
+                                        sm + getAssignmentCompletion(a).pct,
+                                      0,
+                                    ) / sa.length,
+                                  )
+                                : 0
+                            return p > 0 && p < 100
+                          }).length,
+                        },
+                        {
+                          key: 'unstarted' as const,
+                          label: 'Belum Mulai',
+                          count: subjects.filter((s) => {
+                            const sa = assignments.filter(
+                              (a) =>
+                                a.materialId &&
+                                moduleCache[a.materialId]?.subjectId === s.id,
+                            )
+                            const p =
+                              sa.length > 0
+                                ? Math.round(
+                                    sa.reduce(
+                                      (sm, a) =>
+                                        sm + getAssignmentCompletion(a).pct,
+                                      0,
+                                    ) / sa.length,
+                                  )
+                                : 0
+                            return p === 0
+                          }).length,
+                        },
+                        {
+                          key: 'completed' as const,
+                          label: 'Tuntas',
+                          count: subjects.filter((s) => {
+                            const sa = assignments.filter(
+                              (a) =>
+                                a.materialId &&
+                                moduleCache[a.materialId]?.subjectId === s.id,
+                            )
+                            const p =
+                              sa.length > 0
+                                ? Math.round(
+                                    sa.reduce(
+                                      (sm, a) =>
+                                        sm + getAssignmentCompletion(a).pct,
+                                      0,
+                                    ) / sa.length,
+                                  )
+                                : 0
+                            return p === 100
+                          }).length,
+                        },
+                      ].map((f) => {
+                        const isPillActive = subjectFilter === f.key
+                        return (
+                          <button
+                            key={f.key}
+                            type='button'
+                            onClick={() => setSubjectFilter(f.key)}
+                            style={{
+                              padding: '5px 14px',
+                              borderRadius: 10,
+                              fontSize: 11,
+                              fontWeight: isPillActive ? 700 : 500,
+                              color: isPillActive ? '#fff' : '#475569',
+                              background: isPillActive
+                                ? '#1e293b'
+                                : 'transparent',
+                              border: isPillActive
+                                ? '1px solid #1e293b'
+                                : '1px solid transparent',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap' as const,
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            {f.label} ({f.count})
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <button
+                      type='button'
+                      onClick={() => scrollSubjectPills('right')}
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 10,
+                        border: '1px solid #cbd5e1',
+                        background: '#fff',
+                        color: '#334155',
+                        fontSize: 16,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                      aria-label='Move subject filter right'
+                    >
+                      →
+                    </button>
+                  </div>
+                </div>
+
+                {/* Subject Cards Grid */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns:
+                      'repeat(auto-fill, minmax(200px, 1fr))',
+                    gap: 12,
+                  }}
+                >
+                  {subjects
+                    .filter((s) => {
+                      if (subjectFilter === 'all') return true
+                      const sa = assignments.filter(
+                        (a) =>
+                          a.materialId &&
+                          moduleCache[a.materialId]?.subjectId === s.id,
+                      )
+                      const p =
+                        sa.length > 0
+                          ? Math.round(
+                              sa.reduce(
+                                (sm, a) => sm + getAssignmentCompletion(a).pct,
+                                0,
+                              ) / sa.length,
+                            )
+                          : 0
+                      if (subjectFilter === 'ongoing') return p > 0 && p < 100
+                      if (subjectFilter === 'unstarted') return p === 0
+                      if (subjectFilter === 'completed') return p === 100
+                      return true
+                    })
+                    .map((s) => {
+                      const sAssignments = assignments.filter(
+                        (a) =>
+                          a.materialId &&
+                          moduleCache[a.materialId]?.subjectId === s.id,
+                      )
+                      const pct =
+                        sAssignments.length > 0
+                          ? Math.round(
+                              sAssignments.reduce(
+                                (sm, a) => sm + getAssignmentCompletion(a).pct,
+                                0,
+                              ) / sAssignments.length,
+                            )
+                          : 0
+                      const isComplete = pct === 100
+                      const isOngoing = pct > 0 && pct < 100
+                      const accent = s.accent || '#6366F1'
+
+                      let statusText = 'Belum Mulai'
+                      let statusColor = '#94a3b8'
+                      if (isOngoing) {
+                        statusText = 'Sedang Dibuka'
+                        statusColor = accent
+                      }
+                      if (isComplete) {
+                        statusText = '\u2713 Tuntas'
+                        statusColor = '#059669'
+                      }
+
+                      const isSelected = selectedSubjectCardId === s.id
+                      const cardBg = isSelected
+                        ? 'linear-gradient(135deg, #fbfaff 0%, #f0edff 100%)'
+                        : isOngoing
+                          ? 'linear-gradient(135deg, #fbfaff 0%, #f5f3ff 100%)'
+                          : '#fff'
+                      const cardBorder = isSelected
+                        ? accent
+                        : isOngoing
+                          ? accent
+                          : 'rgba(226,232,240,0.9)'
+
+                      return (
+                        <div
+                          key={s.id}
+                          onClick={() =>
+                            setSelectedSubjectCardId(isSelected ? null : s.id)
+                          }
+                          style={{
+                            position: 'relative',
+                            padding: '14px 16px',
+                            borderRadius: 16,
+                            border:
+                              (isSelected ? '2px solid ' : '1.5px solid ') +
+                              cardBorder,
+                            background: cardBg,
+                            boxShadow: isSelected
+                              ? '0 6px 20px -2px rgba(99,102,241,0.22), 0 0 0 3px ' +
+                                accent +
+                                '18'
+                              : isOngoing
+                                ? '0 4px 16px -2px rgba(99,102,241,0.14)'
+                                : '0 1px 4px rgba(0,0,0,0.02)',
+                            transition: 'all 0.2s ease',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              marginBottom: 8,
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: 10,
+                                  height: 10,
+                                  borderRadius: '50%',
+                                  background: accent,
+                                  boxShadow: isOngoing
+                                    ? '0 0 0 4px ' + accent + '20'
+                                    : 'none',
+                                  flexShrink: 0,
+                                }}
+                              />
+                              <span
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  color: '#0f172a',
+                                }}
+                              >
+                                {s.shortName}
+                              </span>
+                            </div>
+                            <span
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 700,
+                                color: isComplete
+                                  ? '#059669'
+                                  : isOngoing
+                                    ? accent
+                                    : '#94a3b8',
+                              }}
+                            >
+                              {pct}%
+                            </span>
+                          </div>
+
+                          {/* Mini Progress Bar */}
+                          <div
+                            style={{
+                              width: '100%',
+                              background: isComplete ? '#d1fae5' : '#e2e8f0',
+                              height: 5,
+                              borderRadius: 999,
+                              overflow: 'hidden',
+                              marginBottom: 8,
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: pct + '%',
+                                background: isComplete ? '#059669' : accent,
+                                height: '100%',
+                                borderRadius: 999,
+                                transition: 'width 0.6s ease',
+                              }}
+                            />
+                          </div>
+
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                color: statusColor,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                              }}
+                            >
+                              {pct > 0 ? (
+                                <span
+                                  style={{
+                                    width: 5,
+                                    height: 5,
+                                    borderRadius: '50%',
+                                    background: statusColor,
+                                  }}
+                                />
+                              ) : null}
+                              {statusText}
+                            </span>
+                            <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                              {sAssignments.length > 0
+                                ? sAssignments.length + ' Tugas'
+                                : '0 Tugas'}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                </div>
+
+                {/* Footer Insight */}
+                <div
+                  style={{
+                    marginTop: 14,
+                    paddingTop: 12,
+                    borderTop: '1px dashed #e2e8f0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: 11,
+                    color: '#94a3b8',
+                    flexWrap: 'wrap' as const,
+                    gap: 8,
+                  }}
+                >
+                  <span
+                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <span
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: '50%',
+                        background: '#6366F1',
+                      }}
+                    />
+                    Klik salah satu mapel di atas untuk melihat detail progres.
+                  </span>
+                  <span style={{ fontWeight: 600, color: '#475569' }}>
+                    Rata-rata:{' '}
+                    <strong style={{ color: '#4F46E5' }}>
+                      {subjects.length > 0
+                        ? Math.round(
+                            subjects.reduce((sm, s) => {
+                              const sa = assignments.filter(
+                                (a) =>
+                                  a.materialId &&
+                                  moduleCache[a.materialId]?.subjectId === s.id,
+                              )
+                              return (
+                                sm +
+                                (sa.length > 0
+                                  ? Math.round(
+                                      sa.reduce(
+                                        (ss, a) =>
+                                          ss + getAssignmentCompletion(a).pct,
+                                        0,
+                                      ) / sa.length,
+                                    )
+                                  : 0)
+                              )
+                            }, 0) / subjects.length,
+                          )
+                        : 0}
+                      % Semester Berjalan
+                    </strong>
+                  </span>
+                </div>
+              </section>
+
               {/* Recent Activity */}
               <section style={S.card}>
                 <div
@@ -5564,63 +5772,6 @@ export default function ParentDashboard() {
                       </div>
                     ))
                   )}
-                </div>
-              </section>
-
-              {/* Quick Actions */}
-              <section style={S.card}>
-                <h3
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 700,
-                    color: '#0f172a',
-                    margin: '0 0 12px',
-                  }}
-                >
-                  Aksi Cepat Pendamping
-                </h3>
-                <div style={S.quickGrid}>
-                  {[
-                    {
-                      icon: '📅',
-                      label: 'Atur Jadwal',
-                      sub: 'Target harian',
-                      color: '#5B4DFF',
-                      action: () => setViewMode('schedule'),
-                    },
-                    {
-                      icon: '📊',
-                      label: 'Analitik Skor',
-                      sub: 'Grafik detail',
-                      color: '#6366F1',
-                      action: () => setViewMode('reports'),
-                    },
-                    {
-                      icon: '🔒',
-                      label: 'Batas Waktu',
-                      sub: 'Screen time',
-                      color: '#d97706',
-                      action: () =>
-                        alert('Fitur screen time limit segera hadir.'),
-                    },
-                    {
-                      icon: '💬',
-                      label: 'Konsultasi',
-                      sub: 'Tanya guru',
-                      color: '#059669',
-                      action: () => setViewMode('modules'),
-                    },
-                  ].map((q) => (
-                    <button key={q.label} style={S.quickBtn} onClick={q.action}>
-                      <div style={S.quickIcon(q.color)}>{q.icon}</div>
-                      <span style={{ fontWeight: 700, color: '#0f172a' }}>
-                        {q.label}
-                      </span>
-                      <span style={{ fontSize: 10, color: '#94a3b8' }}>
-                        {q.sub}
-                      </span>
-                    </button>
-                  ))}
                 </div>
               </section>
             </aside>

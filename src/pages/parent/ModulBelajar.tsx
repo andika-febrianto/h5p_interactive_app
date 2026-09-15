@@ -1,9 +1,5 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
-import {
-  type ChildInfo,
-  type ModuleSummary,
-  fetchModule,
-} from '../../lib/api'
+import { type ChildInfo, type ModuleSummary, fetchModule } from '../../lib/api'
 import type { Subject, FrameKind, Frame } from '../../types/storyboard'
 import { ProgressProvider } from '../../context/ProgressContext'
 import { ScenePlayer } from '../../components/ScenePlayer'
@@ -44,8 +40,7 @@ const C = {
   red500: '#EF4444',
 }
 
-const FF =
-  "'Plus Jakarta Sans', Inter, system-ui, -apple-system, sans-serif"
+const FF = "'Plus Jakarta Sans', Inter, system-ui, -apple-system, sans-serif"
 
 // ---------------------------------------------------------------------------
 // KIND helpers
@@ -174,7 +169,14 @@ interface ModulBelajarProps {
 // Component
 // ---------------------------------------------------------------------------
 export default function ModulBelajar(props: ModulBelajarProps) {
-  const { childrenData, selectedChildIdx, subjects, modules, loading, navigate } = props
+  const {
+    childrenData,
+    selectedChildIdx,
+    subjects,
+    modules,
+    loading,
+    navigate,
+  } = props
   const [activeSubjectId, setActiveSubjectId] = useState<string | null>(null)
   const [selectedTopicId, setSelectedTopicId] = useState('')
   const [selectedFrames, setSelectedFrames] = useState<string[]>([])
@@ -187,7 +189,9 @@ export default function ModulBelajar(props: ModulBelajarProps) {
   const [previewMod, setPreviewMod] = useState<Frame | null>(null)
 
   // Load full module data when previewing a frame (single fetch for both the frame and the module metadata)
-  const [fullModule, setFullModule] = useState<import('../../types/storyboard').Module | null>(null)
+  const [fullModule, setFullModule] = useState<
+    import('../../types/storyboard').Module | null
+  >(null)
   useEffect(() => {
     if (!previewFrameId || !selectedTopicId) {
       setPreviewMod(null)
@@ -306,21 +310,61 @@ export default function ModulBelajar(props: ModulBelajarProps) {
             marginBottom: 20,
           }}
         >
-          <div>
-            <h3
-              style={{
-                fontSize: 22,
-                fontWeight: 800,
-                color: C.slate900,
-                margin: 0,
-                letterSpacing: '-0.01em',
-              }}
-            >
-              Mata Pelajaran
-            </h3>
-            <p style={{ fontSize: 14, color: C.slate400, margin: '4px 0 0' }}>
-              Pilih mata pelajaran untuk melihat topik & materi.
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div>
+              <h3
+                style={{
+                  fontSize: 22,
+                  fontWeight: 800,
+                  color: C.slate900,
+                  margin: 0,
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                Mata Pelajaran
+              </h3>
+              <p style={{ fontSize: 14, color: C.slate400, margin: '4px 0 0' }}>
+                Pilih mata pelajaran untuk melihat topik & materi.
+              </p>
+            </div>
+            {loading && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 34,
+                  height: 34,
+                  borderRadius: 999,
+                  fontSize: 16,
+                  fontWeight: 800,
+                  color: C.brand600,
+                  backgroundColor: C.brand50,
+                  border: '1px solid ' + C.brand200,
+                  whiteSpace: 'nowrap' as const,
+                }}
+                aria-label='loading'
+              >
+                <svg
+                  width='16'
+                  height='16'
+                  viewBox='0 0 24 24'
+                  fill='none'
+                  stroke='currentColor'
+                  strokeWidth='2.4'
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                >
+                  <path d='M20 6a2 2 0 0 0-2-2' />
+                  <path d='M4 18a2 2 0 0 0 2 2' />
+                  <path d='M4 4h7' />
+                  <path d='M20 20v-7' />
+                  <path d='M12 8a4 4 0 0 0-4 4' />
+                  <path d='M6 12a6 6 0 0 1 6-6' />
+                  <path d='M12 16a4 4 0 0 0 4-4' />
+                </svg>
+              </span>
+            )}
           </div>
           <span
             style={{
@@ -340,18 +384,34 @@ export default function ModulBelajar(props: ModulBelajarProps) {
         {/* Subject cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {loading ? (
-            <div style={{ padding: 40, textAlign: 'center', color: C.slate400, fontSize: 14 }}>
-              Memuat mata pelajaran...
+            <div
+              style={{
+                padding: 40,
+                textAlign: 'center',
+                color: C.brand600,
+                fontSize: 14,
+              }}
+            >
+              Loading..
             </div>
           ) : subjectsWithModules.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: C.slate400, fontSize: 14 }}>
+            <div
+              style={{
+                padding: 40,
+                textAlign: 'center',
+                color: C.slate400,
+                fontSize: 14,
+              }}
+            >
               Belum ada mata pelajaran tersedia.
             </div>
           ) : (
             subjectsWithModules.map((subject) => {
               const isSelected = subject.id === activeSubjectId
               const accent = getAccent(subject)
-              const count = modules.filter((m) => m.subjectId === subject.id).length
+              const count = modules.filter(
+                (m) => m.subjectId === subject.id,
+              ).length
 
               return (
                 <div
@@ -363,7 +423,9 @@ export default function ModulBelajar(props: ModulBelajarProps) {
                     gap: 14,
                     padding: '16px 18px',
                     borderRadius: 14,
-                    border: isSelected ? '2px solid ' + C.brand600 : '1px solid ' + C.slate200,
+                    border: isSelected
+                      ? '2px solid ' + C.brand600
+                      : '1px solid ' + C.slate200,
                     backgroundColor: isSelected ? C.brand50 : C.white,
                     cursor: 'pointer',
                     transition: 'all 0.2s',
@@ -386,8 +448,16 @@ export default function ModulBelajar(props: ModulBelajarProps) {
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 15, fontWeight: 700, color: C.slate900 }}>
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 15,
+                          fontWeight: 700,
+                          color: C.slate900,
+                        }}
+                      >
                         {subject.name}
                       </span>
                       {isSelected && (
@@ -407,14 +477,22 @@ export default function ModulBelajar(props: ModulBelajarProps) {
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: 12, color: C.slate400, marginTop: 3 }}>
+                    <div
+                      style={{ fontSize: 12, color: C.slate400, marginTop: 3 }}
+                    >
                       {isSelected ? (
                         <>
-                          <span style={{ color: C.brand600, fontWeight: 600 }}>Sedang Dipelajari</span>
+                          <span style={{ color: C.brand600, fontWeight: 600 }}>
+                            Sedang Dipelajari
+                          </span>
                           <span> • {count} Topik Tersedia</span>
                         </>
                       ) : (
-                        <>{count} Topik {' '} <span style={{ color: C.slate300 }}>•</span>{' '}{count > 0 ? 'Tersedia' : 'Belum ada'}</>
+                        <>
+                          {count} Topik{' '}
+                          <span style={{ color: C.slate300 }}>•</span>{' '}
+                          {count > 0 ? 'Tersedia' : 'Belum ada'}
+                        </>
                       )}
                     </div>
                   </div>
@@ -432,8 +510,17 @@ export default function ModulBelajar(props: ModulBelajarProps) {
                         flexShrink: 0,
                       }}
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 6L9 17l-5-5" />
+                      <svg
+                        width='18'
+                        height='18'
+                        viewBox='0 0 24 24'
+                        fill='none'
+                        stroke='white'
+                        strokeWidth='3'
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                      >
+                        <path d='M20 6L9 17l-5-5' />
                       </svg>
                     </div>
                   ) : (
@@ -449,8 +536,17 @@ export default function ModulBelajar(props: ModulBelajarProps) {
                       }}
                     >
                       Pilih{' '}
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M5 12h14M12 5l7 7-7 7" />
+                      <svg
+                        width='14'
+                        height='14'
+                        viewBox='0 0 24 24'
+                        fill='none'
+                        stroke='currentColor'
+                        strokeWidth='2.5'
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                      >
+                        <path d='M5 12h14M12 5l7 7-7 7' />
                       </svg>
                     </span>
                   )}
@@ -467,7 +563,12 @@ export default function ModulBelajar(props: ModulBelajarProps) {
               marginTop: 20,
               padding: '20px 22px',
               borderRadius: 16,
-              background: 'linear-gradient(135deg, ' + C.brand700 + ' 0%, ' + C.brand500 + ' 100%)',
+              background:
+                'linear-gradient(135deg, ' +
+                C.brand700 +
+                ' 0%, ' +
+                C.brand500 +
+                ' 100%)',
               color: C.white,
               display: 'flex',
               alignItems: 'center',
@@ -476,13 +577,38 @@ export default function ModulBelajar(props: ModulBelajarProps) {
             }}
           >
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase' as const, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.7)', margin: 0 }}>
-                {'STATUS MODUL ' + (activeSubject.shortName?.toUpperCase() ?? activeSubject.name.toUpperCase())}
+              <p
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  textTransform: 'uppercase' as const,
+                  letterSpacing: '0.08em',
+                  color: 'rgba(255,255,255,0.7)',
+                  margin: 0,
+                }}
+              >
+                {'STATUS MODUL ' +
+                  (activeSubject.shortName?.toUpperCase() ??
+                    activeSubject.name.toUpperCase())}
               </p>
-              <h4 style={{ fontSize: 18, fontWeight: 800, color: C.white, margin: '6px 0 4px' }}>
+              <h4
+                style={{
+                  fontSize: 18,
+                  fontWeight: 800,
+                  color: C.white,
+                  margin: '6px 0 4px',
+                }}
+              >
                 {activeTopicCount} Topik Tersedia
               </h4>
-              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', margin: 0, lineHeight: 1.5 }}>
+              <p
+                style={{
+                  fontSize: 12,
+                  color: 'rgba(255,255,255,0.75)',
+                  margin: 0,
+                  lineHeight: 1.5,
+                }}
+              >
                 Modul pembelajaran untuk {childName} di {activeSubject.name}.
               </p>
             </div>
@@ -519,17 +645,34 @@ export default function ModulBelajar(props: ModulBelajarProps) {
       >
         {/* Header */}
         <div style={{ marginBottom: 24 }}>
-          <h3 style={{ fontSize: 20, fontWeight: 800, color: C.slate900, margin: 0, letterSpacing: '-0.01em' }}>
+          <h3
+            style={{
+              fontSize: 20,
+              fontWeight: 800,
+              color: C.slate900,
+              margin: 0,
+              letterSpacing: '-0.01em',
+            }}
+          >
             Detail Topik & Pilih Bahasan Materi
           </h3>
           <p style={{ fontSize: 13, color: C.slate400, margin: '6px 0 0' }}>
-            Atur aktivitas belajar yang akan ditampilkan pada dasbor siswa {childName}.
+            Atur aktivitas belajar yang akan ditampilkan pada dasbor siswa{' '}
+            {childName}.
           </p>
         </div>
 
         {/* Mata Pelajaran dropdown */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: C.slate600, display: 'block', marginBottom: 6 }}>
+          <label
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: C.slate600,
+              display: 'block',
+              marginBottom: 6,
+            }}
+          >
             Mata Pelajaran
           </label>
           <select
@@ -550,14 +693,24 @@ export default function ModulBelajar(props: ModulBelajarProps) {
             }}
           >
             {subjectsWithModules.map((s) => (
-              <option key={s.id} value={s.id}>{s.icon} {s.name}</option>
+              <option key={s.id} value={s.id}>
+                {s.icon} {s.name}
+              </option>
             ))}
           </select>
         </div>
 
         {/* Topik dropdown */}
         <div style={{ marginBottom: 24 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: C.slate600, display: 'block', marginBottom: 6 }}>
+          <label
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: C.slate600,
+              display: 'block',
+              marginBottom: 6,
+            }}
+          >
             Topik
           </label>
           <select
@@ -577,20 +730,48 @@ export default function ModulBelajar(props: ModulBelajarProps) {
               fontFamily: FF,
             }}
           >
-            {activeSubjectModules.length === 0 && <option value="">Tidak ada topik</option>}
+            {activeSubjectModules.length === 0 && (
+              <option value=''>Tidak ada topik</option>
+            )}
             {activeSubjectModules.map((m) => (
-              <option key={m.id} value={m.id}>{m.title}</option>
+              <option key={m.id} value={m.id}>
+                {m.title}
+              </option>
             ))}
           </select>
         </div>
 
         {/* Pilih Bahasan header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h4 style={{ fontSize: 16, fontWeight: 800, color: C.slate900, margin: 0 }}>Pilih Bahasan</h4>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 16,
+          }}
+        >
+          <h4
+            style={{
+              fontSize: 16,
+              fontWeight: 800,
+              color: C.slate900,
+              margin: 0,
+            }}
+          >
+            Pilih Bahasan
+          </h4>
           {topicFrames.length > 0 && (
             <button
               onClick={deselectAll}
-              style={{ fontSize: 12, fontWeight: 600, color: C.brand600, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: C.brand600,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+              }}
             >
               Batalkan Semua
             </button>
@@ -600,12 +781,28 @@ export default function ModulBelajar(props: ModulBelajarProps) {
         {/* Frame list */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {topicLoading ? (
-            <div style={{ padding: 30, textAlign: 'center', color: C.slate400, fontSize: 13 }}>
+            <div
+              style={{
+                padding: 30,
+                textAlign: 'center',
+                color: C.slate400,
+                fontSize: 13,
+              }}
+            >
               Memuat panel...
             </div>
           ) : topicFrames.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: C.slate400, fontSize: 14 }}>
-              {selectedTopicId ? 'Tidak ada panel untuk topik ini.' : 'Pilih topik untuk melihat bahasan materi.'}
+            <div
+              style={{
+                padding: 40,
+                textAlign: 'center',
+                color: C.slate400,
+                fontSize: 14,
+              }}
+            >
+              {selectedTopicId
+                ? 'Tidak ada panel untuk topik ini.'
+                : 'Pilih topik untuk melihat bahasan materi.'}
             </div>
           ) : (
             topicFrames.map((frame) => {
@@ -620,10 +817,17 @@ export default function ModulBelajar(props: ModulBelajarProps) {
                     gap: 12,
                     padding: '13px 14px',
                     borderRadius: 10,
-                    backgroundColor: isChecked ? C.brand50 + '80' : isHovered ? C.brand50 + '40' : 'transparent',
+                    backgroundColor: isChecked
+                      ? C.brand50 + '80'
+                      : isHovered
+                        ? C.brand50 + '40'
+                        : 'transparent',
                     cursor: 'pointer',
-                    transition: 'background-color 0.15s, box-shadow 0.15s, transform 0.15s',
-                    boxShadow: isHovered ? '0 1px 4px rgba(91,77,255,0.08)' : 'none',
+                    transition:
+                      'background-color 0.15s, box-shadow 0.15s, transform 0.15s',
+                    boxShadow: isHovered
+                      ? '0 1px 4px rgba(91,77,255,0.08)'
+                      : 'none',
                     transform: isHovered ? 'translateY(-1px)' : 'none',
                   }}
                   onMouseEnter={() => setHoveredFrameId(frame.id)}
@@ -653,30 +857,61 @@ export default function ModulBelajar(props: ModulBelajarProps) {
                     }}
                   >
                     {isChecked && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 6L9 17l-5-5" />
+                      <svg
+                        width='14'
+                        height='14'
+                        viewBox='0 0 24 24'
+                        fill='none'
+                        stroke='white'
+                        strokeWidth='3'
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                      >
+                        <path d='M20 6L9 17l-5-5' />
                       </svg>
                     )}
                   </div>
-                  <span style={{ fontSize: 18, flexShrink: 0 }}>{KIND_ICON[frame.kind] ?? '📄'}</span>
-                  <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: C.slate800 }}>{frame.title}</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: C.slate400, flexShrink: 0 }}>
-                    ({BAHASAN_MAP[frame.id]?.typeLabel ?? KIND_LABEL[frame.kind] ?? frame.kind})
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>
+                    {KIND_ICON[frame.kind] ?? '📄'}
+                  </span>
+                  <span
+                    style={{
+                      flex: 1,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: C.slate800,
+                    }}
+                  >
+                    {frame.title}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: C.slate400,
+                      flexShrink: 0,
+                    }}
+                  >
+                    (
+                    {BAHASAN_MAP[frame.id]?.typeLabel ??
+                      KIND_LABEL[frame.kind] ??
+                      frame.kind}
+                    )
                   </span>
                   {/* Arrow indicator on hover */}
                   {isHovered && (
                     <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
+                      width='16'
+                      height='16'
+                      viewBox='0 0 24 24'
+                      fill='none'
                       stroke={C.brand600}
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                      strokeWidth='2.5'
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
                       style={{ flexShrink: 0, marginLeft: 4 }}
                     >
-                      <path d="M5 12h14M12 5l7 7-7 7" />
+                      <path d='M5 12h14M12 5l7 7-7 7' />
                     </svg>
                   )}
                 </div>
@@ -686,7 +921,16 @@ export default function ModulBelajar(props: ModulBelajarProps) {
         </div>
 
         {/* Footer bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, paddingTop: 16, borderTop: '1px solid ' + C.slate100 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: 20,
+            paddingTop: 16,
+            borderTop: '1px solid ' + C.slate100,
+          }}
+        >
           <span style={{ fontSize: 13, fontWeight: 600, color: C.slate400 }}>
             {selectedFrames.length} dari {topicFrames.length} panel dipilih
           </span>
@@ -725,8 +969,17 @@ export default function ModulBelajar(props: ModulBelajarProps) {
                 fontFamily: FF,
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 4v16m8-8H4" />
+              <svg
+                width='14'
+                height='14'
+                viewBox='0 0 24 24'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='2.5'
+                strokeLinecap='round'
+                strokeLinejoin='round'
+              >
+                <path d='M12 4v16m8-8H4' />
               </svg>
               Tugaskan ke {childName}
             </button>
@@ -780,7 +1033,13 @@ export default function ModulBelajar(props: ModulBelajarProps) {
               }}
             >
               {/* Close button + preview badge */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
                 <button
                   onClick={() => {
                     setPreviewFrameId(null)
@@ -801,8 +1060,17 @@ export default function ModulBelajar(props: ModulBelajarProps) {
                     fontFamily: FF,
                   }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                  <svg
+                    width='16'
+                    height='16'
+                    viewBox='0 0 24 24'
+                    fill='none'
+                    stroke='currentColor'
+                    strokeWidth='2.5'
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                  >
+                    <path d='M19 12H5M12 19l-7-7 7-7' />
                   </svg>
                   Kembali ke Pengaturan
                 </button>
@@ -850,10 +1118,19 @@ export default function ModulBelajar(props: ModulBelajarProps) {
               </div>
               {/* Title + subheading */}
               <div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: C.slate900, margin: 0 }}>
+                <h3
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 800,
+                    color: C.slate900,
+                    margin: 0,
+                  }}
+                >
                   {previewMod.title}
                 </h3>
-                <p style={{ fontSize: 13, color: C.slate400, margin: '4px 0 0' }}>
+                <p
+                  style={{ fontSize: 13, color: C.slate400, margin: '4px 0 0' }}
+                >
                   {fullModule.title} — {fullModule.subtitle}
                 </p>
               </div>

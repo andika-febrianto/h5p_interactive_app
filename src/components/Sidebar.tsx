@@ -22,12 +22,7 @@ const KIND_LABEL: Record<Frame['kind'], string> = {
 export function Sidebar({
   frames,
   moduleTitle,
-  subjectName,
-  grade,
-  semester,
-  userName,
   onJump,
-  onExit,
   userRole,
 }: {
   frames: Frame[]
@@ -37,7 +32,6 @@ export function Sidebar({
   semester?: number
   userName?: string
   onJump: (i: number) => void
-  onExit: () => void
   userRole: UserRole
 }) {
   const { results, currentIndex, furthestIndex } = useProgress()
@@ -47,15 +41,6 @@ export function Sidebar({
 
   return (
     <aside className='sidebar'>
-      <button type='button' className='sidebar-exit' onClick={onExit}>
-        ←{' '}
-        {userRole === 'PARENT'
-          ? 'Dashboard Orang Tua'
-          : userRole === 'STUDENT'
-            ? 'Dashboard Anak'
-            : 'Dashboar Guru'}
-      </button>
-
       <div className='sidebar-brand'>
         <span className='sidebar-brand-mark' aria-hidden />
         <div>
@@ -64,7 +49,7 @@ export function Sidebar({
         </div>
       </div>
 
-      <div className='sidebar-info'>
+      {/* <div className='sidebar-info'>
         {subjectName && (
           <div className='sidebar-info-row'>
             <span className='sidebar-info-label'>Mapel</span>
@@ -89,7 +74,7 @@ export function Sidebar({
             <span className='sidebar-info-value'>{userName}</span>
           </div>
         )}
-      </div>
+      </div> */}
 
       <div className='sidebar-progress'>
         <div className='sidebar-progress-track'>

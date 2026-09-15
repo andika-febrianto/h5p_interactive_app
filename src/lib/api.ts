@@ -667,6 +667,10 @@ export function upsertReadingProgress(
 }
 
 // Assignments
+export function fetchAssignment(id: string): Promise<ParentAssignment> {
+  return request(`/parent/assignments/${encodeURIComponent(id)}`)
+}
+
 export function fetchAssignments(): Promise<ParentAssignment[]> {
   return request('/parent/assignments')
 }

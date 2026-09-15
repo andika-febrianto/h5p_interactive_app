@@ -442,6 +442,48 @@ parentRouter.get(
   },
 )
 
+// GET /api/parent/assignments/:id - Validate that one assignment belongs
+// to the logged-in parent or child account before frame filtering is allowed.
+parentRouter.get('/assignments/:id', async (req, res, next) => {
+  try {
+    const auth = req.auth!
+    const { id } = req.params
+
+    const assignment = await prisma.parentAssignment.findUnique({
+      where: { id },
+      include: {
+        child: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    })
+
+    if (!assignment) {
+      res.status(404).json({ error: 'Tugas tidak ditemukan.' })
+      return
+    }
+
+    if (auth.role === 'PARENT' && assignment.parentId !== auth.userId) {
+      res.status(404).json({ error: 'Tugas tidak ditemukan.' })
+      return
+    }
+
+    if (auth.role === 'STUDENT' && assignment.childId !== auth.userId) {
+      res.status(404).json({ error: 'Tugas tidak ditemukan.' })
+      return
+    }
+
+    if (auth.role === 'TEACHER') {
+      res.status(403).json({ error: 'Hak akses tugas tidak valid.' })
+      return
+    }
+
+    res.json(assignment)
+  } catch (err) {
+    next(err)
+  }
+})
+
 // POST /api/parent/assignments - Create a new assignment
 const createAssignmentSchema = z.object({
   childId: z.string().min(1),
@@ -863,15 +905,11 @@ parentRouter.get(
       }
 
       // Parents can only see their own assignments; students see their own
-      if (
-        authRole === 'PARENT' && assignment.parentId !== authUserId
-      ) {
+      if (authRole === 'PARENT' && assignment.parentId !== authUserId) {
         res.status(403).json({ error: 'Akses ditolak.' })
         return
       }
-      if (
-        authRole === 'STUDENT' && assignment.childId !== authUserId
-      ) {
+      if (authRole === 'STUDENT' && assignment.childId !== authUserId) {
         res.status(403).json({ error: 'Akses ditolak.' })
         return
       }

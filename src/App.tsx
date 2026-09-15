@@ -126,6 +126,14 @@ export default function App() {
               </RequireRole>
             }
           />
+          <Route
+            path='/parent'
+            element={
+              <RequireRole role='PARENT'>
+                <ParentDashboard />
+              </RequireRole>
+            }
+          />
 
           {/* Child dashboard */}
           <Route
