@@ -94,7 +94,6 @@ function ModuleRunner({
         semester={mod.semester}
         userName={user?.name}
         onJump={handleJump}
-        onExit={handleExit}
         userRole={user?.role || 'TEACHER'}
       />
       <main className='app-main' style={{ padding: 0 }}>

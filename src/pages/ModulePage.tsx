@@ -24,7 +24,6 @@ import Loading from '../components/Loading'
 function ModuleRunner({
   mod,
   filteredFrames,
-  assignmentId,
 }: {
   mod: Module
   filteredFrames?: string[]
@@ -232,18 +231,6 @@ function ModuleRunner({
   const handleJump = (i: number) => setCurrentIndex(i)
   const handleRestart = () => resetProgress()
   const handleDashboardBack = () => navigate(dashboardRoute)
-  const handleExit = () => {
-    // If this is a child completing a parent assignment, go back to child dashboard
-    if (user?.role === 'STUDENT' && assignmentId) {
-      navigate('/anak')
-    } else if (user?.role === 'PARENT' && assignmentId) {
-      navigate('/orangtua')
-    } else {
-      navigate(
-        `/kelas/${mod.grade}/semester/${mod.semester}/mapel/${mod.subjectId}`,
-      )
-    }
-  }
 
   // if (loading) {
   //   return (
