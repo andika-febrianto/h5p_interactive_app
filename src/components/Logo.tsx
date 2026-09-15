@@ -1,6 +1,23 @@
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+
+const S = {
+  brandSub: {
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase' as const,
+    color: 'rgba(91,77,255,0.8)',
+    background: '#F5F3FF',
+    padding: '2px 0',
+    borderRadius: 999,
+    display: 'inline-block',
+    marginTop: 2,
+  } as React.CSSProperties,
+}
 
 const Logo = () => {
+  const { user } = useAuth()
   const navigate = useNavigate()
   return (
     <button
@@ -64,11 +81,19 @@ const Logo = () => {
             fontSize: 10,
             color: '#94a3b8',
             fontWeight: 500,
-            letterSpacing: 1.5,
+            letterSpacing: 0,
             textTransform: 'uppercase',
           }}
         >
-          Edukasi Interaktif
+          {user?.role === 'PARENT' && (
+            <span style={S.brandSub}>Mode Orang Tua / Pendamping SD</span>
+          )}
+          {user?.role === 'STUDENT' && (
+            <span style={S.brandSub}>Mode Anak</span>
+          )}
+          {user?.role !== 'PARENT' && user?.role !== 'STUDENT' && (
+            <span>Edukasi Interaktif</span>
+          )}
         </span>
       </div>
     </button>

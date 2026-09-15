@@ -22,6 +22,7 @@ import {
 } from '../../lib/api'
 import { getSubjectById } from '../../data/subjects'
 import './ChildDashboard.css'
+import Logo from '../../components/Logo'
 
 type SideTab =
   | 'home'
@@ -63,10 +64,27 @@ export default function ChildDashboard() {
   const [notifOpen, setNotifOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
-  const bellRef = useRef<HTMLDivElement>(null)
+  const bellRef = useRef<HTMLDivElement | null>(null)
 
   //Profile Dropdown
   const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const profileRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!isProfileOpen) return
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
+        setIsProfileOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [isProfileOpen])
 
   // ── Data Loading ──
 
@@ -402,70 +420,7 @@ export default function ChildDashboard() {
           }}
         >
           {/* Brand Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 16,
-                background: '#5850EC',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                boxShadow: '0 4px 12px rgba(88,80,236,0.25)',
-              }}
-            >
-              <svg
-                style={{ width: 24, height: 24 }}
-                fill='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path d='M12 4.5C7.5 4.5 3.5 6 1.5 7.5v11.25C3.5 17.25 7.5 16 12 16s8.5 1.25 10.5 2.75V7.5C20.5 6 16.5 4.5 12 4.5zm0 9.75c-3.75 0-7.25 1-8.75 1.875V8.625C4.75 7.75 8.25 6.75 12 6.75s7.25 1 8.75 1.875v7.5C19.25 15.25 15.75 14.25 12 14.25z' />
-              </svg>
-            </div>
-            <div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  lineHeight: 1,
-                }}
-              >
-                <span
-                  style={{
-                    fontWeight: 800,
-                    fontSize: 20,
-                    letterSpacing: '-0.02em',
-                    color: '#0f172a',
-                  }}
-                >
-                  Perpustakaan
-                </span>
-                <span
-                  style={{
-                    fontWeight: 800,
-                    fontSize: 20,
-                    letterSpacing: '-0.02em',
-                    color: '#5850EC',
-                  }}
-                >
-                  Belajar
-                </span>
-              </div>
-              <p
-                style={{
-                  fontSize: 11,
-                  fontWeight: 500,
-                  color: '#94a3b8',
-                  marginTop: 2,
-                }}
-              >
-                Petualangan Belajarmu 🚀
-              </p>
-            </div>
-          </div>
+          <Logo />
 
           {/* Right side: Streak + Points + Level + Bell + Profile */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -639,6 +594,7 @@ export default function ChildDashboard() {
 
             {/* Profile Dropdown */}
             <div
+              ref={profileRef}
               style={{
                 position: 'relative',
                 display: 'flex',
@@ -1915,7 +1871,14 @@ export default function ChildDashboard() {
           {/* ═══ MISSIONS TAB ═══ */}
           {sideTab === 'missions' && (
             <div>
-              <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', margin: '0 0 4px' }}>
+              <h1
+                style={{
+                  fontSize: 28,
+                  fontWeight: 800,
+                  letterSpacing: '-0.02em',
+                  margin: '0 0 4px',
+                }}
+              >
                 🚀 Misi Belajar
               </h1>
               <p style={{ fontSize: 14, color: '#64748b', marginBottom: 20 }}>
@@ -2261,7 +2224,14 @@ export default function ChildDashboard() {
           {/* ═══ MODULES ═══ */}
           {sideTab === 'modules' && (
             <div>
-              <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', margin: '0 0 4px' }}>
+              <h1
+                style={{
+                  fontSize: 28,
+                  fontWeight: 800,
+                  letterSpacing: '-0.02em',
+                  margin: '0 0 4px',
+                }}
+              >
                 📚 Modul Pelajaran
               </h1>
               <p style={{ fontSize: 14, color: '#64748b', marginBottom: 20 }}>
@@ -2362,7 +2332,14 @@ export default function ChildDashboard() {
           {/* ═══ REPORTS ═══ */}
           {sideTab === 'reports' && (
             <div>
-              <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', margin: '0 0 4px' }}>
+              <h1
+                style={{
+                  fontSize: 28,
+                  fontWeight: 800,
+                  letterSpacing: '-0.02em',
+                  margin: '0 0 4px',
+                }}
+              >
                 📊 Rapor Belajar
               </h1>
               <p style={{ fontSize: 14, color: '#64748b', marginBottom: 20 }}>
@@ -2454,7 +2431,14 @@ export default function ChildDashboard() {
           {/* ═══ PROFILE ═══ */}
           {sideTab === 'profile' && (
             <div>
-              <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', margin: '0 0 20px' }}>
+              <h1
+                style={{
+                  fontSize: 28,
+                  fontWeight: 800,
+                  letterSpacing: '-0.02em',
+                  margin: '0 0 20px',
+                }}
+              >
                 👤 Profil Saya
               </h1>
               <div

@@ -42,6 +42,7 @@ import { grades, semesters } from '../../data/grades'
 import ModulBelajar from './ModulBelajar'
 import LaporanRapor from './LaporanRapor'
 import JadwalTugas from './JadwalTugas'
+import Logo from '../../components/Logo'
 
 const KIND_ICON: Record<string, string> = {
   text: '📄',
@@ -1609,7 +1610,7 @@ export default function ParentDashboard() {
       {/* ── HEADER ── */}
       <header style={S.header}>
         <div style={S.headerInner}>
-          <div style={S.brandArea}>
+          {/* <div style={S.brandArea}>
             <div style={S.brandIcon}>
               <svg
                 width='24'
@@ -1626,8 +1627,8 @@ export default function ParentDashboard() {
               </div>
               <span style={S.brandSub}>Mode Orang Tua / Pendamping SD</span>
             </div>
-          </div>
-
+          </div> */}
+          <Logo />
           <nav style={S.tabs}>
             {tabs.map((t) => (
               <button
@@ -2028,7 +2029,8 @@ export default function ParentDashboard() {
                       color: '#94a3b8',
                     }}
                   >
-                    Kelas {user?.grade ?? 4} SD
+                    {/* Kelas {user?.grade ?? 4} SD */}
+                    {user?.role} * PENDAMPING SD
                   </span>
                 </div>
 
@@ -2098,7 +2100,7 @@ export default function ParentDashboard() {
                         marginTop: 2,
                       }}
                     >
-                      Kelas {user?.grade ?? 4} SD
+                      {user?.role} * PENDAMPING SD
                     </div>
                   </div>
 
